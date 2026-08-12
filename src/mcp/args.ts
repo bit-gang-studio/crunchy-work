@@ -40,6 +40,28 @@ export function optionalNumber(args: Args, key: string): number | undefined {
   return value
 }
 
+/**
+ * A "done when…" checklist.
+ *
+ * Accepts either plain strings or `{text, done}` objects, because those are the
+ * two things a model naturally sends: bare lines when drafting a card, objects
+ * when ticking one off later. Being permissive here costs nothing and saves a
+ * retry.
+ */
+export function optionalCriteria(args: Args, key: string): { text: string; done: boolean }[] | undefined {
+  const value = args[key]
+  if (value === undefined || value === null) return undefined
+  if (!Array.isArray(value)) throw new ValidationError(`"${key}" must be a list`)
+
+  return value.map((item) => {
+    if (typeof item === 'string') return { text: item, done: false }
+    if (item && typeof item === 'object' && typeof (item as { text?: unknown }).text === 'string') {
+      return { text: (item as { text: string }).text, done: (item as { done?: unknown }).done === true }
+    }
+    throw new ValidationError(`"${key}" items must be a string or {text, done}`)
+  })
+}
+
 export function optionalStringArray(args: Args, key: string): string[] {
   const value = args[key]
   if (value === undefined || value === null) return []

@@ -1,5 +1,6 @@
 import type { Services } from '../services/index.js'
-import type { Card, Column, Doc, Project } from '../db/schema.js'
+import type { Column, Doc, Project } from '../db/schema.js'
+import type { Card } from '../shared/types.js'
 
 /**
  * Name resolution — the single most important ergonomic decision in the tool

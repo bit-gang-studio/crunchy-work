@@ -29,6 +29,8 @@ const card = (id: string, rank: string, columnId: string, title = id): Card => (
   rank,
   completed: false,
   dueAt: null,
+  acceptanceCriteria: [],
+  size: null,
   createdAt: '2026-08-01T00:00:00.000Z',
   updatedAt: '2026-08-01T00:00:00.000Z',
 })

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Card } from '../../shared/types'
+import { SIZES, type Card, type Size } from '../../shared/types'
 import { api } from '../lib/api'
 import { normalizeCardTitle } from '../lib/title'
 import { useDebouncedSave } from '../lib/useDebouncedSave'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { CompleteToggle } from './CompleteToggle'
 import { ConfirmButton } from './ConfirmButton'
+import { AcceptanceCriteria } from './AcceptanceCriteria'
 
 /**
  * The card detail panel.
@@ -137,15 +138,39 @@ export function CardDetail({
               />
             </div>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-neutral-500">Due date</span>
-              <input
-                type="date"
-                value={card.dueAt ?? ''}
-                onChange={(e) => void commit({ dueAt: e.target.value || null })}
-                className="w-44 rounded-md border border-neutral-300 px-2 py-1.5 text-sm focus:border-neutral-500 focus:outline-none"
-              />
-            </label>
+            <div className="flex flex-wrap gap-5">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-neutral-500">Due date</span>
+                <input
+                  type="date"
+                  value={card.dueAt ?? ''}
+                  onChange={(e) => void commit({ dueAt: e.target.value || null })}
+                  className="w-44 rounded-md border border-neutral-300 px-2 py-1.5 text-sm focus:border-neutral-500 focus:outline-none"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-neutral-500">Size</span>
+                <select
+                  value={card.size ?? ''}
+                  onChange={(e) => void commit({ size: (e.target.value || null) as Size | null })}
+                  className="w-28 rounded-md border border-neutral-300 px-2 py-1.5 text-sm focus:border-neutral-500 focus:outline-none"
+                >
+                  {/* Unsized is the normal state, so it leads. */}
+                  <option value="">—</option>
+                  {SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <AcceptanceCriteria
+              criteria={card.acceptanceCriteria}
+              onChange={(next) => void commit({ acceptanceCriteria: next })}
+            />
 
             <label className="flex flex-1 flex-col gap-1">
               <span className="text-xs font-medium text-neutral-500">Description</span>

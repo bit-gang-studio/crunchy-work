@@ -56,6 +56,17 @@ export const cards = sqliteTable(
     completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
     /** ISO date (`YYYY-MM-DD`) or date-time. Null means unscheduled. */
     dueAt: text('due_at'),
+    /**
+     * A "done when…" checklist, stored as a JSON array of `{text, done}`.
+     *
+     * JSON in a text column rather than its own table: criteria are only ever
+     * read and written as a whole list belonging to one card, never queried
+     * across cards, so a table would buy joins and ordering we would never use.
+     * The service layer owns the parse/serialise so nothing else sees a string.
+     */
+    acceptanceCriteria: text('acceptance_criteria').notNull().default('[]'),
+    /** Rough effort: XS–XL. Null means unsized, which is the normal state. */
+    size: text('size'),
     ...timestamps,
   },
   (t) => [index('cards_column_idx').on(t.columnId, t.rank)],

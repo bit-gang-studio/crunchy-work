@@ -206,12 +206,33 @@ function CardView({
           {card.title}
         </p>
       </div>
-      {card.dueAt && (
+      {(card.dueAt || card.size || card.acceptanceCriteria.length > 0) && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          <DueBadge dueAt={card.dueAt} completed={card.completed} />
+          {card.dueAt && <DueBadge dueAt={card.dueAt} completed={card.completed} />}
+          {card.size && (
+            <span className="rounded bg-neutral-100 px-1.5 py-0.5 font-medium text-neutral-600">
+              {card.size}
+            </span>
+          )}
+          {/* Only the tally on the face — the lines live in the card detail. */}
+          {card.acceptanceCriteria.length > 0 && <CriteriaBadge criteria={card.acceptanceCriteria} />}
         </div>
       )}
     </div>
+  )
+}
+
+/** All criteria met reads as a quiet success; anything else is just a count. */
+function CriteriaBadge({ criteria }: { criteria: { done: boolean }[] }) {
+  const met = criteria.filter((c) => c.done).length
+  const all = met === criteria.length
+  return (
+    <span
+      title="Acceptance criteria"
+      className={`rounded px-1.5 py-0.5 ${all ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-neutral-600'}`}
+    >
+      ✓ {met}/{criteria.length}
+    </span>
   )
 }
 

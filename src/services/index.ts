@@ -15,7 +15,7 @@ export function createServices(store: Store) {
   const columns = columnsService(store)
   const cards = cardsService(store)
   const docs = docsService(store)
-  const board = boardService(store, { projects, columns, docs })
+  const board = boardService(store, { projects, columns, docs, cards })
   return { projects, columns, cards, docs, board }
 }
 

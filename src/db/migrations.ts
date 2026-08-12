@@ -70,4 +70,11 @@ export const migrations: Migration[] = [
       CREATE INDEX docs_project_idx ON docs(project_id, rank);
     `,
   },
+  {
+    id: '0003_acceptance_and_size',
+    sql: `
+      ALTER TABLE cards ADD COLUMN acceptance_criteria TEXT NOT NULL DEFAULT '[]';
+      ALTER TABLE cards ADD COLUMN size TEXT;
+    `,
+  },
 ]

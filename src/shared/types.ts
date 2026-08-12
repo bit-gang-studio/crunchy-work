@@ -22,6 +22,16 @@ export interface ProjectSummary extends Project {
   docCount: number
 }
 
+/** One line of a card's "done when…" checklist. */
+export interface AcceptanceCriterion {
+  text: string
+  done: boolean
+}
+
+/** Rough effort. Deliberately a gut-feel scale, not hours. */
+export const SIZES = ['XS', 'S', 'M', 'L', 'XL'] as const
+export type Size = (typeof SIZES)[number]
+
 export interface Card {
   id: string
   columnId: string
@@ -30,6 +40,14 @@ export interface Card {
   rank: string
   completed: boolean
   dueAt: string | null
+  /**
+   * What "done" means for this card. Advisory — ticking every line does not
+   * complete the card, and completing the card does not tick the lines. They
+   * answer different questions: "is the work finished?" versus "did we agree
+   * what finished meant?".
+   */
+  acceptanceCriteria: AcceptanceCriterion[]
+  size: Size | null
   createdAt: string
   updatedAt: string
 }

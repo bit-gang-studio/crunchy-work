@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { Services } from '../services/index.js'
+import type { AcceptanceCriterion, Size } from '../shared/types.js'
 import { NotFoundError, ValidationError } from '../services/index.js'
 
 /** Tolerate an absent or empty body so `PATCH` with no fields isn't a 500. */
@@ -70,7 +71,13 @@ export function createRoutes(services: Services): Hono {
 
   // ── cards ───────────────────────────────────────────────────────────────
   api.post('/columns/:id/cards', async (c) => {
-    const input = await body<{ title: string; description?: string; dueAt?: string | null }>(c)
+    const input = await body<{
+      title: string
+      description?: string
+      dueAt?: string | null
+      acceptanceCriteria?: AcceptanceCriterion[]
+      size?: Size | null
+    }>(c)
     return c.json(await services.cards.create(c.req.param('id'), input), 201)
   })
 
@@ -82,6 +89,8 @@ export function createRoutes(services: Services): Hono {
       description?: string
       dueAt?: string | null
       completed?: boolean
+      acceptanceCriteria?: AcceptanceCriterion[]
+      size?: Size | null
     }>(c)
     return c.json(await services.cards.update(c.req.param('id'), patch))
   })

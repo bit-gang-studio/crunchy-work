@@ -1,12 +1,25 @@
 import type { Services } from '../services/index.js'
+import { SIZES, type Size } from '../shared/types.js'
+import { ValidationError } from '../services/errors.js'
 import {
   optionalBoolean,
+  optionalCriteria,
   optionalNumber,
   optionalString,
   optionalStringArray,
   requireString,
   type Args,
 } from './args.js'
+
+/** An empty string clears the size, which is how a model asks to unset one. */
+function optionalSize(args: Args): Size | null {
+  const value = optionalString(args, 'size')
+  if (value === undefined) return null
+  if (value === '') return null
+  const upper = value.toUpperCase() as Size
+  if (!SIZES.includes(upper)) throw new ValidationError(`size must be one of ${SIZES.join(', ')}`)
+  return upper
+}
 import { renderBoard, renderCard, renderProjects } from './format.js'
 import { resolveCard, resolveColumn, resolveDoc, resolveProject } from './resolve.js'
 
@@ -39,6 +52,20 @@ function schema(properties: Record<string, unknown>, required: string[] = []) {
 
 /** Every tool that works inside a project takes it by name. */
 const PROJECT = { project: field('Project name.') }
+
+/** Shared by add_card and update_card so the two can't describe them differently. */
+const CARD_EXTRAS = {
+  size: { type: 'string', enum: [...SIZES], description: 'Rough effort.' },
+  criteria: {
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: { text: { type: 'string' }, done: { type: 'boolean' } },
+      required: ['text'],
+    },
+    description: '"Done when" checklist. Send the whole list; it replaces the previous one.',
+  },
+}
 
 export const tools: Tool[] = [
   {
@@ -99,6 +126,7 @@ export const tools: Tool[] = [
         title: field(),
         description: field(),
         due: field('Due date, YYYY-MM-DD.'),
+        ...CARD_EXTRAS,
       },
       ['project', 'column', 'title'],
     ),
@@ -109,6 +137,8 @@ export const tools: Tool[] = [
         title: requireString(args, 'title'),
         description: optionalString(args, 'description'),
         dueAt: optionalString(args, 'due') ?? null,
+        acceptanceCriteria: optionalCriteria(args, 'criteria'),
+        size: optionalSize(args),
       })
       return `Added "${card.title}" to ${column.name}.`
     },
@@ -140,6 +170,7 @@ export const tools: Tool[] = [
         description: field(),
         due: field('Due date YYYY-MM-DD, or empty string to clear.'),
         completed: { type: 'boolean' },
+        ...CARD_EXTRAS,
       },
       ['project', 'card'],
     ),
@@ -152,6 +183,8 @@ export const tools: Tool[] = [
         description: optionalString(args, 'description'),
         dueAt: due === undefined ? undefined : due === '' ? null : due,
         completed: optionalBoolean(args, 'completed'),
+        acceptanceCriteria: optionalCriteria(args, 'criteria'),
+        size: args.size === undefined ? undefined : optionalSize(args),
       })
       return `Updated "${updated.title}".`
     },

@@ -1,6 +1,5 @@
 import type { Board } from '../services/board.js'
-import type { Card } from '../db/schema.js'
-import type { ProjectSummary } from '../shared/types.js'
+import type { Card, ProjectSummary } from '../shared/types.js'
 import { plural } from '../shared/plural.js'
 
 /**
@@ -14,7 +13,12 @@ import { plural } from '../shared/plural.js'
 
 function cardLine(card: Card): string {
   const bits = [card.completed ? '[x]' : '[ ]', card.title]
+  if (card.size) bits.push(`[${card.size}]`)
   if (card.dueAt) bits.push(`(due ${card.dueAt})`)
+  // Only the tally on the board — the lines themselves are in get_card, so a
+  // board read of thirty cards doesn't carry every checklist with it.
+  const criteria = card.acceptanceCriteria
+  if (criteria.length) bits.push(`(${criteria.filter((c) => c.done).length}/${criteria.length})`)
   return `  - ${bits.join(' ')}`
 }
 
@@ -44,11 +48,16 @@ export function renderProjects(projects: ProjectSummary[]): string {
 }
 
 export function renderCard(card: Card, columnName: string): string {
-  const lines = [
-    `${card.completed ? '[x]' : '[ ]'} ${card.title}`,
-    `column: ${columnName}`,
-  ]
+  const lines = [`${card.completed ? '[x]' : '[ ]'} ${card.title}`, `column: ${columnName}`]
+  if (card.size) lines.push(`size: ${card.size}`)
   if (card.dueAt) lines.push(`due: ${card.dueAt}`)
   if (card.description) lines.push('', card.description)
+  if (card.acceptanceCriteria.length) {
+    lines.push(
+      '',
+      'Done when:',
+      ...card.acceptanceCriteria.map((c) => `  - [${c.done ? 'x' : ' '}] ${c.text}`),
+    )
+  }
   return lines.join('\n')
 }

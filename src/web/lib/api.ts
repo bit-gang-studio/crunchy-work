@@ -1,4 +1,13 @@
-import type { Board, Card, Doc, DocSummary, Project, ProjectSummary } from '../../shared/types'
+import type {
+  AcceptanceCriterion,
+  Board,
+  Card,
+  Doc,
+  DocSummary,
+  Project,
+  ProjectSummary,
+  Size,
+} from '../../shared/types'
 
 /**
  * The HTTP client. Thin on purpose — the service layer holds the logic, and this
@@ -62,7 +71,14 @@ export const api = {
    */
   updateCard: (
     id: string,
-    patch: { title?: string; description?: string; dueAt?: string | null; completed?: boolean },
+    patch: {
+      title?: string
+      description?: string
+      dueAt?: string | null
+      completed?: boolean
+      acceptanceCriteria?: AcceptanceCriterion[]
+      size?: Size | null
+    },
     options?: { keepalive?: boolean },
   ) =>
     request<Card>(`/cards/${id}`, {

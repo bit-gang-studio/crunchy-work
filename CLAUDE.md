@@ -26,6 +26,14 @@ permissioned, copiloted or multi-view belongs on the other side of that line.
 **Scope that is deliberately absent:** workspaces · multiple boards per project · list
 view · calendar · labels · recurring tasks · roles/permissions · in-app AI chat · email.
 
+**Deliberately present, despite being Team-ish:** **acceptance criteria** and **effort
+size** on a card. Criteria earn it on the thesis — the pitch is that the plan lives
+somewhere the agent can read it, and without them an agent knows *what* the task is but not
+what finished looks like. Size is there because it is genuinely used in practice. Both were
+added knowing the cost: every field lands on `add_card` and `update_card` as more schema and
+description text, and tool-description bloat measurably degrades accuracy across the *whole*
+surface. That is the bar any further field has to clear.
+
 ## Locked decisions
 
 - **Storage is `node:sqlite`** — built into Node, so there is no native module to compile

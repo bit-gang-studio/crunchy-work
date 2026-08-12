@@ -130,6 +130,45 @@ test.describe('a new user builds a board', () => {
     await expect(modal).toHaveCount(0)
   })
 
+  test('a card carries a size and a done-when checklist', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+    await page.getByLabel('Project name').fill('Criteria project')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'Criteria project' }).click()
+
+    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.getByPlaceholder('Card title').fill('Ship the thing')
+    await page.getByPlaceholder('Card title').press('Enter')
+    await page.getByTestId('card').filter({ hasText: 'Ship the thing' }).click()
+
+    await page.getByLabel('Size').selectOption('M')
+
+    const criteria = page.getByTestId('acceptance-criteria')
+    for (const line of ['Tests pass', 'Docs updated']) {
+      await page.getByLabel('Add a criterion').fill(line)
+      await page.getByLabel('Add a criterion').press('Enter')
+      await expect(criteria).toContainText(line)
+    }
+    await criteria.getByRole('checkbox', { name: 'Tests pass' }).check()
+    await expect(criteria).toContainText('1/2')
+
+    await page.getByRole('button', { name: 'Close' }).click()
+
+    // The card face carries the size and the tally, but not the lines.
+    const card = page.getByTestId('card').filter({ hasText: 'Ship the thing' })
+    await expect(card).toContainText('M')
+    await expect(card).toContainText('1/2')
+    await expect(card).not.toContainText('Tests pass')
+
+    // All of it reached the database.
+    await page.reload()
+    await expect(page.getByTestId('card').filter({ hasText: 'Ship the thing' })).toContainText('1/2')
+    await page.getByTestId('card').filter({ hasText: 'Ship the thing' }).click()
+    await expect(page.getByLabel('Size')).toHaveValue('M')
+    await expect(page.getByTestId('acceptance-criteria')).toContainText('Docs updated')
+  })
+
   test('completion is a per-card tick, independent of the column', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: 'New project' }).click()
