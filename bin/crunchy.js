@@ -40,14 +40,32 @@ if (!hasSqlite()) {
   process.exit(result.status ?? 1)
 }
 
-// `crunchy mcp` talks JSON-RPC on stdio and never starts a server; `crunchy
-// connect` wires up agent clients and exits; anything else boots the app.
-switch (process.argv[2]) {
+const { parseArgs, HELP } = await import('../dist/cli/args.js')
+const { version } = require('../package.json')
+
+let options
+try {
+  options = parseArgs(process.argv.slice(2))
+} catch (error) {
+  console.error(`\n  ${error.message}\n`)
+  process.exit(1)
+}
+
+switch (options.command) {
+  case 'help':
+    process.stdout.write(HELP)
+    break
+  case 'version':
+    process.stdout.write(`${version}\n`)
+    break
   case 'mcp':
     await import('../dist/mcp/stdio.js')
     break
   case 'connect':
     await import('../dist/cli/run-connect.js')
+    break
+  case 'export':
+    await import('../dist/cli/run-export.js')
     break
   default:
     await import('../dist/server/boot.js')

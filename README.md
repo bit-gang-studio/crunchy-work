@@ -40,6 +40,23 @@ Crunchy is deliberately small. No workspaces, no multiple boards per project, no
 view, no calendar, no roles or permissions, no built-in AI chat. If you want those,
 they belong to [Crunchy Team](https://crunchy.team).
 
+## Commands
+
+```bash
+crunchy                 # start the app and open it in your browser
+crunchy mcp             # MCP server on stdio — no server, no port, no browser
+crunchy connect         # wire up installed agent clients
+crunchy export [dir]    # write everything out as markdown and JSON
+```
+
+Options: `--port`, `--data`, `--no-open`, `--yes`, `--help`, `--version`.
+
+## Your data is yours
+
+Everything lives in one folder (`~/.crunchy`, or wherever `--data` points).
+`crunchy export` writes it all out as readable markdown plus a complete JSON dump,
+and deleting the folder removes every trace. Leaving should be easy.
+
 ## Requirements
 
 Node 22.5 or newer. Nothing else.
