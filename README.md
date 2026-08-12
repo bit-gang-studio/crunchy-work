@@ -11,8 +11,8 @@ No account. No API key. No database to set up. Free and MIT.
 npx crunchy-work
 ```
 
-That's it — it creates a `.crunchy/` folder, opens your browser, and offers to connect
-any agent clients it finds. Or skip the UI entirely and give your agent the tools directly:
+That's it — it creates `~/.crunchy`, opens your browser, and offers to connect any agent
+clients it finds. Or skip the UI entirely and give your agent the tools directly:
 
 ```bash
 claude mcp add crunchy -- npx -y crunchy-work mcp

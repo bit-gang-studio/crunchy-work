@@ -67,8 +67,15 @@ src/server         Hono app; serves the API and the built SPA
 src/web            Vite + React 19 + Tailwind v4 SPA
 test/              Vitest
 dist/              build output: dist/server, dist/db, dist/web
-.crunchy/          runtime data (gitignored) — CRUNCHY_DATA overrides
+src/mcp            tool surface, name resolver, JSON-RPC, stdio transport
+~/.crunchy         runtime data — CRUNCHY_DATA overrides
 ```
+
+**Data lives at `~/.crunchy`, globally, not per-directory.** An agent's stdio
+server is spawned with whatever working directory its client happens to have, so
+a cwd-relative default would silently hand it a different, empty board from the
+one the user is looking at. Point `CRUNCHY_DATA` at a repo for a board that
+lives with it.
 
 One npm package, two build outputs, one process in production. `npm run dev` runs Vite on
 **4420** proxying `/api` to the Node server on **4421**; the built binary serves both from

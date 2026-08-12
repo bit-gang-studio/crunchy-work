@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import type { Store } from '../db/index.js'
 import { createServices } from '../services/index.js'
+import { handleRpc, type RpcRequest } from '../mcp/jsonrpc.js'
 import { createRoutes } from './routes.js'
 
 export interface AppOptions {
@@ -24,6 +25,22 @@ export function createApp({ store, webRoot }: AppOptions): Hono {
   })
 
   app.route('/api', createRoutes(services))
+
+  /**
+   * The HTTP transport — the same tool surface as `crunchy mcp`, for clients
+   * that talk to a URL rather than spawning a process. Stateless: no session,
+   * so any request stands alone.
+   */
+  app.post('/mcp', async (c) => {
+    let message: RpcRequest
+    try {
+      message = (await c.req.json()) as RpcRequest
+    } catch {
+      return c.json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }, 400)
+    }
+    const response = await handleRpc(services, message)
+    return response ? c.json(response) : c.body(null, 202)
+  })
 
   if (webRoot && existsSync(webRoot)) {
     // serveStatic resolves relative to the working directory, not to us.

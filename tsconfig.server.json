@@ -21,6 +21,7 @@
   "include": [
     "src/server/**/*.ts",
     "src/services/**/*.ts",
+    "src/mcp/**/*.ts",
     "src/db/**/*.ts",
     "src/shared/**/*.ts"
   ]

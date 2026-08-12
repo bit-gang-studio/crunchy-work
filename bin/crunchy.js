@@ -40,4 +40,10 @@ if (!hasSqlite()) {
   process.exit(result.status ?? 1)
 }
 
-await import('../dist/server/boot.js')
+// `crunchy mcp` talks JSON-RPC on stdio and never starts a server; anything
+// else boots the app. Two front doors, one database file.
+if (process.argv[2] === 'mcp') {
+  await import('../dist/mcp/stdio.js')
+} else {
+  await import('../dist/server/boot.js')
+}

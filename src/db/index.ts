@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { drizzle } from 'drizzle-orm/sqlite-proxy'
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy'
@@ -16,11 +17,17 @@ export interface Store {
 }
 
 /**
- * Resolve where data lives: CRUNCHY_DATA if set, else `.crunchy/` under the
- * working directory. One folder, deletable, no configuration required.
+ * Resolve where data lives: `CRUNCHY_DATA` if set, else `~/.crunchy`.
+ *
+ * The default is **global, not per-directory**, and that is deliberate. An
+ * agent's stdio server is spawned with whatever working directory its client
+ * happens to have, so a cwd-relative default would silently hand it a different
+ * (empty) board from the one the user is looking at — the most confusing
+ * failure this product could have. Projects are the organising unit here, not
+ * folders. Point `CRUNCHY_DATA` at a repo to get a board that lives with it.
  */
 export function resolveDataDir(explicit?: string): string {
-  return resolve(explicit ?? process.env.CRUNCHY_DATA ?? join(process.cwd(), '.crunchy'))
+  return resolve(explicit ?? process.env.CRUNCHY_DATA ?? join(homedir(), '.crunchy'))
 }
 
 /**
