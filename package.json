@@ -40,7 +40,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "node bin/crunchy.js",
-    "test:dnd": "playwright test -c playwright.dnd.config.ts"
+    "test:dnd": "playwright test -c playwright.dnd.config.ts",
+    "test:e2e": "node -e \"require('fs').rmSync('.crunchy-e2e',{recursive:true,force:true})\" && playwright test -c playwright.config.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

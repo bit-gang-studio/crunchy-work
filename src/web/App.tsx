@@ -21,6 +21,8 @@ export function App() {
           <Routes>
             <Route path="/" element={<ProjectsScreen />} />
             <Route path="/projects/:projectId" element={<BoardRoute />} />
+            {/* A card is a route, not component state — so it deep-links and Back closes it. */}
+            <Route path="/projects/:projectId/cards/:cardId" element={<BoardRoute />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
@@ -29,10 +31,10 @@ export function App() {
   )
 }
 
-/** The URL is the source of truth for which project is open — no in-memory "current project". */
+/** The URL is the source of truth for what's open — no in-memory "current project". */
 function BoardRoute() {
-  const { projectId } = useParams()
-  return <BoardScreen projectId={projectId!} />
+  const { projectId, cardId } = useParams()
+  return <BoardScreen projectId={projectId!} cardId={cardId} />
 }
 
 function NotFound() {

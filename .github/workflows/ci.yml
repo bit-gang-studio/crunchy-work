@@ -26,10 +26,14 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  # The drag engine is browser behaviour — collision, pointer position, preview
-  # relocation, scroll-container re-measurement — that jsdom cannot see. The unit
-  # tests cover the pure reducers; this covers the parts that actually broke.
-  dnd:
+  # Everything that needs a real browser.
+  #
+  # `test:dnd` drives the drag harness — collision, pointer position, preview
+  # relocation, scroll-container re-measurement — behaviour jsdom cannot see and
+  # that the unit tests, which cover the pure reducers, would happily miss.
+  # `test:e2e` drives the real binary end to end: built SPA, HTTP API, service
+  # layer, SQLite file. Nothing stubbed.
+  browser:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,9 +44,10 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:dnd
+      - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: dnd-traces
+          name: browser-traces
           path: test-results/
           retention-days: 7

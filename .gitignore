@@ -12,3 +12,4 @@ coverage/
 *.log
 test-results/
 playwright-report/
+.crunchy-e2e/

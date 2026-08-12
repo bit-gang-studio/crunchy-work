@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import type { Board } from '../../shared/types'
 import { api } from '../lib/api'
 import { Screen } from '../components/Screen'
 import { KanbanBoard } from '../components/KanbanBoard'
+import { CardDetail } from '../components/CardDetail'
 
-export function BoardScreen({ projectId }: { projectId: string }) {
+export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?: string }) {
+  const navigate = useNavigate()
   const [board, setBoard] = useState<Board | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -95,10 +97,17 @@ export function BoardScreen({ projectId }: { projectId: string }) {
             onMove={onMove}
             onAddCard={onAddCard}
             onToggleComplete={onToggleComplete}
-            onOpenCard={() => {}}
+            onOpenCard={(id) => navigate(`/projects/${projectId}/cards/${id}`)}
           />
         </div>
       </div>
+      {cardId && (
+        <CardDetail
+          cardId={cardId}
+          onClose={() => navigate(`/projects/${projectId}`)}
+          onChanged={() => void load()}
+        />
+      )}
     </Screen>
   )
 }
