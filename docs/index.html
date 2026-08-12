@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crunchy — Trello for AI</title>
+    <meta
+      name="description"
+      content="A kanban board and lean docs that live on your machine, which your AI agent can drive over MCP. Free, MIT, one command."
+    />
+    <meta property="og:title" content="Crunchy — Trello for AI" />
+    <meta
+      property="og:description"
+      content="A kanban board and lean docs your AI agent can drive over MCP. Free, MIT, one command."
+    />
+    <meta property="og:url" content="https://crunchy.work" />
+    <link rel="canonical" href="https://crunchy.work" />
+    <!--
+      Deliberately one self-contained file with no build step, no framework and
+      no web fonts. The product's whole claim is that it starts instantly; a
+      landing page that loads half a megabyte to say so would undercut it.
+    -->
+    <style>
+      :root {
+        --ink: #171717;
+        --muted: #525252;
+        --faint: #a3a3a3;
+        --line: #e5e5e5;
+        --bg: #fafafa;
+        --card: #ffffff;
+        --accent: #b45309;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --ink: #f5f5f5;
+          --muted: #a3a3a3;
+          --faint: #737373;
+          --line: #262626;
+          --bg: #0a0a0a;
+          --card: #141414;
+          --accent: #f59e0b;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main { max-width: 46rem; margin: 0 auto; padding: 4rem 1.25rem 6rem; }
+      h1 { font-size: clamp(2rem, 6vw, 2.75rem); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 0.75rem; }
+      .tagline { font-size: 1.15rem; color: var(--muted); margin: 0 0 2rem; max-width: 34rem; }
+      h2 { font-size: 1rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); margin: 3.5rem 0 1rem; }
+      pre {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        padding: 0.9rem 1.1rem;
+        overflow-x: auto;
+        font: 0.9rem/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        margin: 0 0 0.75rem;
+      }
+      .hint { color: var(--muted); font-size: 0.9rem; margin: 0 0 2rem; }
+      ul { padding-left: 1.1rem; margin: 0; }
+      li { margin-bottom: 0.6rem; }
+      li strong { font-weight: 600; }
+      a { color: var(--accent); text-underline-offset: 3px; }
+      footer { border-top: 1px solid var(--line); margin-top: 4rem; padding-top: 1.5rem; color: var(--faint); font-size: 0.9rem; }
+      .note {
+        border: 1px dashed var(--line);
+        border-radius: 0.6rem;
+        padding: 1rem 1.1rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+        margin-top: 2.5rem;
+      }
+      .crunch { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Crunchy<span class="crunch">.</span></h1>
+      <p class="tagline">
+        Trello for AI. A kanban board and lean docs that live on your machine, which your
+        agent can drive over MCP.
+      </p>
+
+      <pre><code>npx crunchy-work</code></pre>
+      <p class="hint">No account. No API key. No database to set up. Free and MIT.</p>
+
+      <h2>Or skip the app entirely</h2>
+      <pre><code>claude mcp add crunchy -- npx -y crunchy-work mcp</code></pre>
+      <p class="hint">
+        Your agent gets the tools straight away — no server, no port, no browser. Then open the
+        board when you feel like looking.
+      </p>
+
+      <h2>What it is</h2>
+      <ul>
+        <li><strong>Projects</strong> — each with one board and its own markdown docs</li>
+        <li><strong>A board</strong> — columns and cards, drag and drop, updating live as your agent works</li>
+        <li><strong>Docs</strong> — for the context that isn't a task</li>
+        <li><strong>MCP</strong> — every capability is a tool, so an agent can do anything you can</li>
+      </ul>
+
+      <h2>What it isn't</h2>
+      <p class="hint" style="margin-bottom: 0">
+        Deliberately small. No workspaces, no multiple boards per project, no roles or
+        permissions, no built-in AI chat. If you want those, they belong to
+        <a href="https://crunchy.team">Crunchy Team</a>.
+      </p>
+
+      <div class="note">
+        <strong>Pre-release.</strong> Crunchy isn't on npm yet — the commands above won't work
+        until it is. Watch
+        <a href="https://github.com/bit-gang-studio/crunchy-work">the repository</a> to know when
+        it lands.
+      </div>
+
+      <footer>
+        <a href="https://github.com/bit-gang-studio/crunchy-work">GitHub</a> ·
+        MIT licence ·
+        <a href="https://crunchy.team">Crunchy Team</a>
+      </footer>
+    </main>
+  </body>
+</html>
