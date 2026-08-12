@@ -3,6 +3,8 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { existsSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import type { Store } from '../db/index.js'
+import { createServices } from '../services/index.js'
+import { createRoutes } from './routes.js'
 
 export interface AppOptions {
   store: Store
@@ -12,6 +14,7 @@ export interface AppOptions {
 
 export function createApp({ store, webRoot }: AppOptions): Hono {
   const app = new Hono()
+  const services = createServices(store)
 
   app.get('/api/health', (c) => {
     const row = store.raw.prepare('SELECT value FROM meta WHERE key = ?').get('created_at') as
@@ -19,6 +22,8 @@ export function createApp({ store, webRoot }: AppOptions): Hono {
       | undefined
     return c.json({ ok: true, createdAt: row?.value ?? null })
   })
+
+  app.route('/api', createRoutes(services))
 
   if (webRoot && existsSync(webRoot)) {
     // serveStatic resolves relative to the working directory, not to us.
