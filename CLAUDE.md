@@ -49,9 +49,14 @@ view · calendar · labels · recurring tasks · roles/permissions · in-app AI 
   migration; add the next one.
 - **TypeScript is pinned to 6.0.3.** TS 7 is out but `typescript-eslint` peer-caps at
   `<6.1.0`. *Revisit when typescript-eslint supports TS 7.*
-- **Package `crunchy-work`, binary `crunchy`, repo `bit-gang-studio/crunchy`, site
+- **Package `crunchy-work`, binary `crunchy`, repo `bit-gang-studio/crunchy-work`, site
   `crunchy.work`.** The bare `crunchy` npm name is taken (an anime downloader, still
-  getting downloads), hence the hyphen on the package only.
+  getting downloads). `bit-gang-studio/crunchy` is Crunchy Team's repo and **cannot be
+  renamed casually** — its production deploy is keyless via GitHub OIDC and the AWS IAM
+  trust policy pins `repo:bit-gang-studio/crunchy:ref:refs/heads/main`
+  (`infra/lib/cicd-stack.ts`), so a rename breaks deploys until the CicdStack is
+  redeployed. Repo, package and domain all being `crunchy-work` is the coherent outcome
+  anyway.
 
 ## Structure
 
