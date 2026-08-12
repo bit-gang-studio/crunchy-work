@@ -25,8 +25,8 @@ function callMcpTool(name: string, args: Record<string, unknown>): Promise<void>
     child.stdout.on('data', (c: Buffer) => (out += c.toString()))
     child.on('error', reject)
     child.on('close', () => {
-      const failed = out.includes('"isError":true')
-      failed ? reject(new Error(`Tool reported an error: ${out}`)) : resolve()
+      if (out.includes('"isError":true')) reject(new Error(`Tool reported an error: ${out}`))
+      else resolve()
     })
 
     child.stdin.write(
