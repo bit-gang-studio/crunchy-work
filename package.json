@@ -1,0 +1,66 @@
+{
+  "name": "crunchy-work",
+  "version": "0.0.0",
+  "description": "Trello for AI — a lean kanban board and docs, on your machine, that your AI agent can drive over MCP.",
+  "keywords": [
+    "mcp",
+    "kanban",
+    "trello",
+    "project-management",
+    "ai",
+    "claude",
+    "docs"
+  ],
+  "license": "MIT",
+  "author": "bit-gang-studio",
+  "homepage": "https://crunchy.work",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bit-gang-studio/crunchy.git"
+  },
+  "type": "module",
+  "bin": {
+    "crunchy": "bin/crunchy.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "node bin/crunchy.js",
+    "build": "npm run build:server && npm run build:web",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:web": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.server.json && tsc --noEmit -p tsconfig.web.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node bin/crunchy.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.0",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.13.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "eslint": "^10.8.1",
+    "globals": "^17.10.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
+  }
+}
