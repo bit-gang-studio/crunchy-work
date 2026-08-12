@@ -52,7 +52,7 @@ export function parseArgs(argv: string[]): Options {
 }
 
 export const HELP = `
-  Crunchy — a kanban board and docs your AI agent can drive.
+  Crunchy — a kanban board and docs your coding agent can drive.
 
   Usage
     crunchy                 Start the app and open it in your browser
