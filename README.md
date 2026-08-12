@@ -1,11 +1,11 @@
 # Crunchy
 
-**Trello for AI.** A kanban board and lean docs that live on your machine, which your
-AI agent can drive over [MCP](https://modelcontextprotocol.io).
+**Trello for coding agents.** A kanban board and lean docs that live on your machine,
+which Claude Code, Cursor and the rest can drive over [MCP](https://modelcontextprotocol.io).
 
 No account. No API key. No database to set up. Free and MIT.
 
-> **Status: pre-release.** Phase 0 of 5. Not yet published to npm.
+> **Status: pre-release.** Feature-complete and tested; not yet published to npm.
 
 ```bash
 npx crunchy-work

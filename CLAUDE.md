@@ -4,8 +4,8 @@ Guidance for Claude Code (and any contributor) working in this repo.
 
 ## What this is
 
-**Crunchy** — "Trello for AI". A kanban board and lean markdown docs that run locally,
-which an AI agent drives over MCP. Free, MIT, `npx`-installable, no account and no API key.
+**Crunchy** — "Trello for coding agents". A kanban board and lean markdown docs that run
+locally, which Claude Code, Cursor and the rest drive over MCP. Free, MIT, `npx`-installable, no account and no API key.
 
 The thesis in one line: **the MCP surface *is* the product, and the web UI is a second
 client over the same service layer.** If a capability can't be expressed as a tool, it

@@ -1,12 +1,15 @@
 {
   "name": "crunchy-work",
   "version": "0.0.0",
-  "description": "Trello for AI — a lean kanban board and docs, on your machine, that your AI agent can drive over MCP.",
+  "description": "Trello for coding agents — a lean kanban board and docs, on your machine, that Claude Code, Cursor and the rest can drive over MCP.",
   "keywords": [
     "mcp",
     "kanban",
     "trello",
     "project-management",
+    "coding-agent",
+    "claude-code",
+    "cursor",
     "ai",
     "claude",
     "docs"
