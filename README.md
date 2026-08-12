@@ -18,6 +18,15 @@ clients it finds. Or skip the UI entirely and give your agent the tools directly
 claude mcp add crunchy -- npx -y crunchy-work mcp
 ```
 
+Already have clients installed? One command wires up all of them:
+
+```bash
+npx crunchy-work connect          # add --dry-run to see what it would do
+```
+
+It finds Claude Code, Claude Desktop, Cursor, VS Code and Windsurf, writes each one's
+config in its own format, and backs up anything it touches.
+
 ## What it is
 
 - **Projects** — each with one kanban board and its own markdown docs

@@ -40,10 +40,15 @@ if (!hasSqlite()) {
   process.exit(result.status ?? 1)
 }
 
-// `crunchy mcp` talks JSON-RPC on stdio and never starts a server; anything
-// else boots the app. Two front doors, one database file.
-if (process.argv[2] === 'mcp') {
-  await import('../dist/mcp/stdio.js')
-} else {
-  await import('../dist/server/boot.js')
+// `crunchy mcp` talks JSON-RPC on stdio and never starts a server; `crunchy
+// connect` wires up agent clients and exits; anything else boots the app.
+switch (process.argv[2]) {
+  case 'mcp':
+    await import('../dist/mcp/stdio.js')
+    break
+  case 'connect':
+    await import('../dist/cli/run-connect.js')
+    break
+  default:
+    await import('../dist/server/boot.js')
 }
