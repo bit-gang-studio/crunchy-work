@@ -27,6 +27,13 @@ npx crunchy-work connect          # add --dry-run to see what it would do
 It finds Claude Code, Claude Desktop, Cursor, VS Code and Windsurf, writes each one's
 config in its own format, and backs up anything it touches.
 
+## Why
+
+**Your agent forgets. Crunchy doesn't.**
+
+The board and the docs are still there next session — so the plan lives somewhere your
+agent can read it, not in a chat log you've closed.
+
 ## What it is
 
 - **Projects** — each with one kanban board and its own markdown docs
