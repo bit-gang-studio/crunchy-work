@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { openStore, resolveDataDir } from '../db/index.js'
 import { createApp } from './app.js'
+import { watchForChanges } from './events.js'
 
 const DEFAULT_PORT = 4420
 
@@ -12,7 +13,8 @@ export async function boot(): Promise<void> {
 
   // dist/server/boot.js -> dist/web
   const webRoot = join(dirname(dirname(fileURLToPath(import.meta.url))), 'web')
-  const app = createApp({ store, webRoot })
+  const changes = watchForChanges(dataDir)
+  const app = createApp({ store, webRoot, changes })
 
   const port = Number(process.env.PORT ?? DEFAULT_PORT)
   serve({ fetch: app.fetch, port }, (info) => {
@@ -24,6 +26,7 @@ export async function boot(): Promise<void> {
   })
 
   const shutdown = () => {
+    changes.close()
     store.close()
     process.exit(0)
   }

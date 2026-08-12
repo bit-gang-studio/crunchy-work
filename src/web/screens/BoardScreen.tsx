@@ -6,11 +6,13 @@ import { Screen } from '../components/Screen'
 import { KanbanBoard } from '../components/KanbanBoard'
 import { CardDetail } from '../components/CardDetail'
 import { ProjectHeader } from '../components/ProjectHeader'
+import { useLiveUpdates } from '../lib/useLiveUpdates'
 
 export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?: string }) {
   const navigate = useNavigate()
   const [board, setBoard] = useState<Board | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -23,6 +25,9 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   useEffect(() => {
     void load()
   }, [load])
+
+  // Cards appear as the agent writes them; held while a drag is in flight.
+  useLiveUpdates(() => void load(), { paused: dragging })
 
   /**
    * Moves are applied optimistically: the drag engine already resolved the exact
@@ -93,6 +98,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
             onAddCard={onAddCard}
             onToggleComplete={onToggleComplete}
             onOpenCard={(id) => navigate(`/projects/${projectId}/cards/${id}`)}
+            onDragStateChange={setDragging}
           />
         </div>
       </div>

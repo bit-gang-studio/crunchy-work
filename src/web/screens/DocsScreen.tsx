@@ -4,6 +4,7 @@ import type { Board } from '../../shared/types'
 import { api } from '../lib/api'
 import { Screen } from '../components/Screen'
 import { ProjectHeader } from '../components/ProjectHeader'
+import { useLiveUpdates } from '../lib/useLiveUpdates'
 
 /** A project's documents. The board read already carries them, so this is one call. */
 export function DocsScreen({ projectId }: { projectId: string }) {
@@ -23,6 +24,8 @@ export function DocsScreen({ projectId }: { projectId: string }) {
   useEffect(() => {
     void load()
   }, [load])
+
+  useLiveUpdates(() => void load())
 
   async function create(e: FormEvent) {
     e.preventDefault()

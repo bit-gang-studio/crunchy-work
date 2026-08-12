@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { DndContext, DragOverlay, useDroppable } from '@dnd-kit/core'
 import { SortableContext, useSortable } from '@dnd-kit/sortable'
 import type { BoardColumn as BoardColumnType, Card } from '../../shared/types'
@@ -20,6 +20,12 @@ interface KanbanBoardProps {
   onOpenCard: (cardId: string) => void
   onAddCard: (columnId: string, title: string, position?: 'top' | 'bottom') => void | Promise<void>
   onToggleComplete: (cardId: string, completed: boolean) => void | Promise<void>
+  /**
+   * Reports whether a drag is in flight. The board screen uses it to hold live
+   * updates: a refetch landing mid-drag would swap the columns the drop resolves
+   * its rank against, and the card could land somewhere the user did not aim.
+   */
+  onDragStateChange?: (dragging: boolean) => void
 }
 
 /** Wrapped in an error boundary — a drag hiccup shows a recoverable panel instead of
@@ -32,8 +38,25 @@ export function KanbanBoard(props: KanbanBoardProps) {
   )
 }
 
-function KanbanBoardInner({ columns, onMove, onOpenCard, onAddCard, onToggleComplete }: KanbanBoardProps) {
+function KanbanBoardInner({
+  columns,
+  onMove,
+  onOpenCard,
+  onAddCard,
+  onToggleComplete,
+  onDragStateChange,
+}: KanbanBoardProps) {
   const { columns: dndColumns, activeCard, dndProps } = useKanbanDnd(columns, onMove)
+
+  const dragging = activeCard !== null
+  const reported = useRef(dragging)
+  useEffect(() => {
+    if (reported.current !== dragging) {
+      reported.current = dragging
+      onDragStateChange?.(dragging)
+    }
+  }, [dragging, onDragStateChange])
+
   return (
     <DndContext {...dndProps}>
       {/* select-none: dragging cards shouldn't smear a text selection across the board. */}

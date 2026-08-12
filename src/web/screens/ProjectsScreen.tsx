@@ -3,6 +3,7 @@ import type { ProjectSummary } from '../../shared/types'
 import { api } from '../lib/api'
 import { Screen } from '../components/Screen'
 import { ProjectGrid } from '../components/ProjectGrid'
+import { useLiveUpdates } from '../lib/useLiveUpdates'
 
 /**
  * The projects screen: a grid of tiles rather than a list.
@@ -28,6 +29,8 @@ export function ProjectsScreen() {
   useEffect(() => {
     void load()
   }, [])
+
+  useLiveUpdates(() => void load())
 
   async function create(name: string) {
     await api.createProject({ name })

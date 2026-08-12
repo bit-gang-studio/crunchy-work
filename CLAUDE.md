@@ -57,6 +57,15 @@ view · calendar · labels · recurring tasks · roles/permissions · in-app AI 
   door is looking at a lossy conversion of the other. The editor is **code-split**
   (`lazy` + `Suspense`) — TipTap is ~178 kB gzipped against the app's ~97 kB, and most
   sessions never open a doc.
+- **Live updates come from watching the database file, not an event bus.** The agent that
+  makes a board interesting is usually talking to `crunchy mcp` — a *separate process*
+  writing straight to the same SQLite file. An in-process bus would never see those writes,
+  so the one demo the product is built around would be exactly the case that didn't work.
+  `src/server/events.ts` watches the data directory and nudges SSE subscribers; the payload
+  is only a nudge, never rows, so a client can't drift from server state. Live refetch is
+  **paused while a drag is in flight** — swapping the columns mid-drag would change what the
+  drop resolves its rank against. `e2e/live.spec.ts` spawns a real stdio MCP process and
+  asserts the card lands on an already-open board.
 - **Autosave flushes on `pagehide`, with `keepalive`.** The unmount flush only covers
   in-app navigation; a reload, a closed tab or a followed link tears the page down without
   React cleanup completing, and anything typed inside the debounce window is silently lost.
