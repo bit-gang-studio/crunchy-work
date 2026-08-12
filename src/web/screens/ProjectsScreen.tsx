@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import type { ProjectSummary } from '../../shared/types'
 import { api } from '../lib/api'
-import { projectColor } from '../lib/projectColor'
 import { Screen } from '../components/Screen'
+import { ProjectGrid } from '../components/ProjectGrid'
 
 /**
  * The projects screen: a grid of tiles rather than a list.
@@ -36,6 +35,21 @@ export function ProjectsScreen() {
     await load()
   }
 
+  /** Applied optimistically — a tile that snaps back for a round trip reads as a failed drag. */
+  async function reorder(projectId: string, toIndex: number) {
+    setProjects((prev) => {
+      if (!prev) return prev
+      const from = prev.findIndex((p) => p.id === projectId)
+      if (from < 0) return prev
+      const next = [...prev]
+      const [moved] = next.splice(from, 1)
+      next.splice(toIndex, 0, moved!)
+      return next
+    })
+    await api.moveProject(projectId, toIndex)
+    await load()
+  }
+
   return (
     <Screen scroll="document">
       <div className="mx-auto max-w-4xl px-4 py-8 md:px-6">
@@ -47,8 +61,7 @@ export function ProjectsScreen() {
         {projects?.length === 0 && !creating && <EmptyState onStart={() => setCreating(true)} />}
 
         {(!!projects?.length || creating) && (
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects?.map((project) => <ProjectTile key={project.id} project={project} />)}
+          <ProjectGrid projects={projects ?? []} onReorder={reorder}>
             {creating ? (
               <NewProjectTile onCreate={create} onCancel={() => setCreating(false)} />
             ) : (
@@ -61,37 +74,12 @@ export function ProjectsScreen() {
                 New project
               </button>
             )}
-          </div>
+          </ProjectGrid>
         )}
       </div>
     </Screen>
   )
 }
-
-function ProjectTile({ project }: { project: ProjectSummary }) {
-  const color = projectColor(project.name)
-  return (
-    <Link
-      to={`/projects/${project.id}`}
-      data-testid="project-tile"
-      className="flex min-h-[7.5rem] flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:border-neutral-300 hover:shadow-sm"
-    >
-      <div className="h-2 shrink-0" style={{ background: color.bar }} aria-hidden />
-      <div className="flex flex-1 flex-col p-4" style={{ background: color.tint }}>
-        <span className="font-medium">{project.name}</span>
-        {project.description && (
-          <span className="mt-1 line-clamp-2 text-sm text-neutral-600">{project.description}</span>
-        )}
-        <span className="mt-auto pt-3 text-xs text-neutral-500">
-          {count(project.cardCount, 'card')}
-          {project.docCount > 0 && ` · ${count(project.docCount, 'doc')}`}
-        </span>
-      </div>
-    </Link>
-  )
-}
-
-const count = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /** Creating in place, in the grid, so the new project appears where it will live. */
 function NewProjectTile({

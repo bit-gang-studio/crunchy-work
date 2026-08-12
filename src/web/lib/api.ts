@@ -41,6 +41,7 @@ export const api = {
   updateProject: (id: string, patch: { name?: string; description?: string }) =>
     request<Project>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteProject: (id: string) => send('DELETE', `/projects/${id}`),
+  moveProject: (id: string, index: number) => send('POST', `/projects/${id}/move`, { index }),
 
   addColumn: (projectId: string, name: string) =>
     request<unknown>(`/projects/${projectId}/columns`, { method: 'POST', body: JSON.stringify({ name }) }),

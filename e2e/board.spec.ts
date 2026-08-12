@@ -59,6 +59,77 @@ test.describe('a new user builds a board', () => {
     await expect(page.getByPlaceholder('Markdown welcome.')).toHaveValue('Cover the MCP story first.')
   })
 
+  test('projects can be dragged into a different order, and it sticks', async ({ page }) => {
+    await page.goto('/')
+    for (const name of ['Alpha', 'Beta', 'Gamma']) {
+      await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+      await page.getByLabel('Project name').fill(name)
+      await page.getByRole('button', { name: 'Create' }).click()
+      await expect(page.getByTestId('project-tile').filter({ hasText: name })).toBeVisible()
+    }
+
+    // Specs share one database within a run, so assert the relative order of
+    // this test's own projects rather than the whole list.
+    const mine = ['Alpha', 'Beta', 'Gamma']
+    const names = async () => {
+      const all = await page
+        .getByTestId('project-tile')
+        .evaluateAll((els) => els.map((el) => el.querySelector('span')?.textContent ?? ''))
+      return all.filter((n) => mine.includes(n))
+    }
+    expect(await names()).toEqual(['Alpha', 'Beta', 'Gamma'])
+
+    // Drag Gamma onto Alpha's position.
+    const tile = (name: string) => page.getByTestId('project-tile').filter({ hasText: name })
+    const gamma = (await tile('Gamma').boundingBox())!
+    const alpha = (await tile('Alpha').boundingBox())!
+    await page.mouse.move(gamma.x + gamma.width / 2, gamma.y + gamma.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(gamma.x + gamma.width / 2, gamma.y + gamma.height / 2 + 8, { steps: 3 })
+    await page.mouse.move(alpha.x + alpha.width / 2, alpha.y + alpha.height / 2, { steps: 20 })
+    await page.waitForTimeout(150)
+    await page.mouse.up()
+    await page.waitForTimeout(400)
+
+    expect(await names()).toEqual(['Gamma', 'Alpha', 'Beta'])
+
+    // A drag must not also navigate into the project it was released on.
+    await expect(page).toHaveURL(/\/$/)
+
+    // And the new order is persisted, not just local state.
+    await page.reload()
+    expect(await names()).toEqual(['Gamma', 'Alpha', 'Beta'])
+  })
+
+  test('the card detail is a centered modal over a dimmed board', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+    await page.getByLabel('Project name').fill('Modal check')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'Modal check' }).click()
+
+    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.getByPlaceholder('Card title').fill('Open me')
+    await page.getByPlaceholder('Card title').press('Enter')
+    await page.getByTestId('card').filter({ hasText: 'Open me' }).click()
+
+    const modal = page.getByTestId('card-detail')
+    await expect(modal).toBeVisible()
+    await expect(modal).toHaveAttribute('aria-modal', 'true')
+
+    // Centred rather than flush to an edge — the Trello model, not a side rail.
+    const box = (await modal.boundingBox())!
+    const viewport = page.viewportSize()!
+    const leftGap = box.x
+    const rightGap = viewport.width - (box.x + box.width)
+    expect(Math.abs(leftGap - rightGap)).toBeLessThan(8)
+    expect(leftGap).toBeGreaterThan(20)
+
+    // Clicking the dimmed backdrop closes it.
+    await page.mouse.click(10, viewport.height / 2)
+    await expect(modal).toHaveCount(0)
+  })
+
   test('completion is a per-card tick, independent of the column', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: 'New project' }).click()

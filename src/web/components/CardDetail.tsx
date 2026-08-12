@@ -75,17 +75,27 @@ export function CardDetail({
   }
 
   return (
+    /*
+     * A centered modal over a dimmed board, which is what Trello does and what
+     * Crunchy Team does — we invoke Trello by name, so arriving with Trello's
+     * interaction model should be rewarded. It also gives descriptions a
+     * comfortable reading measure, which a narrow side rail does not.
+     *
+     * Full-screen below `md`: on a phone a centered dialog is just a worse
+     * full-screen one.
+     */
     <div
-      className="fixed inset-0 z-20 flex justify-end bg-neutral-900/20"
+      className="fixed inset-0 z-20 flex items-stretch justify-center bg-neutral-900/40 md:items-start md:p-8 md:pt-16"
       onClick={onClose}
       role="presentation"
     >
       <aside
         role="dialog"
+        aria-modal="true"
         aria-label="Card detail"
         data-testid="card-detail"
         onClick={(e) => e.stopPropagation()}
-        className="flex h-full w-full flex-col overflow-y-auto bg-white shadow-xl md:w-[28rem]"
+        className="flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl md:h-auto md:max-h-full md:w-[36rem] md:rounded-xl"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-3">
           <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">Card</span>
