@@ -1,6 +1,7 @@
 import type { Board } from '../services/board.js'
 import type { Card } from '../db/schema.js'
 import type { ProjectSummary } from '../shared/types.js'
+import { plural } from '../shared/plural.js'
 
 /**
  * Tool results are rendered as compact markdown rather than JSON.
@@ -32,8 +33,6 @@ export function renderBoard(board: Board): string {
   }
   return lines.join('\n')
 }
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 export function renderProjects(projects: ProjectSummary[]): string {
   if (!projects.length) {

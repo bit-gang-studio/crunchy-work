@@ -3,6 +3,7 @@ import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sort
 import { CSS } from '@dnd-kit/utilities'
 import { Link } from 'react-router-dom'
 import type { ProjectSummary } from '../../shared/types'
+import { plural } from '../../shared/plural'
 import { projectColor } from '../lib/projectColor'
 import { suppressNextClick } from '../lib/suppressNextClick'
 
@@ -83,12 +84,10 @@ function SortableTile({ project }: { project: ProjectSummary }) {
           <span className="mt-1 line-clamp-2 text-sm text-neutral-600">{project.description}</span>
         )}
         <span className="mt-auto pt-3 text-xs text-neutral-500">
-          {count(project.cardCount, 'card')}
-          {project.docCount > 0 && ` · ${count(project.docCount, 'doc')}`}
+          {plural(project.cardCount, 'card')}
+          {project.docCount > 0 && ` · ${plural(project.docCount, 'doc')}`}
         </span>
       </div>
     </Link>
   )
 }
-
-const count = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
