@@ -1,17 +1,26 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import type { Project } from '../../shared/types'
+import type { ProjectSummary } from '../../shared/types'
 import { api } from '../lib/api'
+import { projectColor } from '../lib/projectColor'
 import { Screen } from '../components/Screen'
 
+/**
+ * The projects screen: a grid of tiles rather than a list.
+ *
+ * Trello's board list works because colour makes each board recognisable at a
+ * glance — you pattern-match instead of reading. Tiles buy that, and the colour
+ * is derived from the name so it costs no schema and no picker.
+ */
 export function ProjectsScreen() {
-  const [projects, setProjects] = useState<Project[] | null>(null)
+  const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [name, setName] = useState('')
+  const [creating, setCreating] = useState(false)
 
   async function load() {
     try {
       setProjects(await api.listProjects())
+      setError(null)
     } catch (e) {
       setError((e as Error).message)
     }
@@ -21,74 +30,137 @@ export function ProjectsScreen() {
     void load()
   }, [])
 
-  async function create(e: FormEvent) {
-    e.preventDefault()
-    if (!name.trim()) return
-    await api.createProject({ name: name.trim() })
-    setName('')
+  async function create(name: string) {
+    await api.createProject({ name })
+    setCreating(false)
     await load()
   }
 
   return (
     <Screen scroll="document">
-      <div className="mx-auto max-w-2xl px-4 py-8 md:px-6">
+      <div className="mx-auto max-w-4xl px-4 py-8 md:px-6">
         <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
 
         {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
-
         {projects === null && !error && <p className="mt-6 text-sm text-neutral-500">Loading…</p>}
 
-        {projects?.length === 0 && <EmptyState />}
+        {projects?.length === 0 && !creating && <EmptyState onStart={() => setCreating(true)} />}
 
-        {!!projects?.length && (
-          <ul className="mt-6 space-y-2">
-            {projects.map((project) => (
-              <li key={project.id}>
-                <Link
-                  to={`/projects/${project.id}`}
-                  className="block rounded-lg border border-neutral-200 bg-white p-4 hover:border-neutral-300"
-                >
-                  <span className="font-medium">{project.name}</span>
-                  {project.description && (
-                    <span className="mt-1 block text-sm text-neutral-500">{project.description}</span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+        {(!!projects?.length || creating) && (
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects?.map((project) => <ProjectTile key={project.id} project={project} />)}
+            {creating ? (
+              <NewProjectTile onCreate={create} onCancel={() => setCreating(false)} />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCreating(true)}
+                className="flex min-h-[7.5rem] flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-neutral-300 text-sm text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+              >
+                <span className="text-xl leading-none">+</span>
+                New project
+              </button>
+            )}
+          </div>
         )}
-
-        <form onSubmit={create} className="mt-6 flex gap-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="New project name"
-            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none"
-          />
-          <button type="submit" className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white">
-            Create
-          </button>
-        </form>
       </div>
     </Screen>
   )
 }
 
+function ProjectTile({ project }: { project: ProjectSummary }) {
+  const color = projectColor(project.name)
+  return (
+    <Link
+      to={`/projects/${project.id}`}
+      data-testid="project-tile"
+      className="flex min-h-[7.5rem] flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:border-neutral-300 hover:shadow-sm"
+    >
+      <div className="h-2 shrink-0" style={{ background: color.bar }} aria-hidden />
+      <div className="flex flex-1 flex-col p-4" style={{ background: color.tint }}>
+        <span className="font-medium">{project.name}</span>
+        {project.description && (
+          <span className="mt-1 line-clamp-2 text-sm text-neutral-600">{project.description}</span>
+        )}
+        <span className="mt-auto pt-3 text-xs text-neutral-500">
+          {count(project.cardCount, 'card')}
+          {project.docCount > 0 && ` · ${count(project.docCount, 'doc')}`}
+        </span>
+      </div>
+    </Link>
+  )
+}
+
+const count = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+/** Creating in place, in the grid, so the new project appears where it will live. */
+function NewProjectTile({
+  onCreate,
+  onCancel,
+}: {
+  onCreate: (name: string) => void | Promise<void>
+  onCancel: () => void
+}) {
+  const [name, setName] = useState('')
+  const busy = useRef(false)
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (!name.trim() || busy.current) return
+    busy.current = true
+    await onCreate(name.trim())
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="flex min-h-[7.5rem] flex-col rounded-xl border border-neutral-300 bg-white p-4"
+    >
+      <input
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => e.key === 'Escape' && onCancel()}
+        placeholder="Project name"
+        aria-label="Project name"
+        className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none"
+      />
+      <div className="mt-auto flex gap-2 pt-3">
+        <button type="submit" className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white">
+          Create
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-800"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
 /**
  * The highest-leverage screen in the product: where a new user lands with
- * nothing. It should teach the pitch, not just say "no projects" — so it shows
- * the exact line to paste into an agent.
+ * nothing. It teaches the pitch rather than saying "no projects" — the point of
+ * Crunchy is that you don't have to build the board yourself.
  */
-function EmptyState() {
+function EmptyState({ onStart }: { onStart: () => void }) {
   return (
-    <div className="mt-6 rounded-lg border border-dashed border-neutral-300 bg-white p-6">
+    <div className="mt-6 rounded-xl border border-dashed border-neutral-300 bg-white p-6">
       <p className="text-sm font-medium">No projects yet.</p>
-      <p className="mt-1 text-sm text-neutral-600">
-        Create one below — or let your agent do it. Paste this into Claude Code:
-      </p>
+      <p className="mt-1 text-sm text-neutral-600">Let your agent make one. Paste this into Claude Code:</p>
       <pre className="mt-3 overflow-x-auto rounded-md bg-neutral-900 px-3 py-2 text-xs text-neutral-100">
         Make me a Crunchy project for this repo and add cards for the TODOs you find.
       </pre>
+      <button
+        type="button"
+        onClick={onStart}
+        className="mt-4 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50"
+      >
+        Or create one yourself
+      </button>
     </div>
   )
 }

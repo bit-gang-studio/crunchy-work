@@ -57,6 +57,17 @@ describe('projects', () => {
     expect(view.columns.map((c) => c.name)).toEqual(['To Do', 'In Progress', 'Done'])
   })
 
+  it('lists projects with card and doc counts, without an N+1', async () => {
+    const project = await newProject()
+    const todo = (await board(project.id)).columns[0]!
+    await req('POST', `/columns/${todo.id}/cards`, { title: 'One' })
+    await req('POST', `/columns/${todo.id}/cards`, { title: 'Two' })
+    await req('POST', `/projects/${project.id}/docs`, { title: 'Notes' })
+
+    const { json } = await req('GET', '/projects')
+    expect(json[0]).toMatchObject({ name: 'Crunchy', cardCount: 2, docCount: 1 })
+  })
+
   it('rejects a blank name', async () => {
     const { status, json } = await req('POST', '/projects', { name: '   ' })
     expect(status).toBe(400)

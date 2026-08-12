@@ -46,16 +46,7 @@ export const tools: Tool[] = [
     description: 'List all projects with their card and doc counts.',
     inputSchema: schema({}),
     async run(services) {
-      const projects = await services.projects.list()
-      const counts = new Map<string, { cards: number; docs: number }>()
-      for (const project of projects) {
-        const board = await services.board.get(project.id)
-        counts.set(project.id, {
-          cards: board.columns.reduce((n, c) => n + c.cards.length, 0),
-          docs: board.docs.length,
-        })
-      }
-      return renderProjects(projects, counts)
+      return renderProjects(await services.projects.listWithCounts())
     },
   },
 

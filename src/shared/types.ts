@@ -16,6 +16,12 @@ export interface Project {
   updatedAt: string
 }
 
+/** A project plus the counts the projects screen shows on its tile. */
+export interface ProjectSummary extends Project {
+  cardCount: number
+  docCount: number
+}
+
 export interface Card {
   id: string
   columnId: string

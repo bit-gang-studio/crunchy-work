@@ -1,5 +1,6 @@
 import type { Board } from '../services/board.js'
-import type { Card, Project } from '../db/schema.js'
+import type { Card } from '../db/schema.js'
+import type { ProjectSummary } from '../shared/types.js'
 
 /**
  * Tool results are rendered as compact markdown rather than JSON.
@@ -32,18 +33,14 @@ export function renderBoard(board: Board): string {
   return lines.join('\n')
 }
 
-export function renderProjects(
-  projects: Project[],
-  counts: Map<string, { cards: number; docs: number }>,
-): string {
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+export function renderProjects(projects: ProjectSummary[]): string {
   if (!projects.length) {
     return 'No projects yet. Create one with create_project.'
   }
   return projects
-    .map((p) => {
-      const c = counts.get(p.id)
-      return `- ${p.name} — ${c?.cards ?? 0} cards, ${c?.docs ?? 0} docs`
-    })
+    .map((p) => `- ${p.name} — ${plural(p.cardCount, 'card')}, ${plural(p.docCount, 'doc')}`)
     .join('\n')
 }
 

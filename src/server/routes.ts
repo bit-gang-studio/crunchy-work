@@ -22,7 +22,7 @@ export function createRoutes(services: Services): Hono {
   })
 
   // ── projects ────────────────────────────────────────────────────────────
-  api.get('/projects', async (c) => c.json(await services.projects.list()))
+  api.get('/projects', async (c) => c.json(await services.projects.listWithCounts()))
 
   api.post('/projects', async (c) => {
     const input = await body<{ name: string; description?: string }>(c)

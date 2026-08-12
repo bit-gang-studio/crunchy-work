@@ -88,7 +88,7 @@ describe('tools', () => {
   it('lists projects with counts', async () => {
     await call('create_project', { name: 'Alpha', cards: ['One'] })
     const { text } = await call('list_projects')
-    expect(text).toBe('- Alpha — 1 cards, 0 docs')
+    expect(text).toBe('- Alpha — 1 card, 0 docs')
   })
 
   it('adds, moves and completes a card by name', async () => {

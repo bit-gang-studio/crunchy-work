@@ -1,8 +1,9 @@
-import { asc, eq, sql } from 'drizzle-orm'
+import { asc, count, eq, sql } from 'drizzle-orm'
 import type { Store } from '../db/index.js'
 import { newId } from '../db/id.js'
 import { initialRanks, rankAfter, rankForIndex } from '../shared/rank.js'
-import { columns, projects, type Project } from '../db/schema.js'
+import { cards, columns, docs, projects, type Project } from '../db/schema.js'
+import type { ProjectSummary } from '../shared/types.js'
 import { NotFoundError, ValidationError } from './errors.js'
 
 /** A new project starts usable, not empty — an empty board teaches nothing. */
@@ -15,6 +16,37 @@ export function projectsService(store: Store) {
 
   async function list(): Promise<Project[]> {
     return db.select().from(projects).orderBy(asc(projects.rank))
+  }
+
+  /**
+   * Projects with their card and doc counts, in one query.
+   *
+   * Both the projects screen (tiles show counts) and the MCP `list_projects`
+   * tool want this. Doing it with correlated subqueries keeps it a single round
+   * trip — the obvious alternative, fetching each project's board in a loop, is
+   * an N+1 that grows with the number of projects.
+   */
+  async function listWithCounts(): Promise<ProjectSummary[]> {
+    const [rows, cardCounts, docCounts] = await Promise.all([
+      db.select().from(projects).orderBy(asc(projects.rank)),
+      db
+        .select({ projectId: columns.projectId, n: count() })
+        .from(cards)
+        .innerJoin(columns, eq(cards.columnId, columns.id))
+        .groupBy(columns.projectId),
+      db.select({ projectId: docs.projectId, n: count() }).from(docs).groupBy(docs.projectId),
+    ])
+
+    const byProject = (list: { projectId: string; n: number }[]) =>
+      new Map(list.map((r) => [r.projectId, r.n]))
+    const cardsBy = byProject(cardCounts)
+    const docsBy = byProject(docCounts)
+
+    return rows.map((p) => ({
+      ...p,
+      cardCount: cardsBy.get(p.id) ?? 0,
+      docCount: docsBy.get(p.id) ?? 0,
+    }))
   }
 
   async function get(id: string): Promise<Project> {
@@ -85,7 +117,7 @@ export function projectsService(store: Store) {
     return get(id)
   }
 
-  return { list, get, create, update, remove, move }
+  return { list, listWithCounts, get, create, update, remove, move }
 }
 
 export type ProjectsService = ReturnType<typeof projectsService>

@@ -1,4 +1,4 @@
-import type { Board, Card, Doc, DocSummary, Project } from '../../shared/types'
+import type { Board, Card, Doc, DocSummary, Project, ProjectSummary } from '../../shared/types'
 
 /**
  * The HTTP client. Thin on purpose — the service layer holds the logic, and this
@@ -34,7 +34,7 @@ const send = (method: string, path: string, body?: unknown) =>
   request<never>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) })
 
 export const api = {
-  listProjects: () => request<Project[]>('/projects'),
+  listProjects: () => request<ProjectSummary[]>('/projects'),
   createProject: (input: { name: string; description?: string }) =>
     request<Project>('/projects', { method: 'POST', body: JSON.stringify(input) }),
   getBoard: (id: string) => request<Board>(`/projects/${id}`),
