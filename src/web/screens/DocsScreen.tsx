@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Board } from '../../shared/types'
 import { api } from '../lib/api'
+import { formatRelative } from '../../shared/time'
 import { Screen } from '../components/Screen'
 import { ProjectHeader } from '../components/ProjectHeader'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
@@ -79,7 +80,9 @@ export function DocsScreen({ projectId }: { projectId: string }) {
                     className="flex items-baseline justify-between gap-4 px-4 py-3 hover:bg-neutral-50"
                   >
                     <span className="font-medium">{doc.title}</span>
-                    <span className="shrink-0 text-xs text-neutral-500">{doc.updatedAt}</span>
+                    <span className="shrink-0 text-xs text-neutral-500">
+                      {formatRelative(doc.updatedAt)}
+                    </span>
                   </Link>
                 </li>
               ))}

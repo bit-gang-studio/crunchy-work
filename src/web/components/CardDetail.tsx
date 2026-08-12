@@ -5,6 +5,7 @@ import { normalizeCardTitle } from '../lib/title'
 import { useDebouncedSave } from '../lib/useDebouncedSave'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { CompleteToggle } from './CompleteToggle'
+import { ConfirmButton } from './ConfirmButton'
 
 /**
  * The card detail panel.
@@ -159,13 +160,7 @@ export function CardDetail({
             </label>
 
             <div className="mt-auto border-t border-neutral-200 pt-4">
-              <button
-                type="button"
-                onClick={() => void remove()}
-                className="rounded-md px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
-              >
-                Delete card
-              </button>
+              <ConfirmButton onConfirm={remove}>Delete card</ConfirmButton>
             </div>
           </div>
         )}

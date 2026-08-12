@@ -27,7 +27,16 @@ test.describe('docs', () => {
     await expect(page.getByLabel('Doc title', { exact: true })).toHaveValue('Architecture')
     await expect(page).toHaveURL(/\/docs\/\w+$/)
 
+    // An empty document is not a featureless void: the placeholder is also the
+    // only discoverability the markdown shortcuts have.
+    // Rendered as a CSS pseudo-element (`content: attr(data-placeholder)`), so
+    // assert the attribute the stylesheet reads rather than the text content.
     const body = page.getByTestId('doc-body')
+    await expect(body.locator('p.is-editor-empty').first()).toHaveAttribute(
+      'data-placeholder',
+      /Markdown works/,
+    )
+
     await body.click()
     await page.keyboard.type('# Storage')
     await page.keyboard.press('Enter')
@@ -78,7 +87,17 @@ test.describe('docs', () => {
     await page.getByTestId('project-tile').filter({ hasText: 'Doc lifecycle' }).click()
     await page.getByRole('link', { name: 'Docs' }).click()
     await page.getByTestId('doc-row').filter({ hasText: 'Final' }).click()
+
+    // Deleting asks first — it is the only irrecoverable action in the app.
     await page.getByRole('button', { name: 'Delete doc' }).click()
+    await expect(page.getByRole('button', { name: 'Really delete' })).toBeVisible()
+
+    // Backing out leaves the document alone.
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(page.getByLabel('Doc title', { exact: true })).toHaveValue('Final')
+
+    await page.getByRole('button', { name: 'Delete doc' }).click()
+    await page.getByRole('button', { name: 'Really delete' }).click()
 
     await expect(page.getByText('No docs yet.')).toBeVisible()
   })

@@ -1,5 +1,6 @@
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
 import { Markdown } from 'tiptap-markdown'
 import { useEffect, useRef } from 'react'
 
@@ -37,7 +38,15 @@ export function DocEditor({
   onChange: (markdown: string) => void
 }) {
   const editor = useEditor({
-    extensions: [StarterKit, Markdown.configure({ html: false, breaks: true })],
+    extensions: [
+      StarterKit,
+      Markdown.configure({ html: false, breaks: true }),
+      // The placeholder doubles as the only discoverability the markdown
+      // shortcuts have — nothing else tells you `#` and `-` do anything.
+      Placeholder.configure({
+        placeholder: 'Start writing. Markdown works — try "# " for a heading or "- " for a list.',
+      }),
+    ],
     content: initialMarkdown,
     editorProps: {
       attributes: {

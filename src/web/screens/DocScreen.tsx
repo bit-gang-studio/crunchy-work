@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 import { useDebouncedSave } from '../lib/useDebouncedSave'
 import { Screen } from '../components/Screen'
 import { ProjectHeader } from '../components/ProjectHeader'
+import { ConfirmButton } from '../components/ConfirmButton'
 /**
  * The editor is code-split. TipTap and ProseMirror are by far the heaviest
  * dependency in the app, and most sessions never open a document — making the
@@ -87,11 +88,13 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
                 </span>
               </div>
 
+              {/* A quiet but *visible* border: a field that only reveals itself on
+                  hover is undiscoverable on touch, where there is no hover. */}
               <input
                 value={doc.title}
                 onChange={(e) => edit({ title: e.target.value })}
                 aria-label="Doc title"
-                className="w-full rounded-md border border-transparent px-2 py-1 text-2xl font-semibold tracking-tight hover:border-neutral-200 focus:border-neutral-400 focus:outline-none"
+                className="w-full rounded-md border border-neutral-200 bg-white px-2 py-1 text-2xl font-semibold tracking-tight hover:border-neutral-300 focus:border-neutral-500 focus:outline-none"
               />
 
               <div className="mt-4 rounded-xl border border-neutral-200 bg-white px-4 py-3">
@@ -105,13 +108,7 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
               </div>
 
               <div className="mt-6 border-t border-neutral-200 pt-4">
-                <button
-                  type="button"
-                  onClick={() => void remove()}
-                  className="rounded-md px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
-                >
-                  Delete doc
-                </button>
+                <ConfirmButton onConfirm={remove}>Delete doc</ConfirmButton>
               </div>
             </>
           )}
