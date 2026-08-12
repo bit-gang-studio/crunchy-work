@@ -92,8 +92,8 @@ export function createRoutes(services: Services): Hono {
   })
 
   api.post('/cards/:id/move', async (c) => {
-    const to = await body<{ columnId?: string; index: number }>(c)
-    return c.json(await services.cards.move(c.req.param('id'), { ...to, index: to.index ?? 0 }))
+    const to = await body<{ columnId?: string; index?: number; rank?: string }>(c)
+    return c.json(await services.cards.move(c.req.param('id'), to))
   })
 
   // ── docs ────────────────────────────────────────────────────────────────

@@ -1,30 +1,47 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Link, Route, Routes, useParams } from 'react-router-dom'
+import { ProjectsScreen } from './screens/ProjectsScreen'
+import { BoardScreen } from './screens/BoardScreen'
 
-interface Health {
-  ok: boolean
-  createdAt: string | null
+/**
+ * The shell is a fixed-height flex column: header as fixed chrome, and one
+ * `min-h-0 flex-1` content region that every screen fills. Screens declare how
+ * they use that height with `<Screen scroll="document|canvas">` — the board is a
+ * canvas whose columns scroll independently, so the page itself must not scroll.
+ */
+export function App() {
+  return (
+    <BrowserRouter>
+      <div className="flex h-screen flex-col overflow-hidden bg-neutral-50 text-neutral-900">
+        <header className="flex shrink-0 items-center gap-3 border-b border-neutral-200 bg-white px-4 py-3 md:px-6">
+          <Link to="/" className="text-sm font-semibold tracking-tight">
+            Crunchy
+          </Link>
+        </header>
+        <main className="min-h-0 flex-1">
+          <Routes>
+            <Route path="/" element={<ProjectsScreen />} />
+            <Route path="/projects/:projectId" element={<BoardRoute />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+      </div>
+    </BrowserRouter>
+  )
 }
 
-export function App() {
-  const [health, setHealth] = useState<Health | null>(null)
-  const [error, setError] = useState<string | null>(null)
+/** The URL is the source of truth for which project is open — no in-memory "current project". */
+function BoardRoute() {
+  const { projectId } = useParams()
+  return <BoardScreen projectId={projectId!} />
+}
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then(setHealth)
-      .catch((e: Error) => setError(e.message))
-  }, [])
-
+function NotFound() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 px-6">
-      <h1 className="text-3xl font-semibold tracking-tight">Crunchy</h1>
-      <p className="text-neutral-600">
-        A lean kanban board and docs, on your machine, that your AI agent can drive.
-      </p>
-      <p className="text-sm text-neutral-500">
-        {error ? `API unreachable: ${error}` : health ? `Connected — store created ${health.createdAt}` : 'Connecting…'}
-      </p>
-    </main>
+    <div className="mx-auto max-w-2xl px-6 py-12 text-sm text-neutral-600">
+      <p>Nothing here.</p>
+      <Link to="/" className="mt-2 inline-block underline">
+        Back to projects
+      </Link>
+    </div>
   )
 }

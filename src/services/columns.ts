@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm'
 import type { Store } from '../db/index.js'
 import { newId } from '../db/id.js'
-import { rankAfter, rankForIndex } from '../db/rank.js'
+import { rankAfter, rankForIndex } from '../shared/rank.js'
 import { columns, projects, type Column } from '../db/schema.js'
 import { NotFoundError, ValidationError } from './errors.js'
 

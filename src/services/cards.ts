@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm'
 import type { Store } from '../db/index.js'
 import { newId } from '../db/id.js'
-import { rankAfter, rankForIndex } from '../db/rank.js'
+import { rankAfter, rankForIndex } from '../shared/rank.js'
 import { cards, columns, type Card } from '../db/schema.js'
 import { NotFoundError, ValidationError } from './errors.js'
 
@@ -78,25 +78,34 @@ export function cardsService(store: Store) {
   }
 
   /**
-   * Move a card within its column or into another one. `index` is the position
-   * among the cards that will be its neighbours — the card itself is excluded
-   * before the rank is computed, so moving a card to its own index is a no-op
-   * rather than a rank collision.
+   * Move a card within its column or into another one.
+   *
+   * Two ways to say where, because the two callers know different things:
+   *
+   * - `rank` — an exact fractional key. The board's drag engine resolves the
+   *   drop slot itself (its whole design is that the commit *is* the preview the
+   *   user saw), so it must be able to persist precisely that. Converting to an
+   *   index and back would round-trip through a lossy representation.
+   * - `index` — a position among the card's new neighbours. What an agent means
+   *   by "put it at the top", and what the MCP tool sends. The card is excluded
+   *   before the rank is computed, so moving it to its own index is a no-op
+   *   rather than a rank collision.
    */
-  async function move(id: string, to: { columnId?: string; index: number }): Promise<Card> {
+  async function move(id: string, to: { columnId?: string; index?: number; rank?: string }): Promise<Card> {
     const card = await get(id)
     const columnId = to.columnId ?? card.columnId
     if (columnId !== card.columnId) await requireColumn(columnId)
 
-    const neighbours = (await listForColumn(columnId)).filter((c) => c.id !== id)
-    await db
-      .update(cards)
-      .set({
-        columnId,
-        rank: rankForIndex(neighbours.map((c) => c.rank), to.index),
-        ...touch,
-      })
-      .where(eq(cards.id, id))
+    let rank = to.rank
+    if (!rank) {
+      const neighbours = (await listForColumn(columnId)).filter((c) => c.id !== id)
+      rank = rankForIndex(
+        neighbours.map((c) => c.rank),
+        to.index ?? Number.MAX_SAFE_INTEGER,
+      )
+    }
+
+    await db.update(cards).set({ columnId, rank, ...touch }).where(eq(cards.id, id))
     return get(id)
   }
 

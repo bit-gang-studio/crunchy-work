@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { newId } from '../src/db/id.js'
-import { initialRanks, rankAfter, rankBefore, rankBetween, rankForIndex } from '../src/db/rank.js'
+import { initialRanks, rankAfter, rankBefore, rankBetween, rankForIndex } from '../src/shared/rank.js'
 
 describe('ranks', () => {
   it('appends after the last key', () => {
