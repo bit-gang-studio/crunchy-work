@@ -20,6 +20,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: init?.body ? { 'content-type': 'application/json' } : undefined,
   })
+  return handle<T>(res)
+}
+
+async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const detail = await res
       .json()
@@ -51,10 +55,21 @@ export const api = {
   addCard: (columnId: string, input: { title: string; description?: string; dueAt?: string | null }) =>
     request<Card>(`/columns/${columnId}/cards`, { method: 'POST', body: JSON.stringify(input) }),
   getCard: (id: string) => request<Card>(`/cards/${id}`),
+  /**
+   * `keepalive` lets a save survive the page being torn down — the browser
+   * finishes the request after the document is gone. Used by the autosave's
+   * pagehide flush, so a reload or a closed tab never eats the last edit.
+   */
   updateCard: (
     id: string,
     patch: { title?: string; description?: string; dueAt?: string | null; completed?: boolean },
-  ) => request<Card>(`/cards/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+    options?: { keepalive?: boolean },
+  ) =>
+    request<Card>(`/cards/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+      keepalive: options?.keepalive,
+    }),
   deleteCard: (id: string) => send('DELETE', `/cards/${id}`),
   /** The drag engine resolves the exact rank for the slot the user saw, so we persist that. */
   moveCard: (id: string, to: { columnId?: string; rank?: string; index?: number }) =>
@@ -64,7 +79,11 @@ export const api = {
   getDoc: (id: string) => request<Doc>(`/docs/${id}`),
   createDoc: (projectId: string, input: { title: string; content?: string }) =>
     request<Doc>(`/projects/${projectId}/docs`, { method: 'POST', body: JSON.stringify(input) }),
-  updateDoc: (id: string, patch: { title?: string; content?: string }) =>
-    request<Doc>(`/docs/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  updateDoc: (id: string, patch: { title?: string; content?: string }, options?: { keepalive?: boolean }) =>
+    request<Doc>(`/docs/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+      keepalive: options?.keepalive,
+    }),
   deleteDoc: (id: string) => send('DELETE', `/docs/${id}`),
 }

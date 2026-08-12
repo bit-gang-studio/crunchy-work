@@ -31,9 +31,9 @@ export function CardDetail({
    * scheduling only the latest field would silently drop the earlier one.
    */
   const queued = useRef<Partial<Card>>({})
-  const save = useDebouncedSave<Partial<Card>>(async (patch) => {
+  const save = useDebouncedSave<Partial<Card>>(async (patch, options) => {
     queued.current = {}
-    await api.updateCard(cardId, patch)
+    await api.updateCard(cardId, patch, { keepalive: options?.unloading })
     onChanged()
   })
 

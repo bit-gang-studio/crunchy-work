@@ -49,6 +49,20 @@ view · calendar · labels · recurring tasks · roles/permissions · in-app AI 
   migration; add the next one.
 - **TypeScript is pinned to 6.0.3.** TS 7 is out but `typescript-eslint` peer-caps at
   `<6.1.0`. *Revisit when typescript-eslint supports TS 7.*
+- **TipTap v3, not pinned.** Crunchy Team pins TipTap to v2 because `tiptap-markdown`
+  targeted v2; that is no longer true (0.9 requires `^3.0.1`), so Team's deferred
+  "revisit when the markdown extension supports v3" is resolved upstream.
+- **Docs store markdown, not a document model.** An agent reads and writes docs over MCP
+  as plain markdown, so the editor's storage format has to be the same thing or one front
+  door is looking at a lossy conversion of the other. The editor is **code-split**
+  (`lazy` + `Suspense`) — TipTap is ~178 kB gzipped against the app's ~97 kB, and most
+  sessions never open a doc.
+- **Autosave flushes on `pagehide`, with `keepalive`.** The unmount flush only covers
+  in-app navigation; a reload, a closed tab or a followed link tears the page down without
+  React cleanup completing, and anything typed inside the debounce window is silently lost.
+  An e2e journey caught exactly that. `pagehide` (not `beforeunload` — it fires on mobile)
+  plus `fetch(..., { keepalive: true })` means the browser finishes the request after the
+  page is gone.
 - **Package `crunchy-work`, binary `crunchy`, repo `bit-gang-studio/crunchy-work`, site
   `crunchy.work`.** The bare `crunchy` npm name is taken (an anime downloader, still
   getting downloads). `bit-gang-studio/crunchy` is Crunchy Team's repo and **cannot be

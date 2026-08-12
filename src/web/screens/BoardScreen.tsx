@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 import { Screen } from '../components/Screen'
 import { KanbanBoard } from '../components/KanbanBoard'
 import { CardDetail } from '../components/CardDetail'
+import { ProjectHeader } from '../components/ProjectHeader'
 
 export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?: string }) {
   const navigate = useNavigate()
@@ -84,13 +85,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   return (
     <Screen scroll="canvas">
       <div className="flex h-full flex-col">
-        <div className="flex shrink-0 flex-wrap items-baseline gap-2 border-b border-neutral-200 bg-white px-4 py-3 md:px-6">
-          <Link to="/" className="text-xs text-neutral-500 hover:text-neutral-800">
-            Projects
-          </Link>
-          <span className="text-xs text-neutral-300">/</span>
-          <h1 className="text-sm font-semibold">{board.project.name}</h1>
-        </div>
+        <ProjectHeader projectId={projectId} name={board.project.name} />
         <div className="min-h-0 flex-1">
           <KanbanBoard
             columns={board.columns}

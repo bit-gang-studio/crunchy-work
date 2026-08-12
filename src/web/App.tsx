@@ -1,6 +1,8 @@
 import { BrowserRouter, Link, Route, Routes, useParams } from 'react-router-dom'
 import { ProjectsScreen } from './screens/ProjectsScreen'
 import { BoardScreen } from './screens/BoardScreen'
+import { DocsScreen } from './screens/DocsScreen'
+import { DocScreen } from './screens/DocScreen'
 
 /**
  * The shell is a fixed-height flex column: header as fixed chrome, and one
@@ -23,6 +25,8 @@ export function App() {
             <Route path="/projects/:projectId" element={<BoardRoute />} />
             {/* A card is a route, not component state — so it deep-links and Back closes it. */}
             <Route path="/projects/:projectId/cards/:cardId" element={<BoardRoute />} />
+            <Route path="/projects/:projectId/docs" element={<DocsRoute />} />
+            <Route path="/projects/:projectId/docs/:docId" element={<DocRoute />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
@@ -35,6 +39,16 @@ export function App() {
 function BoardRoute() {
   const { projectId, cardId } = useParams()
   return <BoardScreen projectId={projectId!} cardId={cardId} />
+}
+
+function DocsRoute() {
+  const { projectId } = useParams()
+  return <DocsScreen projectId={projectId!} />
+}
+
+function DocRoute() {
+  const { projectId, docId } = useParams()
+  return <DocScreen projectId={projectId!} docId={docId!} />
 }
 
 function NotFound() {
