@@ -88,11 +88,38 @@ One npm package, two build outputs, one process in production. `npm run dev` run
 
 ## Testing
 
-Vitest for logic; Playwright for browser journeys (from Phase 3). Ported harnesses —
-the DnD and autogrow-textarea harnesses from Crunchy Team — come with their specs.
+Vitest for logic, Playwright for the browser.
 
 **Definition of done, per phase:** units for new logic · one integration test through each
 new seam · one e2e journey per UI surface · all gates green on Node 22 **and** 24.
+
+### The drag-and-drop harness (`npm run test:dnd`)
+
+The Kanban DnD is genuinely **browser behaviour** — collision, pointer position, preview
+relocation, scroll-container re-measurement — that unit tests cannot see. `src/web/dnd-harness.html`
+mounts the real `<KanbanBoard>` over in-memory state with no server, no database and no auth,
+and mirrors each column's order into a hidden `data-testid="state"` node the specs assert
+against. It runs on **port 4424**, not 4420, so it never fights a running app server —
+`reuseExistingServer` would otherwise happily reuse whatever is on 4420 and every spec would
+404. It is absent from the production build (only `index.html` is a Vite input).
+
+Seeds: default (small, exact orders) · `?big=1` (full columns, wrapping titles, real scroll
+containers) · `?flick=1` (a short card above a much taller one).
+
+What each spec pins down, and why it exists:
+
+| Spec | The bug it guards |
+|---|---|
+| `reachability` | "Can't drop into the first position of another column" |
+| `placeholder` | The commit **is** the preview — the dashed placeholder can never lie |
+| `dnd` | The gap between cards was a dead zone that dropped everything at the bottom; a drag also opening the card; the tick starting a drag |
+| `flicker` | A held drag oscillating when two cards had different heights |
+| `loop` | React #185 — the measure→re-render→measure cascade that white-screened the board |
+| `touch` | A swipe must scroll; only a 200ms long-press picks a card up |
+
+**When a drag bug is reported, reproduce it in the harness first** — it's the fast,
+deterministic loop. Instrument `collisionDetection` with a `window.__dbg` trace and a sweep
+spec to see `over`/`after` per y. Reuse this pattern for any future draggable surface.
 
 ## Design rules that are load-bearing
 
