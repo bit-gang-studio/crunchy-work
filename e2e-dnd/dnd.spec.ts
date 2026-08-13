@@ -65,7 +65,7 @@ test.describe('drag behaviours', () => {
     await page.getByPlaceholder('Card title').press('Enter')
     await expect(page.locator('[data-card="Topper"]')).toBeVisible()
 
-    await page.locator('[data-column="todo"]').getByRole('button', { name: '+ Add card' }).click()
+    await page.locator('[data-column="todo"]').getByRole('button', { name: 'Add card', exact: true }).click()
     await page.getByPlaceholder('Card title').fill('Bottomer')
     await page.getByPlaceholder('Card title').press('Enter')
     await expect(page.locator('[data-card="Bottomer"]')).toBeVisible()

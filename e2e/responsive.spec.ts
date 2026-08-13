@@ -98,7 +98,7 @@ test.describe('at 390px', () => {
 
   test('the board scrolls its columns without the page overflowing', async ({ page }) => {
     await seed(page, 'Phone board')
-    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.locator('[data-column]').first().getByRole('button', { name: 'Add card', exact: true }).click()
     await page.getByPlaceholder('Card title').fill('A card with a fairly long title that has to wrap on a phone')
     await page.getByPlaceholder('Card title').press('Enter')
 
@@ -113,7 +113,7 @@ test.describe('at 390px', () => {
 
   test('the card detail fills the screen rather than floating', async ({ page }) => {
     await seed(page, 'Phone card')
-    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.locator('[data-column]').first().getByRole('button', { name: 'Add card', exact: true }).click()
     await page.getByPlaceholder('Card title').fill('Open on a phone')
     await page.getByPlaceholder('Card title').press('Enter')
     await page.getByTestId('card').filter({ hasText: 'Open on a phone' }).click()

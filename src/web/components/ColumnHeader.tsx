@@ -92,9 +92,18 @@ export function ColumnHeader({
      * behave as buttons, and clicking the name still renames because a plain
      * click never crosses the 5px drag threshold.
      */
+    /*
+      * Two groups, not four peers.
+      *
+      * Name, count, `+` and `⋯` all sat in one row at the same `gap-2`, so the
+      * count read as part of the name and the two controls read as part of the
+      * count. Grouping the label tightly and pushing the controls to their own
+      * cluster is the same fix the breadcrumb needed: what makes a row scan is
+      * the *difference* between the gaps, not the gaps themselves.
+      */
     <div
       {...dragHandle?.listeners}
-      className="mb-2 flex shrink-0 cursor-grab items-center gap-2 rounded-control px-1 py-0.5 hover:bg-hover-strong/70 active:cursor-grabbing"
+      className="mb-2 flex h-7 shrink-0 cursor-grab items-center rounded-control px-1 hover:bg-hover-strong/70 active:cursor-grabbing"
     >
       <button
         type="button"
@@ -105,7 +114,10 @@ export function ColumnHeader({
       >
         {column.name}
       </button>
-      <span className="shrink-0 text-xs text-ink-faint">{column.cards.length}</span>
+      {/* `tabular-nums` so a column going 9 → 10 does not shift its own name. */}
+      <span className="ml-1.5 shrink-0 text-xs tabular-nums text-ink-faint">
+        {column.cards.length}
+      </span>
 
       <button
         onMouseDown={(e) => e.stopPropagation()}
@@ -114,9 +126,15 @@ export function ColumnHeader({
         onClick={onAddCard}
         aria-label={`Add card to top of ${column.name}`}
         title="Add card to top"
-        className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-control text-base leading-none text-ink-muted hover:bg-hover-strong hover:text-ink"
+        className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-control text-ink-faint hover:bg-hover-strong hover:text-ink"
       >
-        +
+        {/* SVG rather than a "+" character, for the reason the switcher's
+            chevron is one: a glyph's size and baseline depend on the font that
+            resolves, and these two sit next to each other where any mismatch
+            shows. */}
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+          <path d="M8 3.5v9M3.5 8h9" />
+        </svg>
       </button>
 
       <div className="relative shrink-0" ref={menuRef}>
@@ -127,9 +145,13 @@ export function ColumnHeader({
           onClick={() => setMenuOpen((open) => !open)}
           aria-label={`Column actions for ${column.name}`}
           aria-expanded={menuOpen}
-          className="flex h-6 w-6 items-center justify-center rounded-control leading-none text-ink-muted hover:bg-hover-strong hover:text-ink"
+          className="flex h-6 w-6 items-center justify-center rounded-control text-ink-faint hover:bg-hover-strong hover:text-ink"
         >
-          ⋯
+          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+            <circle cx="3.5" cy="8" r="1.2" />
+            <circle cx="8" cy="8" r="1.2" />
+            <circle cx="12.5" cy="8" r="1.2" />
+          </svg>
         </button>
         {menuOpen && (
           <div className="absolute right-0 z-10 mt-1 w-48 rounded-card border border-line bg-surface p-1 shadow-raised">

@@ -33,7 +33,7 @@ test.describe('a new user builds a board', () => {
     }
 
     // Add a card to To Do.
-    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.locator('[data-column]').first().getByRole('button', { name: 'Add card', exact: true }).click()
     await page.getByPlaceholder('Card title').fill('Write the announcement')
     await page.getByPlaceholder('Card title').press('Enter')
     await expect(page.getByTestId('card').filter({ hasText: 'Write the announcement' })).toBeVisible()
@@ -77,7 +77,7 @@ test.describe('a new user builds a board', () => {
     // The prompt is the point: it names this project, so it can be pasted as-is.
     await expect(page.getByText(/add cards to Empty board for what needs doing/)).toBeVisible()
 
-    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.locator('[data-column]').first().getByRole('button', { name: 'Add card', exact: true }).click()
     await page.getByPlaceholder('Card title').fill('The first one')
     await page.getByPlaceholder('Card title').press('Enter')
 
@@ -210,7 +210,7 @@ test.describe('a new user builds a board', () => {
     await page.getByRole('button', { name: 'Create' }).click()
     await page.getByTestId('project-tile').filter({ hasText: 'Modal check' }).click()
 
-    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.locator('[data-column]').first().getByRole('button', { name: 'Add card', exact: true }).click()
     await page.getByPlaceholder('Card title').fill('Open me')
     await page.getByPlaceholder('Card title').press('Enter')
     await page.getByTestId('card').filter({ hasText: 'Open me' }).click()
@@ -239,7 +239,7 @@ test.describe('a new user builds a board', () => {
     await page.getByRole('button', { name: 'Create' }).click()
     await page.getByTestId('project-tile').filter({ hasText: 'Criteria project' }).click()
 
-    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.locator('[data-column]').first().getByRole('button', { name: 'Add card', exact: true }).click()
     await page.getByPlaceholder('Card title').fill('Ship the thing')
     await page.getByPlaceholder('Card title').press('Enter')
     await page.getByTestId('card').filter({ hasText: 'Ship the thing' }).click()
@@ -286,7 +286,7 @@ test.describe('a new user builds a board', () => {
     await expect.poll(names).toEqual(['To Do', 'In Progress', 'Done'])
 
     // Add
-    await page.getByRole('button', { name: '+ Add column' }).click()
+    await page.getByRole('button', { name: 'Add column', exact: true }).click()
     await page.getByLabel('Column name').fill('Blocked')
     await page.getByLabel('Column name').press('Enter')
     await expect.poll(names).toEqual(['To Do', 'In Progress', 'Done', 'Blocked'])
@@ -327,7 +327,7 @@ test.describe('a new user builds a board', () => {
     await page.getByRole('button', { name: 'Create' }).click()
     await page.getByTestId('project-tile').filter({ hasText: 'Ticks' }).click()
 
-    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.locator('[data-column]').first().getByRole('button', { name: 'Add card', exact: true }).click()
     await page.getByPlaceholder('Card title').fill('Done but still To Do')
     await page.getByPlaceholder('Card title').press('Enter')
 
@@ -361,7 +361,7 @@ test.describe('a new user builds a board', () => {
 
     const todo = page.locator('[data-column]').first()
     for (const title of ['Still to do', 'Already handled']) {
-      await todo.getByRole('button', { name: '+ Add card' }).click()
+      await todo.getByRole('button', { name: 'Add card', exact: true }).click()
       await page.getByPlaceholder('Card title').fill(title)
       await page.getByPlaceholder('Card title').press('Enter')
     }
@@ -415,7 +415,7 @@ test.describe('a new user builds a board', () => {
     // One card, so the loaded board is not showing the empty-board banner —
     // which sits above the columns and would be measured as a "jump" that is
     // really just a different, correct layout.
-    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.locator('[data-column]').first().getByRole('button', { name: 'Add card', exact: true }).click()
     await page.getByPlaceholder('Card title').fill('Anything')
     await page.getByPlaceholder('Card title').press('Enter')
     await expect(page.getByTestId('card').filter({ hasText: 'Anything' })).toBeVisible()

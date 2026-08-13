@@ -549,14 +549,23 @@ function AddColumn({ onAdd }: { onAdd: (name: string) => void | Promise<void> })
 
   if (!adding) {
     return (
+      /*
+        * No fill. It carried the same `bg-sunken` as a real column well, at
+        * nearly a column's width, so it read as an empty fourth column that
+        * happened to have words in it — the eye had to parse it before learning
+        * it was a button. Stripped to a plain control, it stops competing with
+        * the things it sits beside, and the board is columns plus one
+        * affordance rather than four columns of unequal realness.
+        */
       <button
         type="button"
         onClick={() => setAdding(true)}
-        // `self-start` so this stays a button rather than stretching to the full
-        // board height alongside the columns.
-        className="w-56 shrink-0 self-start rounded-panel bg-sunken/80 px-3 py-2.5 text-left text-sm text-ink-muted hover:bg-hover-strong/80 hover:text-ink"
+        className="flex w-56 shrink-0 items-center gap-1.5 rounded-panel px-3 py-2.5 text-left text-sm text-ink-faint hover:bg-hover/60 hover:text-ink"
       >
-        + Add column
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+          <path d="M8 3.5v9M3.5 8h9" />
+        </svg>
+        Add column
       </button>
     )
   }
@@ -594,11 +603,24 @@ function AddCard({ onAdd }: { onAdd: (title: string) => void | Promise<void> }) 
   const [adding, setAdding] = useState(false)
   if (!adding) {
     return (
+      /*
+        * A row with an icon, at `ink-muted` rather than `ink-faint`.
+        *
+        * It was bare text at the faintest ink in the palette, sitting under the
+        * last card with nothing to mark it as a control — easy to read straight
+        * past, which is a problem for the primary way of putting something on a
+        * board. Deliberately *not* a dashed slot: the drag placeholder is a
+        * dashed outline, and a permanent dashed row in the same column would be
+        * the language of "a card is landing here" used for something else.
+        */
       <button
         onClick={() => setAdding(true)}
-        className="w-full rounded-card px-3 py-2 text-left text-sm text-ink-muted hover:bg-hover-strong/70 hover:text-ink"
+        className="flex w-full items-center gap-1.5 rounded-card px-3 py-2 text-left text-sm text-ink-muted hover:bg-hover-strong/70 hover:text-ink"
       >
-        + Add card
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+          <path d="M8 3.5v9M3.5 8h9" />
+        </svg>
+        Add card
       </button>
     )
   }
