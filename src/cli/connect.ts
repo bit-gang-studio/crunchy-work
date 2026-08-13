@@ -39,12 +39,26 @@ export interface ConnectOptions {
  * checkout's own binary, or a developer's connect would silently point their
  * agent at whatever npm last published.
  */
-export function resolveLaunch(): Launch {
+/**
+ * The command a client should run to reach this Crunchy.
+ *
+ * `dataDir` is passed through as `--data`, and leaving it out was the failure
+ * `db/index.ts` calls "the most confusing failure this product could have":
+ * start with `crunchy --data ./repo-board`, accept the connect prompt, and your
+ * agent is wired to `~/.crunchy` while the browser in front of you shows
+ * `./repo-board`. Two different boards, no indication, and every question you
+ * ask the agent answered from the wrong one.
+ *
+ * Omitted when the default directory is in use, so the common case stays a
+ * short, readable command.
+ */
+export function resolveLaunch(dataDir?: string): Launch {
   const binPath = fileURLToPath(new URL('../../bin/crunchy.js', import.meta.url))
   const isCheckout = existsSync(join(dirname(dirname(binPath)), 'src'))
+  const data = dataDir ? ['--data', dataDir.replaceAll('\\', '/')] : []
   return isCheckout
-    ? { command: 'node', args: [binPath.replaceAll('\\', '/'), 'mcp'] }
-    : { command: 'npx', args: ['-y', 'crunchy-work', 'mcp'] }
+    ? { command: 'node', args: [binPath.replaceAll('\\', '/'), 'mcp', ...data] }
+    : { command: 'npx', args: ['-y', 'crunchy-work', 'mcp', ...data] }
 }
 
 function defaultRunCli(bin: string, args: string[]) {
@@ -60,15 +74,81 @@ function onPath(bin: string, run: NonNullable<ConnectOptions['runCli']>): boolea
   return run(bin, ['--version']).ok
 }
 
-/** Read a config file, tolerating absent or corrupt JSON rather than throwing. */
+/**
+ * Strip `//` and block comments so JSONC parses.
+ *
+ * VS Code officially allows comments in `mcp.json`, and people annotate these
+ * files. Skips anything inside a string, so a `//` in a URL or a Windows path
+ * survives.
+ */
+function stripJsonComments(text: string): string {
+  let out = ''
+  let inString = false
+  let escaped = false
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]!
+    if (inString) {
+      out += char
+      if (escaped) escaped = false
+      else if (char === '\\') escaped = true
+      else if (char === '"') inString = false
+      continue
+    }
+    if (char === '"') {
+      inString = true
+      out += char
+      continue
+    }
+    if (char === '/' && text[i + 1] === '/') {
+      while (i < text.length && text[i] !== '\n') i++
+      out += '\n'
+      continue
+    }
+    if (char === '/' && text[i + 1] === '*') {
+      const end = text.indexOf('*/', i + 2)
+      i = end === -1 ? text.length : end + 1
+      continue
+    }
+    out += char
+  }
+  return out
+}
+
+/** A config we could not read. Distinct from "no config" — see `readConfig`. */
+class UnreadableConfigError extends Error {}
+
+/**
+ * Read a config file.
+ *
+ * **Absent is not the same as unreadable**, and conflating the two destroyed
+ * people's setups: this used to return `{}` on a parse failure, so a VS Code
+ * `mcp.json` with a comment in it — which VS Code accepts — was replaced
+ * wholesale by a fresh object containing only Crunchy. Every other MCP server
+ * the user had configured silently disappeared, and the command printed
+ * "Connected".
+ *
+ * So comments are tolerated, and anything still unparseable is refused rather
+ * than overwritten. We are a guest in this file.
+ */
 function readConfig(path: string): Record<string, unknown> {
   if (!existsSync(path)) return {}
-  try {
-    const parsed = JSON.parse(readFileSync(path, 'utf8')) as unknown
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {}
-  } catch {
-    return {}
+  const raw = readFileSync(path, 'utf8')
+  if (!raw.trim()) return {}
+
+  for (const candidate of [raw, stripJsonComments(raw)]) {
+    try {
+      const parsed = JSON.parse(candidate) as unknown
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>
+      }
+    } catch {
+      /* try the next candidate */
+    }
   }
+
+  throw new UnreadableConfigError(
+    `could not parse ${path} — left it alone. Fix the JSON, or add Crunchy by hand.`,
+  )
 }
 
 /**
@@ -105,6 +185,8 @@ function writeInto(
     if (dryRun) return { ...base, status: 'written', detail: 'dry run' }
 
     // Back up before touching a file we didn't create — these hold other state.
+    // It is also what makes rewriting a commented (JSONC) config acceptable:
+    // we preserve the servers but not the comments, and the backup has both.
     if (existsSync(path)) copyFileSync(path, `${path}.crunchy-backup`)
     else mkdirSync(dirname(path), { recursive: true })
 
@@ -140,6 +222,31 @@ export function connect(options: ConnectOptions = {}): ConnectResult[] {
      */
     if (client.id === 'claude-code' && onPath('claude', runCli)) {
       const base = { id: client.id, label: client.label, path: 'via `claude mcp add`' }
+
+      /*
+       * We delegate the *write*, but we still have to answer "is this already
+       * done?" ourselves — and returning `written` unconditionally meant
+       * Claude Code could never report `unchanged`, so boot offered to connect
+       * it on every single start. That directly contradicts what `boot.ts`
+       * promises: "once you have said yes, this never asks again."
+       *
+       * The CLI writes into the same `~/.claude.json` we already know how to
+       * read, so read it. A parse failure here is not fatal — fall through and
+       * let the CLI decide, which is the safe direction to be wrong in.
+       */
+      try {
+        const existing = readConfig(path)[client.key] as Record<string, unknown> | undefined
+        const current = existing?.[serverName] as { command?: string; args?: string[] } | undefined
+        if (
+          current?.command === launch.command &&
+          JSON.stringify(current?.args) === JSON.stringify(launch.args)
+        ) {
+          return { ...base, status: 'unchanged' }
+        }
+      } catch {
+        /* unreadable — let the CLI handle it */
+      }
+
       if (dryRun) return { ...base, status: 'written', detail: 'dry run' }
       const result = runCli('claude', [
         'mcp',

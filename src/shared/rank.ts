@@ -38,8 +38,31 @@ export function initialRanks(n: number): string[] {
 /**
  * Resolve the rank for an item moved to `index` within `ranks` — the ranks of
  * the items it will sit among, in order, *excluding* the item being moved.
+ *
+ * `index` is floored and coerced, not trusted. It arrives from a model over
+ * MCP, and a model asked to put something "between 1 and 2" will quite
+ * reasonably send `1.5`. That used to clamp but never floor, so `ranks[1.5]`
+ * was `undefined` on both sides and the generator regenerated the *first* key —
+ * producing two rows with the identical rank, silent misplacement, and a
+ * poisoned column whose next legitimate move died with an error reading, in
+ * full, ">=".
  */
 export function rankForIndex(ranks: string[], index: number): string {
-  const clamped = Math.max(0, Math.min(index, ranks.length))
-  return rankBetween(ranks[clamped - 1] ?? null, ranks[clamped] ?? null)
+  // Only NaN needs special handling — every comparison against it is false, so
+  // the clamp below would pass it straight through. ±Infinity clamps correctly
+  // on its own, and "position: Infinity" meaning "the end" is the right reading.
+  const wanted = Math.floor(Number(index))
+  const clamped = Number.isNaN(wanted) ? 0 : Math.max(0, Math.min(wanted, ranks.length))
+  const before = ranks[clamped - 1] ?? null
+  const after = ranks[clamped] ?? null
+
+  /*
+   * Neighbours that are equal or out of order make `generateKeyBetween` throw,
+   * and its entire message is ">=" — which reaches the user as a crashed board
+   * or an MCP reply saying nothing at all. A column can only be in that state
+   * from data written before the flooring above existed, but it must still be
+   * recoverable: append after the earlier neighbour instead of failing.
+   */
+  if (before !== null && after !== null && before >= after) return rankAfter(before)
+  return rankBetween(before, after)
 }

@@ -73,6 +73,42 @@ describe('ranks', () => {
     it('handles an empty list', () => {
       expect(typeof rankForIndex([], 0)).toBe('string')
     })
+
+    /**
+     * A model asked to put something "between 1 and 2" sends 1.5. This used to
+     * clamp but never floor, so both neighbours came back `undefined` and the
+     * generator regenerated the *first* key — two rows with an identical rank,
+     * the card in the wrong slot, and a success message.
+     */
+    it('floors a fractional index instead of producing a duplicate rank', () => {
+      expect(rankForIndex(ranks, 2.5)).toBe(rankForIndex(ranks, 2))
+      expect(rankForIndex(ranks, 1.9)).toBe(rankForIndex(ranks, 1))
+
+      const at2 = rankForIndex(ranks, 2.5)
+      expect(at2 > ranks[1]!).toBe(true)
+      expect(at2 < ranks[2]!).toBe(true)
+      expect(ranks).not.toContain(at2)
+    })
+
+    it('treats a nonsense index as the front rather than throwing', () => {
+      expect(rankForIndex(ranks, NaN) < ranks[0]!).toBe(true)
+      expect(rankForIndex(ranks, Infinity) > ranks.at(-1)!).toBe(true)
+    })
+
+    /**
+     * A column written before the flooring above could hold two identical
+     * ranks. `generateKeyBetween` then throws, and its entire message is ">=",
+     * which reaches the user as a crashed board or an empty MCP error. It has
+     * to stay recoverable.
+     */
+    it('recovers from neighbours that are equal or out of order', () => {
+      const broken = ['a0', 'a0', 'a1']
+      expect(() => rankForIndex(broken, 1)).not.toThrow()
+      expect(rankForIndex(broken, 1) > 'a0').toBe(true)
+
+      const inverted = ['a2', 'a1']
+      expect(() => rankForIndex(inverted, 1)).not.toThrow()
+    })
   })
 })
 

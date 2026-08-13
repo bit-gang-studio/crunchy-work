@@ -1,7 +1,11 @@
 import { connect, renderConnect, resolveLaunch } from './connect.js'
+import { parseArgs } from './args.js'
 
-const dryRun = process.argv.includes('--dry-run')
-const launch = resolveLaunch()
+const options = parseArgs(process.argv.slice(2))
+const dryRun = options.dryRun
+// Carry the data directory through, so a client is wired to the board you are
+// actually looking at rather than the default one.
+const launch = resolveLaunch(options.data)
 const serverName = 'crunchy'
 
 const results = connect({ dryRun, launch, serverName })

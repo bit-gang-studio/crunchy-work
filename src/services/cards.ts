@@ -140,9 +140,8 @@ export function cardsService(store: Store) {
     const title = normalizeTitle(input.title)
     if (!title) throw new ValidationError('A card needs a title')
 
-    const existing = await listForColumn(columnId)
     const id = newId()
-    await db.insert(cards).values({
+    const values = {
       id,
       columnId,
       title,
@@ -150,8 +149,51 @@ export function cardsService(store: Store) {
       dueAt: normalizeDueDate(input.dueAt ?? null),
       acceptanceCriteria: normalizeCriteria(input.acceptanceCriteria ?? []),
       size: normalizeSize(input.size ?? null),
-      rank: rankAfter(existing.at(-1)?.rank ?? null),
-    })
+    }
+
+    /*
+     * Read the last rank and insert **atomically**, on the raw synchronous
+     * handle.
+     *
+     * Appending is a read-modify-write, and doing it as two awaited steps
+     * leaves a gap in which another writer reads the same "last" rank and
+     * computes the same next one. Both rows then share a rank, the column's
+     * order becomes undefined, and the next legitimate move dies inside the
+     * key generator. Two agent sessions adding cards at once is a normal
+     * Tuesday for this product, not a stress test.
+     *
+     * `BEGIN IMMEDIATE` takes the write lock up front, so this is atomic across
+     * *processes* as well as within one — and `node:sqlite` is synchronous, so
+     * there is no await between the read and the insert to interleave on.
+     */
+    const raw = store.raw
+    raw.exec('BEGIN IMMEDIATE')
+    try {
+      const [last] = raw
+        .prepare('SELECT rank FROM cards WHERE column_id = ? ORDER BY rank DESC LIMIT 1')
+        .all(columnId) as { rank: string }[]
+
+      raw
+        .prepare(
+          `INSERT INTO cards (id, column_id, title, description, due_at, acceptance_criteria, size, rank)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          values.id,
+          values.columnId,
+          values.title,
+          values.description,
+          values.dueAt,
+          values.acceptanceCriteria,
+          values.size,
+          rankAfter(last?.rank ?? null),
+        )
+      raw.exec('COMMIT')
+    } catch (err) {
+      raw.exec('ROLLBACK')
+      throw err
+    }
+
     return get(id)
   }
 

@@ -239,7 +239,8 @@ export const tools: Tool[] = [
 
   {
     name: 'move_card',
-    description: 'Move a card to another column, optionally to a position (0 is the top).',
+    description:
+      'Move a card to a column, optionally to a position (0 is the top; default is the bottom).',
     inputSchema: schema(
       {
         ...PROJECT,
@@ -253,9 +254,23 @@ export const tools: Tool[] = [
       const project = await resolveProject(services, requireString(args, 'project'))
       const card = await resolveCard(services, project.id, requireString(args, 'card'))
       const column = await resolveColumn(services, project.id, requireString(args, 'column'))
+      const position = optionalNumber(args, 'position')
+
+      /*
+       * Moving a card to the column it is already in, with no position asked
+       * for, is a no-op — not "send it to the bottom".
+       *
+       * An agent calling this defensively ("make sure it's in Done") was
+       * silently reordering the user's board, because an absent position means
+       * append. Saying nothing changed is both true and more useful.
+       */
+      if (card.columnId === column.id && position === undefined) {
+        return `"${card.title}" is already in ${column.name}; nothing moved.`
+      }
+
       await services.cards.move(card.id, {
         columnId: column.id,
-        index: optionalNumber(args, 'position') ?? Number.MAX_SAFE_INTEGER,
+        index: position ?? Number.MAX_SAFE_INTEGER,
       })
       return `Moved "${card.title}" to ${column.name}.`
     },
@@ -342,7 +357,17 @@ export const tools: Tool[] = [
     async run(services, args) {
       const project = await resolveProject(services, requireString(args, 'project'))
       const doc = await resolveDoc(services, project.id, requireString(args, 'doc'))
-      return `# ${doc.title}\n\n${doc.content}`
+      /*
+       * Verbatim, with no title heading in front of it.
+       *
+       * This used to return `# ${title}` + the content, which looked helpful and
+       * was quietly corrupting: `write_doc` stores exactly what it is given, and
+       * with no append tool a read-modify-write is the *only* way to extend a
+       * doc. So the default workflow stacked one more heading on every cycle —
+       * verified in the wild at three deep. The caller passed the title in; it
+       * does not need it read back.
+       */
+      return doc.content
     },
   },
 

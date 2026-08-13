@@ -35,8 +35,9 @@ function ask(question: string): Promise<boolean> {
  * a client already pointing at Crunchy, so once you have said yes, this never
  * asks again. A prompt that reappears every start would be worse than no prompt.
  */
-async function offerToConnect(yes: boolean): Promise<void> {
-  const launch = resolveLaunch()
+async function offerToConnect(yes: boolean, dataDir: string): Promise<void> {
+  // Wire clients to the board actually being served, not the default one.
+  const launch = resolveLaunch(dataDir === resolveDataDir() ? undefined : dataDir)
   const preview = connect({ dryRun: true, launch })
   const pending = preview.filter((r) => r.status === 'written')
   if (!pending.length) return
@@ -64,7 +65,13 @@ export async function boot(): Promise<void> {
 
   const port = options.port ?? Number(process.env.PORT ?? DEFAULT_PORT)
 
-  serve({ fetch: app.fetch, port }, (info) => {
+  /*
+   * A busy port is the most likely first failure for an `npx` product — you
+   * left one running in another tab. Unhandled, Node prints twenty lines of
+   * EADDRINUSE with internal frames and exits 0, which reads like a crash and
+   * says nothing about what to do.
+   */
+  const server = serve({ fetch: app.fetch, port }, (info) => {
     const url = `http://localhost:${info.port}`
     process.stdout.write(`\n  Crunchy is running\n\n  ${url}\n  data · ${dataDir}\n\n`)
 
@@ -73,10 +80,25 @@ export async function boot(): Promise<void> {
     // Only prompt on a real terminal — piped or supervised, this would hang.
     const interactive = process.stdin.isTTY && process.stdout.isTTY
     if (interactive || options.yes) {
-      void offerToConnect(options.yes).then(() => {
+      void offerToConnect(options.yes, dataDir).then(() => {
         process.stdout.write(`  Ctrl-C to stop.\n\n`)
       })
     }
+  })
+
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      process.stderr.write(
+        `\n  Port ${port} is already in use.\n\n` +
+          `  Another Crunchy may already be running — try http://localhost:${port}\n` +
+          `  Or start this one elsewhere:  crunchy --port ${port + 1}\n\n`,
+      )
+    } else {
+      process.stderr.write(`\n  Could not start Crunchy: ${err.message}\n\n`)
+    }
+    changes.close()
+    store.close()
+    process.exit(1)
   })
 
   const shutdown = () => {

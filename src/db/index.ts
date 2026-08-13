@@ -48,6 +48,18 @@ export function openStore(dataDir?: string): Store {
   // time — the whole reason an agent can reach your board with nothing running.
   raw.exec('PRAGMA journal_mode = WAL')
   raw.exec('PRAGMA foreign_keys = ON')
+  /*
+   * WAL gives concurrent *readers*, not concurrent writers. Without a busy
+   * timeout the second writer gets SQLITE_BUSY the instant the first holds the
+   * lock and the write is simply lost — which is not a corner case here, it is
+   * the product's core demo: the web server open in a browser while an agent
+   * writes over MCP. Measured before this line existed: 19 of 30 interleaved
+   * writes landed, and the browser showed a 500 for a card you had just typed.
+   *
+   * Five seconds is far longer than any write here takes (a 300-card burst runs
+   * in ~500ms), so in practice this converts "lost" into "waited a moment".
+   */
+  raw.exec('PRAGMA busy_timeout = 5000')
 
   runMigrations(raw)
 

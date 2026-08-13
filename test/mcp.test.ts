@@ -241,6 +241,101 @@ describe('name resolution', () => {
 })
 
 /**
+ * The findings from the real-world testing pass — an adversarial agent session
+ * against the packed tarball. Each of these was a silent wrong answer, which is
+ * worse than an error: the agent reported success and told its user something
+ * untrue.
+ */
+describe('mistakes a model actually makes', () => {
+  it('refuses an argument the tool does not have, instead of ignoring it', async () => {
+    await call('create_project', { name: 'P' })
+    await call('add_card', { project: 'P', column: 'To Do', title: 'Task' })
+
+    // "Change a card" — moving is a change, so a model tries this.
+    const { text, isError } = await call('update_card', {
+      project: 'P',
+      card: 'Task',
+      column: 'Done',
+    })
+    expect(isError).toBe(true)
+    expect(text).toContain('"column"')
+    expect(text).toContain('move_card')
+    expect(text).toContain('Nothing was changed')
+
+    // And it really did not move.
+    const board = await services.projectDetail.get((await services.projects.list())[0]!.id)
+    expect(board.columns[0]!.cards.map((c) => c.title)).toEqual(['Task'])
+  })
+
+  it('names the arguments that do exist, so the retry is one turn', async () => {
+    await call('create_project', { name: 'P' })
+    const { text } = await call('add_card', {
+      project: 'P',
+      column: 'To Do',
+      title: 'X',
+      assignee: 'someone',
+      priority: 'high',
+    })
+    expect(text).toContain('"assignee"')
+    expect(text).toContain('"priority"')
+    expect(text).toContain('title')
+  })
+
+  it('does not reorder the board when a card is moved to the column it is in', async () => {
+    await call('create_project', { name: 'P' })
+    for (const title of ['A', 'B', 'C']) await call('add_card', { project: 'P', column: 'To Do', title })
+
+    const { text } = await call('move_card', { project: 'P', card: 'A', column: 'To Do' })
+    expect(text).toContain('already in')
+
+    const board = await services.projectDetail.get((await services.projects.list())[0]!.id)
+    expect(board.columns[0]!.cards.map((c) => c.title)).toEqual(['A', 'B', 'C'])
+  })
+
+  it('still honours an explicit position within the same column', async () => {
+    await call('create_project', { name: 'P' })
+    for (const title of ['A', 'B', 'C']) await call('add_card', { project: 'P', column: 'To Do', title })
+
+    await call('move_card', { project: 'P', card: 'A', column: 'To Do', position: 2 })
+    const board = await services.projectDetail.get((await services.projects.list())[0]!.id)
+    expect(board.columns[0]!.cards.map((c) => c.title)).toEqual(['B', 'C', 'A'])
+  })
+
+  it('places a fractional position without corrupting the column', async () => {
+    await call('create_project', { name: 'P' })
+    for (const title of ['A', 'B', 'C', 'D']) await call('add_card', { project: 'P', column: 'To Do', title })
+
+    await call('move_card', { project: 'P', card: 'D', column: 'To Do', position: 1.5 })
+
+    const board = await services.projectDetail.get((await services.projects.list())[0]!.id)
+    const cards = board.columns[0]!.cards
+    expect(cards.map((c) => c.title)).toEqual(['A', 'D', 'B', 'C'])
+    // The bug was two cards sharing a rank, which poisoned every later move.
+    expect(new Set(cards.map((c) => c.rank)).size).toBe(cards.length)
+
+    // The move that used to die with an error reading, in full, ">=".
+    const after = await call('move_card', { project: 'P', card: 'C', column: 'To Do', position: 0 })
+    expect(after.isError).toBe(false)
+  })
+
+  it('round-trips a doc without stacking a heading each time', async () => {
+    await call('create_project', { name: 'P' })
+    await call('write_doc', { project: 'P', title: 'Plan', content: '# Plan\n\n## Strategy\n' })
+
+    // The only way to extend a doc is read-modify-write, so this is the default
+    // path, not an edge case. It used to gain a heading on every cycle.
+    for (let i = 0; i < 3; i++) {
+      const read = await call('get_doc', { project: 'P', doc: 'Plan' })
+      await call('write_doc', { project: 'P', title: 'Plan', content: `${read.text}\n## More ${i}\n` })
+    }
+
+    const final = await call('get_doc', { project: 'P', doc: 'Plan' })
+    expect(final.text.match(/^# Plan$/gm)).toHaveLength(1)
+    expect(final.text).toContain('## More 2')
+  })
+})
+
+/**
  * Full CRUD, from the agent's side.
  *
  * The point of these is the round trip: an agent that creates something must be

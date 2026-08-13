@@ -34,7 +34,16 @@ export function parseArgs(argv: string[]): Options {
     else if (arg.startsWith('--port=')) options.port = Number(arg.slice(7))
     else if (arg === '--data') options.data = argv[++i]
     else if (arg.startsWith('--data=')) options.data = arg.slice(7)
-    else if (!arg.startsWith('-')) rest.push(arg)
+    /*
+     * An unrecognised flag is refused, not ignored.
+     *
+     * Ignoring it meant `crunchy --dat ./board` started the app against
+     * `~/.crunchy` while the user believed they were in a scratch directory —
+     * and then `export`, or an agent, worked on the wrong data. Silence is the
+     * wrong answer for a typo in the flag that chooses which database you edit.
+     */
+    else if (arg.startsWith('-')) throw new Error(`Unknown option "${arg}" — try --help`)
+    else rest.push(arg)
   }
 
   const [first, ...others] = rest
@@ -42,7 +51,11 @@ export function parseArgs(argv: string[]): Options {
     options.command = first as Options['command']
     options.target = others[0]
   } else if (first) {
-    options.target = first
+    // Same reasoning: `crunchy expot` used to start the web server, which looks
+    // like the command worked until you go looking for the export.
+    throw new Error(
+      `Unknown command "${first}" — expected ${[...COMMANDS].join(', ')}, or nothing to start the app.`,
+    )
   }
 
   if (options.port !== undefined && !Number.isInteger(options.port)) {

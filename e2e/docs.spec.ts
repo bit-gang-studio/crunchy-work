@@ -71,9 +71,15 @@ test.describe('docs', () => {
     await page.getByRole('button', { name: 'Create' }).click()
     await expect(page).toHaveURL(/\/docs\/\w+$/)
 
-    // Rename it. Assert the effect, not the transient "Saved" label — the
-    // indicator is a race by construction and would make this flaky.
+    // Rename it, then prove the rename reached the database by reloading.
+    //
+    // Wait for "Saved" before reloading — not as the assertion (the effect
+    // after reload is what actually matters) but as the *signal* that the
+    // debounced save has landed. Reloading straight after typing races the
+    // autosave's pagehide flush: it usually wins, and occasionally does not.
     await page.getByLabel('Doc title', { exact: true }).fill('Final')
+    await expect(page.getByTestId('save-state')).toHaveText('Saved', { timeout: 5000 })
+
     await page.reload()
     await expect(page.getByLabel('Doc title', { exact: true })).toHaveValue('Final')
 

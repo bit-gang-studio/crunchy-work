@@ -13,6 +13,56 @@ import { toolsByName, tools } from './tools.js'
 
 const PROTOCOL_VERSION = '2025-06-18'
 
+/**
+ * The message a model actually gets when a tool throws.
+ *
+ * Drizzle wraps a driver error so `.message` is the whole failed SQL statement
+ * with its parameters, and the fact that actually matters — "database is
+ * locked" — survives only on `.cause`. Reporting `.message` alone gave the
+ * model a wall of SQL and no idea the call was **retryable**, which is the
+ * single most useful thing to know about a lock.
+ */
+/**
+ * Arguments a tool does not have, which used to be dropped in silence.
+ *
+ * `update_card({ column: 'Done' })` is the mistake this exists for: the tool
+ * says "Change a card", moving a card is a change, so a model tries it. The
+ * call returned `Updated "…"`, the card did not move, and the agent then told
+ * its user the card was done. A wrong answer delivered confidently is worse
+ * than an error, and every schema already declares `additionalProperties:
+ * false` — most clients just never enforce it on the way out.
+ *
+ * The reply names the arguments that *do* exist, so the retry is one turn.
+ */
+function unknownArgs(inputSchema: Record<string, unknown>, args: Args): string | null {
+  const properties = (inputSchema.properties ?? {}) as Record<string, unknown>
+  const allowed = Object.keys(properties)
+  const extra = Object.keys(args).filter((key) => !allowed.includes(key))
+  if (!extra.length) return null
+
+  const plural = extra.length === 1 ? 'argument' : 'arguments'
+  return (
+    `Unknown ${plural}: ${extra.map((e) => `"${e}"`).join(', ')}. ` +
+    `This tool takes: ${allowed.join(', ')}. ` +
+    `Nothing was changed. To move a card between columns or reorder it, use move_card.`
+  )
+}
+
+function describe(err: unknown): string {
+  const error = err as { message?: string; cause?: unknown }
+  const cause = error?.cause as { message?: string; code?: string } | undefined
+  const causeText = cause?.message ?? ''
+
+  if (/database is locked|SQLITE_BUSY/i.test(causeText)) {
+    return 'The database was busy — another process is writing. Try the same call again.'
+  }
+
+  const message = error?.message ?? String(err)
+  // A Drizzle failure leads with "Failed query:" and then dumps the statement.
+  if (causeText && message.startsWith('Failed query')) return causeText
+  return message
+}
+
 export interface RpcRequest {
   jsonrpc?: string
   id?: string | number | null
@@ -85,12 +135,15 @@ export async function handleRpc(
       if (!tool) return ok(id, text(`No tool called "${name}".`, true))
 
       const args = (message.params?.arguments ?? {}) as Args
+      const unknown = unknownArgs(tool.inputSchema, args)
+      if (unknown) return ok(id, text(unknown, true))
+
       try {
         return ok(id, text(await tool.run(services, args)))
       } catch (err) {
         // Deliberately a successful response carrying an error: the model gets
         // the message, and resolution errors already say how to retry.
-        return ok(id, text((err as Error).message, true))
+        return ok(id, text(describe(err), true))
       }
     }
 

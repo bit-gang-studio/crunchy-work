@@ -116,17 +116,94 @@ describe('writing config', () => {
     expect(existsSync(`${pathFor('cursor')}.crunchy-backup`)).toBe(true)
   })
 
+  /**
+   * Claude Code delegates the write to `claude mcp add`, but it still has to
+   * answer "already done?" itself. It used to return `written` unconditionally,
+   * so boot offered to connect it on *every* start — contradicting the promise
+   * in `boot.ts` that once you say yes, it never asks again.
+   */
+  it('reports Claude Code as unchanged once it is configured', () => {
+    const claudeCli = () => ({ ok: true })
+    const path = join(home, '.claude.json')
+    writeFileSync(path, JSON.stringify({ mcpServers: {} }))
+
+    expect(run({ runCli: claudeCli }).find((r) => r.id === 'claude-code')!.status).toBe('written')
+
+    // What `claude mcp add` would have left behind.
+    writeFileSync(
+      path,
+      JSON.stringify({ mcpServers: { crunchy: { command: LAUNCH.command, args: LAUNCH.args } } }),
+    )
+    expect(run({ runCli: claudeCli }).find((r) => r.id === 'claude-code')!.status).toBe('unchanged')
+  })
+
+  it('re-writes Claude Code when the launch command has changed', () => {
+    const claudeCli = () => ({ ok: true })
+    writeFileSync(
+      join(home, '.claude.json'),
+      JSON.stringify({ mcpServers: { crunchy: { command: 'npx', args: ['-y', 'crunchy-work', 'mcp', '--data', '/elsewhere'] } } }),
+    )
+    expect(run({ runCli: claudeCli }).find((r) => r.id === 'claude-code')!.status).toBe('written')
+  })
+
   it('is idempotent — a second run changes nothing', () => {
     install('cursor')
     expect(run().find((r) => r.id === 'cursor')!.status).toBe('written')
     expect(run().find((r) => r.id === 'cursor')!.status).toBe('unchanged')
   })
 
-  it('recovers from a corrupt config rather than throwing', () => {
+  /**
+   * This test used to assert the opposite — that an unparseable config gets
+   * replaced — and that "recovery" was destroying people's setups. A config we
+   * cannot read is not an empty config; it is someone else's file that we do
+   * not understand, and the only safe move is to leave it alone and say so.
+   */
+  it('refuses an unreadable config rather than replacing it', () => {
     install('cursor')
     writeFileSync(pathFor('cursor'), '{ not json at all')
+
+    const result = run().find((r) => r.id === 'cursor')!
+    expect(result.status).toBe('failed')
+    expect(result.detail).toMatch(/could not parse/i)
+    // Untouched — byte for byte.
+    expect(readFileSync(pathFor('cursor'), 'utf8')).toBe('{ not json at all')
+  })
+
+  /**
+   * The case that actually bit: VS Code officially allows comments in
+   * `mcp.json`, so a perfectly valid file parsed as "corrupt" and every other
+   * MCP server the user had configured was silently deleted.
+   */
+  it('keeps other servers in a commented (JSONC) config', () => {
+    install('vscode')
+    writeFileSync(
+      pathFor('vscode'),
+      `{
+  // the servers I already use
+  "servers": {
+    "github": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"] }
+  }
+}
+`,
+    )
+
+    expect(run().find((r) => r.id === 'vscode')!.status).toBe('written')
+    const config = read(pathFor('vscode'))
+    expect(config.servers.github).toBeDefined()
+    expect(config.servers.crunchy).toBeDefined()
+  })
+
+  it('does not mistake a // inside a string for a comment', () => {
+    install('cursor')
+    writeFileSync(
+      pathFor('cursor'),
+      JSON.stringify({ mcpServers: { docs: { command: 'open', args: ['https://example.com'] } } }),
+    )
+
     expect(run().find((r) => r.id === 'cursor')!.status).toBe('written')
-    expect(read(pathFor('cursor')).mcpServers.crunchy).toBeDefined()
+    const config = read(pathFor('cursor'))
+    expect(config.mcpServers.docs.args).toEqual(['https://example.com'])
+    expect(config.mcpServers.crunchy).toBeDefined()
   })
 
   it('writes nothing on a dry run', () => {
