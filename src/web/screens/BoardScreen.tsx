@@ -99,6 +99,33 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
             onToggleComplete={onToggleComplete}
             onOpenCard={(id) => navigate(`/projects/${projectId}/cards/${id}`)}
             onDragStateChange={setDragging}
+            onAddColumn={async (name) => {
+              await api.addColumn(projectId, name)
+              await load()
+            }}
+            onRenameColumn={async (columnId, name) => {
+              await api.renameColumn(columnId, name)
+              await load()
+            }}
+            onDeleteColumn={async (columnId) => {
+              await api.deleteColumn(columnId)
+              await load()
+            }}
+            onMoveColumn={async (columnId, index) => {
+              // Optimistic, like a card move: a column that snaps back for a
+              // round trip reads as a failed drag.
+              setBoard((prev) => {
+                if (!prev) return prev
+                const from = prev.columns.findIndex((c) => c.id === columnId)
+                if (from < 0) return prev
+                const next = [...prev.columns]
+                const [moved] = next.splice(from, 1)
+                next.splice(index, 0, moved!)
+                return { ...prev, columns: next }
+              })
+              await api.moveColumn(columnId, index)
+              await load()
+            }}
           />
         </div>
       </div>

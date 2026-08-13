@@ -169,6 +169,55 @@ test.describe('a new user builds a board', () => {
     await expect(page.getByTestId('acceptance-criteria')).toContainText('Docs updated')
   })
 
+  test('columns can be added, renamed, reordered and deleted', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+    await page.getByLabel('Project name').fill('Column work')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'Column work' }).click()
+
+    await expect(page.locator('[data-column]').first()).toBeVisible()
+    const names = () =>
+      page.locator('[data-column]').evaluateAll((els) =>
+        els.map((el) => el.querySelector('button')?.textContent?.trim() ?? ''),
+      )
+    await expect.poll(names).toEqual(['To Do', 'In Progress', 'Done'])
+
+    // Add
+    await page.getByRole('button', { name: '+ Add column' }).click()
+    await page.getByLabel('Column name').fill('Blocked')
+    await page.getByLabel('Column name').press('Enter')
+    await expect.poll(names).toEqual(['To Do', 'In Progress', 'Done', 'Blocked'])
+
+    // Rename, by clicking the name
+    // `exact` matters: "To Do" is a substring of "Add card to top of To Do".
+    await page.locator('[data-column]').first().getByRole('button', { name: 'To Do', exact: true }).click()
+    await page.getByLabel('Rename To Do').fill('Backlog')
+    await page.getByLabel('Rename To Do').press('Enter')
+    await expect.poll(names).toEqual(['Backlog', 'In Progress', 'Done', 'Blocked'])
+
+    // Reorder by dragging the header
+    const from = (await page.locator('[data-column]').nth(3).boundingBox())!
+    const to = (await page.locator('[data-column]').nth(0).boundingBox())!
+    await page.mouse.move(from.x + 40, from.y + 12)
+    await page.mouse.down()
+    await page.mouse.move(from.x + 40, from.y + 20, { steps: 3 })
+    await page.mouse.move(to.x + 40, to.y + 12, { steps: 25 })
+    await page.waitForTimeout(200)
+    await page.mouse.up()
+    await expect.poll(names).toEqual(['Blocked', 'Backlog', 'In Progress', 'Done'])
+
+    // The order is persisted, not just local state.
+    await page.reload()
+    expect(await names()).toEqual(['Blocked', 'Backlog', 'In Progress', 'Done'])
+
+    // Delete, which asks first because it takes the column's cards with it.
+    await page.getByRole('button', { name: 'Column actions for Blocked' }).click()
+    await page.getByRole('button', { name: 'Delete column' }).click()
+    await page.getByRole('button', { name: 'Really delete' }).click()
+    await expect.poll(names).toEqual(['Backlog', 'In Progress', 'Done'])
+  })
+
   test('completion is a per-card tick, independent of the column', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: 'New project' }).click()

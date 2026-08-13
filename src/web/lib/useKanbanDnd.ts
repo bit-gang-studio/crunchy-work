@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MouseSensor,
   TouchSensor,
+  closestCenter,
   pointerWithin,
   useSensor,
   useSensors,
@@ -12,7 +13,16 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import type { BoardColumn, Card } from '../../shared/types'
-import { COLUMN_PREFIX, containerOf, pastMidpoint, previewMove, resolveCommit, sameOrder } from './boardDnd'
+import {
+  COLUMN_PREFIX,
+  columnIdFromDrag,
+  containerOf,
+  isColumnDrag,
+  pastMidpoint,
+  previewMove,
+  resolveCommit,
+  sameOrder,
+} from './boardDnd'
 import { suppressNextClick } from './suppressNextClick'
 
 /**
@@ -61,6 +71,8 @@ export function useKanbanDnd(
   columns: BoardColumn[],
   commit: (cardId: string, toColumnId: string, rank: string) => void | Promise<void>,
   fullColumns: BoardColumn[] = columns,
+  /** Reordering columns. Omitted where columns are fixed (the harness). */
+  commitColumn?: (columnId: string, index: number) => void | Promise<void>,
 ) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [preview, setPreview] = useState<BoardColumn[] | null>(null)
@@ -98,8 +110,31 @@ export function useKanbanDnd(
   // the column is under the pointer (its empty tail) → drop at the end.
   const collisionDetection: CollisionDetection = useCallback(
     (args) => {
+      /*
+       * Reordering a column is a different problem from moving a card, and it
+       * gets its own path rather than being folded into the card logic below —
+       * a horizontal list of equal-height items is exactly what dnd-kit's stock
+       * `closestCenter` handles well, and the card path stays untouched.
+       */
+      if (activeId && isColumnDrag(activeId)) {
+        return closestCenter({
+          ...args,
+          droppableContainers: args.droppableContainers.filter((c) => isColumnDrag(String(c.id))),
+        })
+      }
+
       const hits = pointerWithin(args)
-      const cards = hits.filter((h) => !String(h.id).startsWith(COLUMN_PREFIX))
+      /*
+       * Anything that isn't a column droppable is a card — so both column id
+       * shapes have to be excluded, not just `col:`. Making columns sortable
+       * registers a second droppable per column (`coldrag:`), and because that
+       * does not start with `col:` it was being treated as a card: hovering an
+       * empty column resolved to the column's own drag handle and the drop went
+       * nowhere. The harness caught it.
+       */
+      const cards = hits.filter(
+        (h) => !String(h.id).startsWith(COLUMN_PREFIX) && !isColumnDrag(String(h.id)),
+      )
       let over: Collision | undefined = cards.find((h) => String(h.id) !== activeId) ?? cards[0]
       if (!over) {
         // The pointer isn't directly over a card — it's over a column droppable, which means a
@@ -140,8 +175,11 @@ export function useKanbanDnd(
   )
 
   function onDragStart(e: DragStartEvent) {
-    setActiveId(String(e.active.id))
-    setPreview(columns)
+    const id = String(e.active.id)
+    setActiveId(id)
+    // A column drag has no card preview to build — dnd-kit's sortable transform
+    // shows the reorder directly.
+    if (!isColumnDrag(id)) setPreview(columns)
   }
 
   // Driven by onDragMove (fires on *every* pointer move), not onDragOver (fires only when the
@@ -149,7 +187,7 @@ export function useKanbanDnd(
   // midpoint *within* the same card, which onDragOver would never re-report.
   function onDragMove(e: DragMoveEvent) {
     const { active, over } = e
-    if (!over) return
+    if (!over || isColumnDrag(String(active.id))) return
     const overId = String(over.id)
     const after = afterOverRef.current === overId ? afterRef.current : afterFromEvent(e)
     // Remember the latest target and apply it at most once per frame (see rafRef above).
@@ -164,11 +202,23 @@ export function useKanbanDnd(
   }
 
   function onDragEnd(e: DragEndEvent) {
-    // A card was dragged — swallow the trailing `click` the browser fires on release so the
-    // drop never also opens the card's detail (the card div is both draggable and
-    // click-to-open). A plain click never starts a drag (5px sensor), so onDragEnd doesn't
-    // run and the click opens the card as intended.
+    // Something was dragged — swallow the trailing `click` the browser fires on release, so
+    // the drop never also fires the dragged element's own handler (opening a card's detail,
+    // or putting a column header into rename mode). A plain click never starts a drag (5px
+    // sensor), so onDragEnd doesn't run and the click does what it should.
     suppressNextClick()
+
+    const activeIdString = String(e.active.id)
+    if (isColumnDrag(activeIdString)) {
+      setActiveId(null)
+      const overId = e.over ? String(e.over.id) : null
+      if (overId && overId !== activeIdString) {
+        const index = columns.findIndex((c) => c.id === columnIdFromDrag(overId))
+        if (index >= 0) void commitColumn?.(columnIdFromDrag(activeIdString), index)
+      }
+      return
+    }
+
     cancelAnimationFrame(rafRef.current)
     rafRef.current = 0
     // Flush the last pending relocation so the drop lands exactly where the pointer is,

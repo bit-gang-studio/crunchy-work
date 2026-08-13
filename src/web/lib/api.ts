@@ -60,6 +60,7 @@ export const api = {
     request<unknown>(`/projects/${projectId}/columns`, { method: 'POST', body: JSON.stringify({ name }) }),
   renameColumn: (id: string, name: string) => send('PATCH', `/columns/${id}`, { name }),
   deleteColumn: (id: string) => send('DELETE', `/columns/${id}`),
+  moveColumn: (id: string, index: number) => send('POST', `/columns/${id}/move`, { index }),
 
   addCard: (columnId: string, input: { title: string; description?: string; dueAt?: string | null }) =>
     request<Card>(`/columns/${columnId}/cards`, { method: 'POST', body: JSON.stringify(input) }),

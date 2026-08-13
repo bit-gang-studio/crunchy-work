@@ -14,6 +14,17 @@ import { rankBetween } from '../../shared/rank'
  * card be dropped into an empty column or the space below the last card. */
 export const COLUMN_PREFIX = 'col:'
 
+/**
+ * Droppable id for a column being *reordered*, as opposed to a column being
+ * dropped *into* (`col:`). They have to be different ids: the same column is
+ * simultaneously a target for cards and a draggable item itself, and dnd-kit
+ * identifies both by id alone.
+ */
+export const COLUMN_DRAG_PREFIX = 'coldrag:'
+
+export const isColumnDrag = (id: string) => id.startsWith(COLUMN_DRAG_PREFIX)
+export const columnIdFromDrag = (id: string) => id.slice(COLUMN_DRAG_PREFIX.length)
+
 /** The preview array is the single source of truth for card order, so the sortable context
  * must NOT independently re-position cards — that's what fought the preview and made the
  * placeholder disagree with the drop. Cards move only when the array re-renders. */

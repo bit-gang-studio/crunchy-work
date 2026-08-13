@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { DndContext, DragOverlay, useDroppable } from '@dnd-kit/core'
-import { SortableContext, useSortable } from '@dnd-kit/sortable'
+import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { BoardColumn as BoardColumnType, Card } from '../../shared/types'
 import { useKanbanDnd } from '../lib/useKanbanDnd'
-import { COLUMN_PREFIX, noSort } from '../lib/boardDnd'
+import { COLUMN_DRAG_PREFIX, COLUMN_PREFIX, noSort } from '../lib/boardDnd'
 import { normalizeCardTitle } from '../lib/title'
+import { ColumnHeader } from './ColumnHeader'
 import { CompleteToggle } from './CompleteToggle'
 import { ErrorBoundary } from './ErrorBoundary'
 
@@ -26,6 +28,11 @@ interface KanbanBoardProps {
    * its rank against, and the card could land somewhere the user did not aim.
    */
   onDragStateChange?: (dragging: boolean) => void
+  /** Column management. Omitted where columns are fixed (the harness). */
+  onAddColumn?: (name: string) => void | Promise<void>
+  onRenameColumn?: (columnId: string, name: string) => void | Promise<void>
+  onDeleteColumn?: (columnId: string) => void | Promise<void>
+  onMoveColumn?: (columnId: string, index: number) => void | Promise<void>
 }
 
 /** Wrapped in an error boundary — a drag hiccup shows a recoverable panel instead of
@@ -45,8 +52,17 @@ function KanbanBoardInner({
   onAddCard,
   onToggleComplete,
   onDragStateChange,
+  onAddColumn,
+  onRenameColumn,
+  onDeleteColumn,
+  onMoveColumn,
 }: KanbanBoardProps) {
-  const { columns: dndColumns, activeCard, dndProps } = useKanbanDnd(columns, onMove)
+  const { columns: dndColumns, activeCard, dndProps } = useKanbanDnd(
+    columns,
+    onMove,
+    columns,
+    onMoveColumn,
+  )
 
   const dragging = activeCard !== null
   const reported = useRef(dragging)
@@ -64,15 +80,26 @@ function KanbanBoardInner({
         className="flex h-full snap-x select-none items-start gap-4 overflow-x-auto px-4 py-6 md:px-6"
         data-testid="kanban-board"
       >
-        {dndColumns.map((column) => (
-          <Column
-            key={column.id}
-            column={column}
-            onAdd={onAddCard}
-            onOpen={onOpenCard}
-            onToggleComplete={onToggleComplete}
-          />
-        ))}
+        {/* Columns are their own sortable list, horizontal, using dnd-kit's stock
+            strategy — the bespoke engine below exists for cards and their problems. */}
+        <SortableContext
+          items={dndColumns.map((c) => `${COLUMN_DRAG_PREFIX}${c.id}`)}
+          strategy={horizontalListSortingStrategy}
+        >
+          {dndColumns.map((column) => (
+            <Column
+              key={column.id}
+              column={column}
+              onAdd={onAddCard}
+              onOpen={onOpenCard}
+              onToggleComplete={onToggleComplete}
+              onRename={onRenameColumn}
+              onDelete={onDeleteColumn}
+              sortable={!!onMoveColumn}
+            />
+          ))}
+        </SortableContext>
+        {onAddColumn && <AddColumn onAdd={onAddColumn} />}
       </div>
       <DragOverlay>{activeCard ? <CardView card={activeCard} dragging /> : null}</DragOverlay>
     </DndContext>
@@ -84,38 +111,45 @@ function Column({
   onAdd,
   onOpen,
   onToggleComplete,
+  onRename,
+  onDelete,
+  sortable,
 }: {
   column: BoardColumnType
   onAdd: (columnId: string, title: string, position?: 'top' | 'bottom') => void | Promise<void>
   onOpen: (cardId: string) => void
   onToggleComplete: (cardId: string, completed: boolean) => void | Promise<void>
+  onRename?: (columnId: string, name: string) => void | Promise<void>
+  onDelete?: (columnId: string) => void | Promise<void>
+  sortable: boolean
 }) {
   const { setNodeRef } = useDroppable({ id: `${COLUMN_PREFIX}${column.id}` })
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `${COLUMN_DRAG_PREFIX}${column.id}`, disabled: !sortable })
   // The top composer, opened by the pinned "+" in the header. Separate from the bottom
   // AddCard's own state so both can be open at once and neither disturbs the other.
   const [addingTop, setAddingTop] = useState(false)
   return (
     <section
-      className="flex max-h-full w-72 shrink-0 snap-start flex-col"
+      ref={setSortableRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex max-h-full w-72 shrink-0 snap-start flex-col ${isDragging ? 'opacity-50' : ''}`}
       data-testid="column"
       data-column={column.id}
     >
-      <div className="mb-2 flex shrink-0 items-center gap-2 px-1">
-        <h2 className="text-sm font-semibold text-neutral-700">{column.name}</h2>
-        <span className="text-xs text-neutral-400">{column.cards.length}</span>
-        {/* Pinned in the header (never scrolls away), it drops the new card at the *top*.
-            A distinct aria-label from the bottom "+ Add card" keeps the two affordances
-            unambiguous for tests and screen readers. */}
-        <button
-          type="button"
-          onClick={() => setAddingTop(true)}
-          aria-label={`Add card to top of ${column.name}`}
-          title="Add card to top"
-          className="ml-auto flex h-6 w-6 items-center justify-center rounded-md text-base leading-none text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
-        >
-          +
-        </button>
-      </div>
+      <ColumnHeader
+        column={column}
+        onAddCard={() => setAddingTop(true)}
+        onRename={(name) => onRename?.(column.id, name)}
+        onDelete={() => onDelete?.(column.id)}
+        dragHandle={sortable ? { ...attributes, ...listeners } : undefined}
+      />
       {/* The column caps at the board height (max-h-full); this body scrolls when the cards
           outgrow it, and add-card flows right after the last card so short columns stay tight. */}
       <div className="min-h-0 overflow-y-auto">
@@ -254,6 +288,60 @@ function DueBadge({ dueAt, completed }: { dueAt: string; completed: boolean }) {
       {overdue ? 'Overdue ' : ''}
       {dueAt}
     </span>
+  )
+}
+
+/** The trailing "add a column" affordance, styled to read as a slot rather than a column. */
+function AddColumn({ onAdd }: { onAdd: (name: string) => void | Promise<void> }) {
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed) return
+    await onAdd(trimmed)
+    setName('')
+    setAdding(false)
+  }
+
+  if (!adding) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAdding(true)}
+        className="mt-0 w-56 shrink-0 rounded-lg border-2 border-dashed border-neutral-300 px-3 py-2 text-left text-sm text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+      >
+        + Add column
+      </button>
+    )
+  }
+
+  return (
+    <form onSubmit={submit} className="w-56 shrink-0">
+      <input
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={() => !name.trim() && setAdding(false)}
+        onKeyDown={(e) => e.key === 'Escape' && setAdding(false)}
+        placeholder="Column name"
+        aria-label="Column name"
+        className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none"
+      />
+      <div className="mt-1 flex gap-2">
+        <button type="submit" className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white">
+          Add
+        </button>
+        <button
+          type="button"
+          onClick={() => setAdding(false)}
+          className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-800"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   )
 }
 
