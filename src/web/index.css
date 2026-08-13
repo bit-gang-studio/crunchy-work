@@ -204,8 +204,20 @@
   background-color: hsl(var(--project-hue) 52% 58%);
 }
 
+/*
+ * Much less chroma than the light tint carries, because chroma behaves
+ * differently down here. At 22% saturation and 16% lightness the warm hues
+ * stopped reading as "a red tile" and started reading as brown — and the greens
+ * as olive. A large dark fill holding that much colour reads as a stain rather
+ * than a tint, which is the thing that made these look unfinished.
+ *
+ * 9% at 17% lightness keeps the tile a hair above the plain surface it sits
+ * against, so it is still recognisably *this* project's tile, and hands the
+ * actual identity to the bar above it — which is bright enough to carry it and
+ * is the part you pattern-match on anyway.
+ */
 :root[data-theme='dark'] .project-tint {
-  background-color: hsl(var(--project-hue) 22% 16%);
+  background-color: hsl(var(--project-hue) 9% 17%);
 }
 
 /*
