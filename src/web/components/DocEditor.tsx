@@ -74,8 +74,12 @@ export function DocEditor({
     editorProps: {
       handleKeyDown: (_view, event) => keys.current(event),
       attributes: {
+        // `dark:prose-invert` is the typography plugin's own switch. The prose
+        // classes carry their own ink — they are not written in our tokens — so
+        // without it a document is dark grey text on a dark surface. This is the
+        // one place a `dark:` variant belongs: styles we do not own.
         class:
-          'prose prose-neutral max-w-none focus:outline-none min-h-[60vh] prose-headings:font-semibold prose-pre:bg-accent prose-pre:text-ink-inverse',
+          'prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[60vh] prose-headings:font-semibold prose-pre:bg-accent prose-pre:text-ink-inverse',
         'aria-label': 'Document body',
         'data-testid': 'doc-body',
       },

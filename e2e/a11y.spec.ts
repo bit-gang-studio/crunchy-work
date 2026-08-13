@@ -72,64 +72,103 @@ async function seed(request: import('@playwright/test').APIRequestContext) {
   return project.id as string
 }
 
+/** Every screen, and every state you can only reach by operating the app. */
+async function walkEveryScreen(
+  page: Page,
+  request: import('@playwright/test').APIRequestContext,
+  label: string,
+) {
+  const projectId = await seed(request)
+
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
+  await scan(page, `projects list · ${label}`)
+
+  await page.goto(`/projects/${projectId}`)
+  await expect(page.getByTestId('card').first()).toBeVisible()
+  await scan(page, `board · ${label}`)
+
+  // Menus and popovers are markup that only exists while open, so scanning
+  // the closed page says nothing about them.
+  await page.getByRole('button', { name: 'Switch project' }).click()
+  await expect(page.getByTestId('project-switcher')).toBeVisible()
+  await scan(page, `project switcher open · ${label}`)
+  await page.keyboard.press('Escape')
+  await page.mouse.click(5, 5)
+
+  await page.getByRole('button', { name: /Column actions for To Do/ }).click()
+  await scan(page, `column menu open · ${label}`)
+  await page.mouse.click(5, 5)
+
+  await page.getByTestId('card').first().click()
+  await expect(page.getByTestId('card-detail')).toBeVisible()
+  await scan(page, `card detail · ${label}`)
+  await page.getByRole('button', { name: 'Close' }).click()
+
+  await page.goto(`/projects/${projectId}/docs`)
+  await expect(page.getByTestId('doc-row').first()).toBeVisible()
+  await scan(page, `docs list · ${label}`)
+
+  await page.getByTestId('doc-row').first().click()
+  await expect(page.getByTestId('doc-body')).toBeVisible()
+  await scan(page, `doc editor · ${label}`)
+}
+
+/** The empty states, which a seeded scan never reaches. */
+async function walkEmptyStates(page: Page, label: string) {
+  await page.goto('/')
+  // A fresh project has no cards and no docs.
+  await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+  await page.getByLabel('Project name').fill(`Empty ${label}`)
+  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByTestId('project-tile').filter({ hasText: `Empty ${label}` }).click()
+
+  await expect(page.getByText('No cards yet.')).toBeVisible()
+  await scan(page, `empty board · ${label}`)
+
+  await page.getByRole('link', { name: 'Docs' }).click()
+  await expect(page.getByText('No docs yet.')).toBeVisible()
+  await scan(page, `empty docs · ${label}`)
+}
+
 for (const size of WIDTHS) {
   test.describe(`accessibility · ${size.name}`, () => {
     test.use({ viewport: { width: size.width, height: size.height } })
 
     test('every screen, and the states you can get them into', async ({ page, request }) => {
-      const projectId = await seed(request)
-
-      await page.goto('/')
-      await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
-      await scan(page, `projects list · ${size.name}`)
-
-      await page.goto(`/projects/${projectId}`)
-      await expect(page.getByTestId('card').first()).toBeVisible()
-      await scan(page, `board · ${size.name}`)
-
-      // Menus and popovers are markup that only exists while open, so scanning
-      // the closed page says nothing about them.
-      await page.getByRole('button', { name: 'Switch project' }).click()
-      await expect(page.getByTestId('project-switcher')).toBeVisible()
-      await scan(page, `project switcher open · ${size.name}`)
-      await page.keyboard.press('Escape')
-      await page.mouse.click(5, 5)
-
-      await page.getByRole('button', { name: /Column actions for To Do/ }).click()
-      await scan(page, `column menu open · ${size.name}`)
-      await page.mouse.click(5, 5)
-
-      await page.getByTestId('card').first().click()
-      await expect(page.getByTestId('card-detail')).toBeVisible()
-      await scan(page, `card detail · ${size.name}`)
-      await page.getByRole('button', { name: 'Close' }).click()
-
-      await page.goto(`/projects/${projectId}/docs`)
-      await expect(page.getByTestId('doc-row').first()).toBeVisible()
-      await scan(page, `docs list · ${size.name}`)
-
-      await page.getByTestId('doc-row').first().click()
-      await expect(page.getByTestId('doc-body')).toBeVisible()
-      await scan(page, `doc editor · ${size.name}`)
+      await walkEveryScreen(page, request, size.name)
     })
 
     test('the empty states, which a seeded scan never reaches', async ({ page }) => {
-      await page.goto('/')
-      // A fresh project has no cards and no docs.
-      await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
-      await page.getByLabel('Project name').fill(`Empty ${size.name}`)
-      await page.getByRole('button', { name: 'Create' }).click()
-      await page.getByTestId('project-tile').filter({ hasText: `Empty ${size.name}` }).click()
-
-      await expect(page.getByText('No cards yet.')).toBeVisible()
-      await scan(page, `empty board · ${size.name}`)
-
-      await page.getByRole('link', { name: 'Docs' }).click()
-      await expect(page.getByText('No docs yet.')).toBeVisible()
-      await scan(page, `empty docs · ${size.name}`)
+      await walkEmptyStates(page, size.name)
     })
   })
 }
+
+/**
+ * The same sweep in dark.
+ *
+ * A second palette is a second set of contrast ratios, and nothing about the
+ * light one being AA says anything about the dark one — they share no values.
+ * This runs from the moment dark mode exists rather than at the end of the theme
+ * pass, so a colour that fails is caught by whoever chose it, while they are
+ * choosing it.
+ *
+ * One width, not three. The widths in the loop above vary *layout*, and layout
+ * is identical between palettes; what varies here is colour. Three more full
+ * sweeps would triple the gate's runtime to re-test the same ratios.
+ */
+test.describe('accessibility · dark', () => {
+  test.use({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark' })
+
+  test('every screen, in the dark palette', async ({ page, request }) => {
+    await walkEveryScreen(page, request, 'dark')
+  })
+
+  test('the empty states, in the dark palette', async ({ page }) => {
+    await walkEmptyStates(page, 'dark')
+  })
+})
 
 /**
  * Tab order, walked by hand.

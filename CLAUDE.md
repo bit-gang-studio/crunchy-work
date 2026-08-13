@@ -138,6 +138,11 @@ axe-core runs against WCAG 2.1 AA over every screen, five states and three width
 while they are closed. Plus a hand-walked tab order and a check that Escape does not strand
 focus, neither of which an automated scan can tell you.
 
+**And a dark pass**, at one width only: the widths vary *layout*, which is identical between
+palettes, while what a second palette changes is colour. It caught 28 contrast failures the
+first time it ran and has caught every dark regression since — run it from the moment a
+palette exists, not at the end of a theme pass, so whoever picks a colour is told immediately.
+
 It exists because "keyboard navigable with visible focus rings" had been asserted in a
 commit message and never measured. It failed on the first run and found three real bugs.
 Assert on a compact list of rule ids, never the raw violation objects — axe's objects are
@@ -224,6 +229,28 @@ width — a bug that needs a scrolling container will not appear on a board that
   `rounded-panel`, `shadow-card`. A component written in `bg-white` has baked a decision into
   itself and has to be rewritten to change it. This is what makes the theme pass a re-valuing
   of one block rather than a tour of every screen, and dark mode the same job again.
+
+  **Dark mode proved it: it is one block of CSS and zero component changes.** The two places
+  the rule had leaked are worth knowing, because both are shapes a token can't reach:
+  a colour *computed* in TypeScript (`projectColor` returned a finished `hsl(h 62% 97%)` for
+  project tiles, which stayed near-white while the ink on it inverted — it now returns the hue
+  and CSS owns the lightness), and a colour owned by *someone else's* CSS (the typography
+  plugin's `prose` classes carry their own ink). Tailwind's `dark:` variant is pointed at our
+  attribute — `@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *))` —
+  **only** so `dark:prose-invert` works. A component that needs a `dark:` utility has
+  hard-coded a value it should not have had.
+
+  **Dark ink is not light ink mirrored.** Inverting the light scale gives a faint step of
+  `#737373`, which measures **3.19:1** on the dark surface — ten failures on the switcher's
+  card counts, first time the dark scan ran. Dark needs a *narrower* ink range than light,
+  because dim grey on black is genuinely harder to read than its mirror image on white. The
+  binding constraint is small text on `surface` and on a hovered row; solve for that, then
+  push `muted` up so it stays visibly above `faint`. The ratios are in the comments beside
+  the values, and the axe gate now runs a dark pass so nobody has to take them on trust.
+
+  **The theme is applied by an inline script in `index.html`, before first paint.** The bundle
+  is a module, so it runs after the document paints — React's first effect is a whole frame
+  too late, and every load flashes light. Those six duplicated lines are the point of them.
 - **We are a guest on the user's machine.** `crunchy connect` writes to config files we did
   not create. It once replaced a VS Code `mcp.json` that had a comment in it — valid JSONC,
   which VS Code accepts — with one containing only Crunchy, silently deleting every other MCP

@@ -1,4 +1,5 @@
 import { BrowserRouter, Link, Route, Routes, useParams } from 'react-router-dom'
+import { ThemeToggle } from './components/ThemeToggle'
 import { ProjectsScreen } from './screens/ProjectsScreen'
 import { BoardScreen } from './screens/BoardScreen'
 import { DocsScreen } from './screens/DocsScreen'
@@ -18,6 +19,12 @@ export function App() {
           <Link to="/" className="text-sm font-semibold tracking-tight">
             Crunchy
           </Link>
+          {/* Pushed to the trailing edge: the theme is app chrome, not part of
+              the navigation, and it should not sit between the wordmark and
+              whatever the project header adds next to it. */}
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </header>
         <main className="min-h-0 flex-1">
           <Routes>

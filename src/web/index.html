@@ -4,6 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Crunchy</title>
+    <script>
+      /*
+       * Set the theme BEFORE first paint.
+       *
+       * This duplicates a few lines of src/web/lib/theme.ts on purpose. The
+       * bundle cannot help here: it loads as a module, so it runs after the
+       * document has already been painted, and the browser would show a full
+       * frame of the light palette before React's first effect — a white flash
+       * on every single load, which is the one thing that makes a dark mode feel
+       * broken. Six lines inline is the price.
+       */
+      try {
+        var stored = localStorage.getItem('crunchy.theme')
+        var choice = stored === 'light' || stored === 'dark' ? stored : null
+        document.documentElement.dataset.theme =
+          choice ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      } catch (e) {
+        /* Storage blocked — the CSS media query is the fallback. */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

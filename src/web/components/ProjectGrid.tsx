@@ -1,10 +1,11 @@
 import { DndContext, MouseSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import type { ProjectSummary } from '../../shared/types'
 import { plural } from '../../shared/plural'
-import { projectColor } from '../lib/projectColor'
+import { projectHue } from '../lib/projectColor'
 import { suppressNextClick } from '../lib/suppressNextClick'
 
 /**
@@ -62,7 +63,9 @@ function SortableTile({ project }: { project: ProjectSummary }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: project.id,
   })
-  const color = projectColor(project.name)
+  // Only the hue crosses from JS into CSS; how light it is per theme is decided
+  // in index.css, with the rest of the palette.
+  const hue = projectHue(project.name)
 
   return (
     <Link
@@ -70,15 +73,21 @@ function SortableTile({ project }: { project: ProjectSummary }) {
       to={`/projects/${project.id}`}
       data-testid="project-tile"
       data-project={project.id}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={
+        {
+          transform: CSS.Transform.toString(transform),
+          transition,
+          '--project-hue': hue,
+        } as CSSProperties
+      }
       {...attributes}
       {...listeners}
       className={`flex min-h-[7.5rem] cursor-grab flex-col overflow-hidden rounded-panel border border-line bg-surface transition-colors hover:border-line-strong hover:shadow-card ${
         isDragging ? 'z-10 opacity-80 shadow-overlay' : ''
       }`}
     >
-      <div className="h-2 shrink-0" style={{ background: color.bar }} aria-hidden />
-      <div className="flex flex-1 flex-col p-4" style={{ background: color.tint }}>
+      <div className="project-bar h-2 shrink-0" aria-hidden />
+      <div className="project-tint flex flex-1 flex-col p-4">
         <span className="font-medium">{project.name}</span>
         {project.description && (
           <span className="mt-1 line-clamp-2 text-sm text-ink-muted">{project.description}</span>

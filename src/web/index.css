@@ -2,6 +2,19 @@
 @plugin "@tailwindcss/typography";
 
 /*
+ * Point Tailwind's `dark:` variant at our attribute instead of the media query,
+ * so it agrees with the toggle rather than with the OS.
+ *
+ * **This is not an invitation to write `dark:bg-…` in components.** Every colour
+ * a screen uses still goes through a role token, and a component that needs a
+ * `dark:` variant has hard-coded a value it should not have had. The variant
+ * exists for third-party styles we do not own — specifically the typography
+ * plugin, whose `prose` classes set their own ink and would otherwise print dark
+ * grey text on a dark surface.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
  * The design tokens — the whole visual system, in one place.
  *
  * Every token is named for the **role** it plays, never for the colour it
@@ -68,6 +81,131 @@
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-raised: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/*
+ * ── Dark ──────────────────────────────────────────────────────────────────
+ *
+ * The same roles, different values. Nothing below this line is a component
+ * change, and that is the token system paying for itself: dark mode is one
+ * block of CSS because no screen ever wrote `bg-white`.
+ *
+ * **These values are provisional.** They are neutral greys chosen to be
+ * *correct* — the surface ordering holds, contrast clears AA — not to be the
+ * product's dark identity. Picking that belongs to the theme pass, where light
+ * and dark get designed together; a dark palette derived from a light-first one
+ * after the fact always looks derived.
+ *
+ * The ordering is the part worth keeping. In light, the page is the darkest
+ * thing and cards are the lightest: canvas → sunken → surface runs 50 → 100 →
+ * white. Dark inverts the values but preserves that *relationship* — the page
+ * is darkest, a column well sits above it, a card sits above that — so
+ * elevation still reads as elevation rather than as an arbitrary re-tint.
+ *
+ * One selector, not two. The usual pattern pairs `[data-theme='dark']` with a
+ * `@media (prefers-color-scheme: dark)` block so the right palette lands
+ * without JavaScript — but this is a React SPA served from a local binary, so
+ * without JavaScript there is no app to colour. That would be twenty values
+ * maintained in two places, and the theme pass is about to re-value every one
+ * of them. The system preference is read by the inline script in index.html,
+ * before first paint, which is where a *first run* needs it anyway.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Ground — neutral 950 / 900 / 800, page → well → card. */
+  --color-canvas: #0a0a0a;
+  --color-surface: #262626;
+  --color-sunken: #171717;
+  /* One step above surface, not two. `hover` is a background that muted ink
+     gets printed on (the acceptance-criteria pill), and at #404040 that pairing
+     measured 4.11:1 — under AA, which the dark scan caught. */
+  --color-hover: #333333;
+  --color-hover-strong: #404040;
+
+  /* Lines have to lift off the surface they sit on, so they invert too. */
+  --color-line: #404040;
+  --color-line-strong: #525252;
+
+  /*
+   * Ink, chosen by computing the ratios rather than by mirroring the light
+   * scale — which is the whole reason the dark axe pass exists. Naively
+   * inverting light's 900/600/400 gives 50/400/500, and 500 (#737373) measures
+   * **3.19:1** on surface: the project switcher's "3 cards" counts, ten of them,
+   * failed on the first run.
+   *
+   * The binding constraint is the *faint* step on the two grounds small text
+   * actually sits on — surface (#262626) and a hovered row (#333333) — because
+   * `text-xs` is nowhere near axe's large-text threshold, so it owes the full
+   * 4.5:1. Solving for that puts faint at #a0a0a0 (5.79:1 on surface, 4.83:1 on
+   * hover), and muted then has to climb to stay visibly *above* faint rather
+   * than collapsing into it.
+   *
+   * Dark needs a narrower ink range than light, and that is not a mistake to be
+   * corrected in the theme pass: dim grey on black is genuinely harder to read
+   * than the mirror-image grey on white.
+   */
+  --color-ink: #fafafa; /* 13.6:1 on surface */
+  --color-ink-muted: #c4c4c4; /* 8.67:1 */
+  --color-ink-faint: #a0a0a0; /* 5.79:1, and 4.83:1 on a hovered row */
+  --color-ink-inverse: #0a0a0a;
+
+  /* The accent flips with everything else — near-white on near-black. */
+  --color-accent: #f5f5f5;
+  --color-accent-hover: #d4d4d4;
+  --color-accent-ink: #0a0a0a;
+
+  /* Status: the 400 step reads on a dark ground where the 700 step disappears;
+     the soft fills go to the 950 step for the same reason in reverse. */
+  --color-danger: #f87171;
+  --color-danger-soft: #450a0a;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #451a03;
+  --color-success: #4ade80;
+  --color-success-soft: #052e16;
+
+  /* Shadow is a weaker cue in the dark — there is less ground for it to fall
+     on — so it goes deeper rather than being left to vanish. */
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-raised: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+  --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.6);
+}
+
+/* Light is the default palette above, but say so explicitly: `color-scheme`
+   drives the parts of the UI we do not paint — scrollbars, form controls, the
+   caret — and leaving it unset in dark leaves them light on a dark surface. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+/*
+ * A project tile's colour, per theme.
+ *
+ * The hue is derived from the project's name in `lib/projectColor.ts` and
+ * arrives as `--project-hue`; the lightness lives here so it belongs to the
+ * palette rather than to a TypeScript file. It used to be a finished
+ * `hsl(h 62% 97%)` computed in JS, and it stayed near-white in dark mode while
+ * the ink on top of it inverted — which the dark axe scan caught as a contrast
+ * failure on every tile at once.
+ *
+ * Dark drops the tint to 16% lightness and takes the saturation down with it:
+ * a fully saturated dark colour reads as a stain rather than as a tint, and the
+ * band above it is already carrying the identity.
+ */
+.project-bar {
+  background-color: hsl(var(--project-hue) 62% 52%);
+}
+
+.project-tint {
+  background-color: hsl(var(--project-hue) 62% 97%);
+}
+
+:root[data-theme='dark'] .project-bar {
+  background-color: hsl(var(--project-hue) 52% 58%);
+}
+
+:root[data-theme='dark'] .project-tint {
+  background-color: hsl(var(--project-hue) 22% 16%);
 }
 
 /*

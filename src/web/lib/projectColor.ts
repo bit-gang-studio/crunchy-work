@@ -21,17 +21,21 @@ function hash(value: string): number {
   return h >>> 0
 }
 
-export interface ProjectColor {
-  /** The tile's colour band. */
-  bar: string
-  /** A tint for the tile body — kept very pale so titles stay high-contrast. */
-  tint: string
-}
-
-export function projectColor(name: string): ProjectColor {
-  const hue = hash(name.trim().toLowerCase()) % 360
-  return {
-    bar: `hsl(${hue} 62% 52%)`,
-    tint: `hsl(${hue} 62% 97%)`,
-  }
+/**
+ * The hue, and only the hue.
+ *
+ * This used to return finished colours — `hsl(${hue} 62% 97%)` for the tile
+ * body. That baked a *light* palette into a TypeScript file, which is the one
+ * thing the token system exists to prevent, and it stayed near-white when dark
+ * mode arrived: the tile kept its pale tint while the ink on it inverted to
+ * near-white, failing contrast on every project tile at once. The dark axe scan
+ * caught it the first time it ran.
+ *
+ * So the split is: this file decides *which* hue a project gets — the part that
+ * is a computation — and `.project-bar` / `.project-tint` in index.css decide
+ * how light it is in each theme, alongside every other value the theme pass will
+ * re-value. The component passes the hue through as `--project-hue`.
+ */
+export function projectHue(name: string): number {
+  return hash(name.trim().toLowerCase()) % 360
 }
