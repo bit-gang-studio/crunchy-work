@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { BoardColumn, Card } from '../shared/types'
+import type { ColumnWithCards, Card } from '../shared/types'
 import { rankAfter, rankBefore } from '../shared/rank'
 import { KanbanBoard } from './components/KanbanBoard'
 import './index.css'
@@ -35,7 +35,7 @@ const card = (id: string, rank: string, columnId: string, title = id): Card => (
   updatedAt: '2026-08-01T00:00:00.000Z',
 })
 
-const column = (id: string, name: string, cards: Card[], i: number): BoardColumn => ({
+const column = (id: string, name: string, cards: Card[], i: number): ColumnWithCards => ({
   id,
   projectId: 'p',
   name,
@@ -45,7 +45,7 @@ const column = (id: string, name: string, cards: Card[], i: number): BoardColumn
   cards,
 })
 
-function seed(): BoardColumn[] {
+function seed(): ColumnWithCards[] {
   const params = new URLSearchParams(window.location.search)
 
   // `?flick=1`: one column with a SHORT card above a TALL one — the height delta that used
@@ -106,7 +106,7 @@ function seed(): BoardColumn[] {
 }
 
 /** Apply a committed move locally — the harness's stand-in for the server. */
-function applyMove(cols: BoardColumn[], cardId: string, toColumnId: string, rank: string): BoardColumn[] {
+function applyMove(cols: ColumnWithCards[], cardId: string, toColumnId: string, rank: string): ColumnWithCards[] {
   const moved = cols.flatMap((c) => c.cards).find((c) => c.id === cardId)
   if (!moved) return cols
   const next = { ...moved, columnId: toColumnId, rank }
@@ -125,7 +125,7 @@ declare global {
 }
 
 function App() {
-  const [columns, setColumns] = useState<BoardColumn[]>(seed)
+  const [columns, setColumns] = useState<ColumnWithCards[]>(seed)
 
   const onMove = (cardId: string, toColumnId: string, rank: string) => {
     ;(window.__moves ??= []).push({ cardId, toColumnId, rank })

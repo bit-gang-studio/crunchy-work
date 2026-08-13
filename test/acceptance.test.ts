@@ -186,7 +186,7 @@ describe('over MCP', () => {
       criteria: [{ text: 'a', done: true }, { text: 'b', done: false }],
     })
 
-    const board = await call('get_board', { project: 'Tally' })
+    const board = await call('get_project', { project: 'Tally' })
     expect(board.text).toContain('[XL]')
     expect(board.text).toContain('(1/2)')
     // The lines themselves are not on the board read.

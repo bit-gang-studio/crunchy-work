@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import type { Board } from '../../shared/types'
+import type { ProjectDetail } from '../../shared/types'
 import { api } from '../lib/api'
 import { Screen } from '../components/Screen'
 import { KanbanBoard } from '../components/KanbanBoard'
@@ -11,13 +11,13 @@ import { useRecentChanges } from '../lib/useRecentChanges'
 
 export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?: string }) {
   const navigate = useNavigate()
-  const [board, setBoard] = useState<Board | null>(null)
+  const [board, setBoard] = useState<ProjectDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
 
   const load = useCallback(async () => {
     try {
-      setBoard(await api.getBoard(projectId))
+      setBoard(await api.getProject(projectId))
     } catch (e) {
       setError((e as Error).message)
     }
@@ -152,7 +152,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
 }
 
 /** The optimistic local equivalent of the server's move: relocate, re-rank, re-sort. */
-function applyMove(board: Board, cardId: string, toColumnId: string, rank: string): Board {
+function applyMove(board: ProjectDetail, cardId: string, toColumnId: string, rank: string): ProjectDetail {
   const moved = board.columns.flatMap((c) => c.cards).find((c) => c.id === cardId)
   if (!moved) return board
   const next = { ...moved, columnId: toColumnId, rank }

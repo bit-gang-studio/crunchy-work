@@ -73,7 +73,7 @@ export async function resolveCard(
   projectId: string,
   title: string,
 ): Promise<Card> {
-  const board = await services.board.get(projectId)
+  const board = await services.projectDetail.get(projectId)
   const all = board.columns.flatMap((c) => c.cards)
   return pick(all, title, (c) => c.title, 'card')
 }

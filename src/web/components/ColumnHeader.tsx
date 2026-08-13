@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { BoardColumn } from '../../shared/types'
+import type { ColumnWithCards } from '../../shared/types'
 import { ConfirmButton } from './ConfirmButton'
 
 /**
@@ -19,7 +19,7 @@ export function ColumnHeader({
   onDelete,
   dragHandle,
 }: {
-  column: BoardColumn
+  column: ColumnWithCards
   onAddCard: () => void
   onRename: (name: string) => void | Promise<void>
   onDelete: () => void | Promise<void>

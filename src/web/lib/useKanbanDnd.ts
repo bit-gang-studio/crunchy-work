@@ -12,7 +12,7 @@ import {
   type DragMoveEvent,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import type { BoardColumn, Card } from '../../shared/types'
+import type { ColumnWithCards, Card } from '../../shared/types'
 import {
   COLUMN_PREFIX,
   columnIdFromDrag,
@@ -36,7 +36,7 @@ import { suppressNextClick } from './suppressNextClick'
  * a cross-column drop pinned at the first slot instead of drifting. Returns the same array
  * reference when nothing changed, to skip a re-render.
  */
-function reposition(cols: BoardColumn[], id: string, overId: string, after: boolean): BoardColumn[] {
+function reposition(cols: ColumnWithCards[], id: string, overId: string, after: boolean): ColumnWithCards[] {
   if (id === overId) return cols
   const overCol = containerOf(cols, overId)
   if (!overCol) return cols
@@ -68,14 +68,14 @@ function afterFromEvent(e: DragMoveEvent): boolean {
  * slot into a fractional rank (`resolveCommit`).
  */
 export function useKanbanDnd(
-  columns: BoardColumn[],
+  columns: ColumnWithCards[],
   commit: (cardId: string, toColumnId: string, rank: string) => void | Promise<void>,
-  fullColumns: BoardColumn[] = columns,
+  fullColumns: ColumnWithCards[] = columns,
   /** Reordering columns. Omitted where columns are fixed (the harness). */
   commitColumn?: (columnId: string, index: number) => void | Promise<void>,
 ) {
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [preview, setPreview] = useState<BoardColumn[] | null>(null)
+  const [preview, setPreview] = useState<ColumnWithCards[] | null>(null)
   // Mouse: drag starts after a 5px nudge (a plain click still opens the card). Touch: a
   // 200ms long-press picks the card up, so a quick swipe scrolls the column instead of
   // hijacking into a drag — the standard mobile DnD split. (Separate Mouse/Touch sensors,
@@ -104,7 +104,7 @@ export function useKanbanDnd(
     ? (rendered.flatMap((c) => c.cards).find((t) => t.id === activeId) ?? null)
     : null
   /** The column being reordered, so the board can float it like Trello lifts a list. */
-  const activeColumn: BoardColumn | null =
+  const activeColumn: ColumnWithCards | null =
     activeId && isColumnDrag(activeId)
       ? (rendered.find((c) => c.id === columnIdFromDrag(activeId)) ?? null)
       : null

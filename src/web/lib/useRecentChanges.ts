@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Board } from '../../shared/types'
-import { diffBoards, isUnchanged } from './boardDiff'
+import type { ProjectDetail } from '../../shared/types'
+import { diffProjects, isUnchanged } from './projectDiff'
 
 /**
  * The ids of cards that changed a moment ago, so the board can show it.
@@ -10,7 +10,7 @@ import { diffBoards, isUnchanged } from './boardDiff'
  * that invisible unless you happen to be looking at the right column, so the
  * changed cards mark themselves for a couple of seconds and then settle.
  *
- * The set is derived, not pushed: `diffBoards` compares two reads, so this works
+ * The set is derived, not pushed: `diffProjects` compares two reads, so this works
  * identically whether the change came from this tab, another tab, or a `crunchy
  * mcp` process the server only knows about because a file changed.
  *
@@ -18,14 +18,14 @@ import { diffBoards, isUnchanged } from './boardDiff'
  * cleanup — cleaning up on the *next* board would cancel the un-highlight and
  * leave a card lit forever.
  */
-export function useRecentChanges(board: Board | null, ttlMs = 2200): ReadonlySet<string> {
+export function useRecentChanges(board: ProjectDetail | null, ttlMs = 2200): ReadonlySet<string> {
   const [fresh, setFresh] = useState<ReadonlySet<string>>(() => new Set())
-  const previous = useRef<Board | null>(null)
+  const previous = useRef<ProjectDetail | null>(null)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   useEffect(() => {
     if (!board) return
-    const changes = diffBoards(previous.current, board)
+    const changes = diffProjects(previous.current, board)
     previous.current = board
     if (isUnchanged(changes)) return
 

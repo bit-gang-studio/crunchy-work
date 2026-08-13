@@ -1,4 +1,4 @@
-import type { Board } from '../../shared/types'
+import type { ProjectDetail } from '../../shared/types'
 
 /**
  * What changed between two reads of a board.
@@ -13,7 +13,7 @@ import type { Board } from '../../shared/types'
  * This exists so the UI can react to the *kind* of change and not just redraw —
  * a card arriving from an agent mid-session should announce itself.
  */
-export type BoardChanges = {
+export type ProjectChanges = {
   /** Cards present now that were not there before. */
   added: string[]
   /** Cards that went from open to complete. */
@@ -24,9 +24,9 @@ export type BoardChanges = {
   addedDocs: string[]
 }
 
-const NOTHING: BoardChanges = { added: [], completed: [], moved: [], addedDocs: [] }
+const NOTHING: ProjectChanges = { added: [], completed: [], moved: [], addedDocs: [] }
 
-export function diffBoards(prev: Board | null, next: Board): BoardChanges {
+export function diffProjects(prev: ProjectDetail | null, next: ProjectDetail): ProjectChanges {
   // The first read is not a change. Without this the whole board would announce
   // itself on every page load, which is noise, not life.
   if (!prev) return NOTHING
@@ -58,7 +58,7 @@ export function diffBoards(prev: Board | null, next: Board): BoardChanges {
 }
 
 /** True when nothing at all moved — lets a caller skip work on the common no-op refetch. */
-export function isUnchanged(changes: BoardChanges): boolean {
+export function isUnchanged(changes: ProjectChanges): boolean {
   return (
     changes.added.length === 0 &&
     changes.completed.length === 0 &&

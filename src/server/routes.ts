@@ -31,7 +31,7 @@ export function createRoutes(services: Services): Hono {
   })
 
   /** A project id returns the whole board — the one call that orients a client. */
-  api.get('/projects/:id', async (c) => c.json(await services.board.get(c.req.param('id'))))
+  api.get('/projects/:id', async (c) => c.json(await services.projectDetail.get(c.req.param('id'))))
 
   api.patch('/projects/:id', async (c) => {
     const patch = await body<{ name?: string; description?: string }>(c)

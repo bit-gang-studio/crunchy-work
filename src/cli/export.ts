@@ -68,7 +68,7 @@ export async function exportAll(services: Services, directory: string): Promise<
   const dump: unknown[] = []
 
   for (const project of projects) {
-    const board = await services.board.get(project.id)
+    const board = await services.projectDetail.get(project.id)
     const folder = join(directory, slugify(project.name))
     mkdirSync(folder, { recursive: true })
 

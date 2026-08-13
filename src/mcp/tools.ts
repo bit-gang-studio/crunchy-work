@@ -20,7 +20,7 @@ function optionalSize(args: Args): Size | null {
   if (!SIZES.includes(upper)) throw new ValidationError(`size must be one of ${SIZES.join(', ')}`)
   return upper
 }
-import { renderBoard, renderCard, renderProjects } from './format.js'
+import { renderProject, renderCard, renderProjects } from './format.js'
 import { resolveCard, resolveColumn, resolveDoc, resolveProject } from './resolve.js'
 
 /**
@@ -28,11 +28,23 @@ import { resolveCard, resolveColumn, resolveDoc, resolveProject } from './resolv
  *
  * Two rules hold it together, both measured rather than assumed on Crunchy Team:
  *
- * 1. **Keep it small.** Every tool taxes every other tool's accuracy. Twelve is
- *    the ceiling; if something new is needed, something should probably merge.
+ * 1. **Keep it small.** Every tool taxes every other tool's accuracy. The
+ *    ceiling was twelve; it is now **eighteen**, raised deliberately to give
+ *    every entity full CRUD. The old surface let an agent create a column but
+ *    never rename, reorder or remove one, and create a doc but never delete
+ *    one — so an agent could make a mess it had no way to clean up, and the
+ *    only fix was a human opening the browser. That is a worse failure than a
+ *    slightly larger surface.
+ *
+ *    The rule that replaces the number: **reorder folds into update**, it never
+ *    gets its own tool. `update_project`, `update_column` and `update_doc` all
+ *    take an optional `position`, the way `move_card` already did. One-verb-
+ *    per-tool would have been twenty-one.
+ *
  * 2. **Keep descriptions terse.** Verbose tool text took a model from 0/7 to
  *    4/7 failures on an *unrelated* task. One line each, and argument
- *    descriptions only where the format isn't self-evident.
+ *    descriptions only where the format isn't self-evident. This matters more
+ *    now than it did at twelve.
  */
 
 export interface Tool {
@@ -78,12 +90,12 @@ export const tools: Tool[] = [
   },
 
   {
-    name: 'get_board',
+    name: 'get_project',
     description: "Read a project's whole board — every column, its cards, and the doc titles.",
     inputSchema: schema({ ...PROJECT }, ['project']),
     async run(services, args) {
       const project = await resolveProject(services, requireString(args, 'project'))
-      return renderBoard(await services.board.get(project.id))
+      return renderProject(await services.projectDetail.get(project.id))
     },
   },
 
@@ -112,7 +124,42 @@ export const tools: Tool[] = [
         const [first] = await services.columns.listForProject(project.id)
         for (const title of titles) await services.cards.create(first!.id, { title })
       }
-      return renderBoard(await services.board.get(project.id))
+      return renderProject(await services.projectDetail.get(project.id))
+    },
+  },
+
+  {
+    name: 'update_project',
+    description: "Rename a project, change its description, or move it in the projects list.",
+    inputSchema: schema(
+      {
+        ...PROJECT,
+        name: field('New name.'),
+        description: field(),
+        position: { type: 'number', description: 'New place in the list; 0 is first.' },
+      },
+      ['project'],
+    ),
+    async run(services, args) {
+      const project = await resolveProject(services, requireString(args, 'project'))
+      const position = optionalNumber(args, 'position')
+      const updated = await services.projects.update(project.id, {
+        name: optionalString(args, 'name'),
+        description: optionalString(args, 'description'),
+      })
+      if (position !== undefined) await services.projects.move(project.id, position)
+      return `Updated "${updated.name}".`
+    },
+  },
+
+  {
+    name: 'delete_project',
+    description: 'Delete a project and everything in it — columns, cards and docs. Permanent.',
+    inputSchema: schema({ ...PROJECT }, ['project']),
+    async run(services, args) {
+      const project = await resolveProject(services, requireString(args, 'project'))
+      await services.projects.remove(project.id)
+      return `Deleted "${project.name}" and everything in it.`
     },
   },
 
@@ -240,6 +287,44 @@ export const tools: Tool[] = [
   },
 
   {
+    name: 'update_column',
+    description: 'Rename a column, or move it along the board.',
+    inputSchema: schema(
+      {
+        ...PROJECT,
+        column: field(),
+        name: field('New name.'),
+        position: { type: 'number', description: 'New place on the board; 0 is leftmost.' },
+      },
+      ['project', 'column'],
+    ),
+    async run(services, args) {
+      const project = await resolveProject(services, requireString(args, 'project'))
+      const column = await resolveColumn(services, project.id, requireString(args, 'column'))
+      const name = optionalString(args, 'name')
+      const position = optionalNumber(args, 'position')
+      if (name !== undefined) await services.columns.rename(column.id, name)
+      if (position !== undefined) await services.columns.move(column.id, position)
+      return `Updated column "${name ?? column.name}".`
+    },
+  },
+
+  {
+    name: 'delete_column',
+    description: 'Delete a column and every card in it. Permanent.',
+    inputSchema: schema({ ...PROJECT, column: field() }, ['project', 'column']),
+    async run(services, args) {
+      const project = await resolveProject(services, requireString(args, 'project'))
+      const column = await resolveColumn(services, project.id, requireString(args, 'column'))
+      const count = (await services.cards.listForColumn(column.id)).length
+      await services.columns.remove(column.id)
+      return count
+        ? `Deleted column "${column.name}" and its ${count} card${count === 1 ? '' : 's'}.`
+        : `Deleted column "${column.name}".`
+    },
+  },
+
+  {
     name: 'list_docs',
     description: "List a project's doc titles.",
     inputSchema: schema({ ...PROJECT }, ['project']),
@@ -281,6 +366,46 @@ export const tools: Tool[] = [
       }
       const doc = await services.docs.create(project.id, { title, content })
       return `Created "${doc.title}".`
+    },
+  },
+
+  {
+    /*
+     * `write_doc` addresses a doc by title and replaces its content, which means
+     * it can never *rename* one — asking it to would quietly create a second
+     * doc. That is what this exists for.
+     */
+    name: 'update_doc',
+    description: "Rename a doc, or move it in the project's doc list.",
+    inputSchema: schema(
+      {
+        ...PROJECT,
+        doc: field('Current doc title.'),
+        title: field('New title.'),
+        position: { type: 'number', description: 'New place in the list; 0 is first.' },
+      },
+      ['project', 'doc'],
+    ),
+    async run(services, args) {
+      const project = await resolveProject(services, requireString(args, 'project'))
+      const doc = await resolveDoc(services, project.id, requireString(args, 'doc'))
+      const title = optionalString(args, 'title')
+      const position = optionalNumber(args, 'position')
+      if (title !== undefined) await services.docs.update(doc.id, { title })
+      if (position !== undefined) await services.docs.move(doc.id, position)
+      return `Updated "${title ?? doc.title}".`
+    },
+  },
+
+  {
+    name: 'delete_doc',
+    description: 'Delete a doc. Permanent.',
+    inputSchema: schema({ ...PROJECT, doc: field() }, ['project', 'doc']),
+    async run(services, args) {
+      const project = await resolveProject(services, requireString(args, 'project'))
+      const doc = await resolveDoc(services, project.id, requireString(args, 'doc'))
+      await services.docs.remove(doc.id)
+      return `Deleted "${doc.title}".`
     },
   },
 ]

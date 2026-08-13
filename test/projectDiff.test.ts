@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { diffBoards, isUnchanged } from '../src/web/lib/boardDiff.js'
-import type { Board, BoardColumn, Card } from '../src/shared/types.js'
+import { diffProjects, isUnchanged } from '../src/web/lib/projectDiff.js'
+import type { ProjectDetail, ColumnWithCards, Card } from '../src/shared/types.js'
 
 /**
  * The client-side answer to "what changed?".
@@ -30,11 +30,11 @@ function card(id: string, over: Partial<Card> = {}): Card {
   }
 }
 
-function board(columns: Record<string, Card[]>, docIds: string[] = []): Board {
+function board(columns: Record<string, Card[]>, docIds: string[] = []): ProjectDetail {
   return {
     project: { id: 'p', name: 'P', description: '', rank: 'a0', createdAt: '', updatedAt: '' },
     columns: Object.entries(columns).map(
-      ([id, cards]): BoardColumn => ({ id, projectId: 'p', name: id, rank: 'a0', cards }),
+      ([id, cards]): ColumnWithCards => ({ id, projectId: 'p', name: id, rank: 'a0', cards }),
     ),
     docs: docIds.map((id) => ({
       id,
@@ -47,22 +47,22 @@ function board(columns: Record<string, Card[]>, docIds: string[] = []): Board {
   }
 }
 
-describe('diffBoards', () => {
+describe('diffProjects', () => {
   it('reports nothing on the first read, so a page load does not announce itself', () => {
-    const changes = diffBoards(null, board({ todo: [card('a'), card('b')] }, ['d1']))
+    const changes = diffProjects(null, board({ todo: [card('a'), card('b')] }, ['d1']))
     expect(isUnchanged(changes)).toBe(true)
   })
 
   it('reports nothing when a refetch returns the same board', () => {
     const before = board({ todo: [card('a')], done: [] })
     const after = board({ todo: [card('a')], done: [] })
-    expect(isUnchanged(diffBoards(before, after))).toBe(true)
+    expect(isUnchanged(diffProjects(before, after))).toBe(true)
   })
 
   it('spots a card an agent added', () => {
     const before = board({ todo: [card('a')] })
     const after = board({ todo: [card('a'), card('b')] })
-    expect(diffBoards(before, after).added).toEqual(['b'])
+    expect(diffProjects(before, after).added).toEqual(['b'])
   })
 
   it('spots a card being ticked off, but not one that was already done', () => {
@@ -70,19 +70,19 @@ describe('diffBoards', () => {
     const after = board({
       todo: [card('a', { completed: true }), card('b', { completed: true })],
     })
-    expect(diffBoards(before, after).completed).toEqual(['a'])
+    expect(diffProjects(before, after).completed).toEqual(['a'])
   })
 
   it('does not report un-completing as a completion', () => {
     const before = board({ todo: [card('a', { completed: true })] })
     const after = board({ todo: [card('a')] })
-    expect(diffBoards(before, after).completed).toEqual([])
+    expect(diffProjects(before, after).completed).toEqual([])
   })
 
   it('spots a card moved between columns, and does not call it added', () => {
     const before = board({ todo: [card('a')], done: [] })
     const after = board({ todo: [], done: [card('a', { columnId: 'done' })] })
-    const changes = diffBoards(before, after)
+    const changes = diffProjects(before, after)
     expect(changes.moved).toEqual(['a'])
     expect(changes.added).toEqual([])
   })
@@ -90,18 +90,18 @@ describe('diffBoards', () => {
   it('does not report a reorder within a column as a move', () => {
     const before = board({ todo: [card('a'), card('b')] })
     const after = board({ todo: [card('b'), card('a')] })
-    expect(isUnchanged(diffBoards(before, after))).toBe(true)
+    expect(isUnchanged(diffProjects(before, after))).toBe(true)
   })
 
   it('spots a new doc', () => {
     const before = board({ todo: [] }, ['d1'])
     const after = board({ todo: [] }, ['d1', 'd2'])
-    expect(diffBoards(before, after).addedDocs).toEqual(['d2'])
+    expect(diffProjects(before, after).addedDocs).toEqual(['d2'])
   })
 
   it('treats a deleted card as no change — there is nothing left to animate', () => {
     const before = board({ todo: [card('a'), card('b')] })
     const after = board({ todo: [card('a')] })
-    expect(isUnchanged(diffBoards(before, after))).toBe(true)
+    expect(isUnchanged(diffProjects(before, after))).toBe(true)
   })
 })

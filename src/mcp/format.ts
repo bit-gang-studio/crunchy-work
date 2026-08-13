@@ -1,4 +1,4 @@
-import type { Board } from '../services/board.js'
+import type { ProjectDetail } from '../services/projectDetail.js'
 import type { Card, ProjectSummary } from '../shared/types.js'
 import { plural } from '../shared/plural.js'
 
@@ -22,7 +22,7 @@ function cardLine(card: Card): string {
   return `  - ${bits.join(' ')}`
 }
 
-export function renderBoard(board: Board): string {
+export function renderProject(board: ProjectDetail): string {
   const lines = [`# ${board.project.name}`]
   if (board.project.description) lines.push(board.project.description)
 

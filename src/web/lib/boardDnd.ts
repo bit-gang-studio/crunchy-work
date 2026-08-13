@@ -1,5 +1,5 @@
 import type { SortingStrategy } from '@dnd-kit/sortable'
-import type { BoardColumn } from '../../shared/types'
+import type { ColumnWithCards } from '../../shared/types'
 import { rankBetween } from '../../shared/rank'
 
 /**
@@ -44,14 +44,14 @@ export function pastMidpoint(pointerY: number, rect: { top: number; height: numb
 
 /** The column a drag target belongs to — a `col:<id>` droppable, or the column holding
  * a card id. Used to tell a cross-column move from a same-column reorder. */
-export function containerOf(cols: BoardColumn[], id: string): string | null {
+export function containerOf(cols: ColumnWithCards[], id: string): string | null {
   if (id.startsWith(COLUMN_PREFIX)) return id.slice(COLUMN_PREFIX.length)
   return cols.find((c) => c.cards.some((t) => t.id === id))?.id ?? null
 }
 
 /** Whether two column layouts hold the same cards in the same order — so a preview update
  * that changed nothing can return the previous array and skip a re-render. */
-export function sameOrder(a: BoardColumn[], b: BoardColumn[]): boolean {
+export function sameOrder(a: ColumnWithCards[], b: ColumnWithCards[]): boolean {
   return (
     a.length === b.length &&
     a.every((col, i) => {
@@ -67,7 +67,7 @@ export function sameOrder(a: BoardColumn[], b: BoardColumn[]): boolean {
 }
 
 /** The destination column index for an over-target (a card id or `col:<id>`). */
-function destColumnIndex(cols: BoardColumn[], overId: string): number {
+function destColumnIndex(cols: ColumnWithCards[], overId: string): number {
   return overId.startsWith(COLUMN_PREFIX)
     ? cols.findIndex((c) => c.id === overId.slice(COLUMN_PREFIX.length))
     : cols.findIndex((c) => c.cards.some((t) => t.id === overId))
@@ -79,11 +79,11 @@ function destColumnIndex(cols: BoardColumn[], overId: string): number {
  * renders while a drag is in flight, so it visibly opens a gap where the card will land.
  */
 export function previewMove(
-  cols: BoardColumn[],
+  cols: ColumnWithCards[],
   activeId: string,
   overId: string,
   after: boolean,
-): BoardColumn[] {
+): ColumnWithCards[] {
   const destIdx = destColumnIndex(cols, overId)
   if (destIdx === -1) return cols
 
@@ -107,7 +107,7 @@ export function previewMove(
 
 /** Where a card sits: its column and its neighbours' ids — for detecting a no-op drop. */
 function locate(
-  cols: BoardColumn[],
+  cols: ColumnWithCards[],
   id: string,
 ): { colId: string; prevId: string | null; nextId: string | null } | null {
   for (const c of cols) {
@@ -136,7 +136,7 @@ function byRank(a: { rank: string }, b: { rank: string }): number {
  * already holds. Crunchy has no filters yet, so it defaults to the visible set.
  */
 function rankAtSlot(
-  full: BoardColumn[],
+  full: ColumnWithCards[],
   colId: string,
   activeId: string,
   prevVisibleId: string | null,
@@ -156,10 +156,10 @@ function rankAtSlot(
  * where it began (same column, same neighbours) — nothing to save.
  */
 export function resolveCommit(
-  original: BoardColumn[],
-  preview: BoardColumn[],
+  original: ColumnWithCards[],
+  preview: ColumnWithCards[],
   activeId: string,
-  full: BoardColumn[] = preview,
+  full: ColumnWithCards[] = preview,
 ): { toColumnId: string; rank: string } | null {
   const to = locate(preview, activeId)
   if (!to) return null

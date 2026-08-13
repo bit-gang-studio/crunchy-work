@@ -62,7 +62,7 @@ export interface Column {
 }
 
 /** A column as the board renders it. */
-export interface BoardColumn extends Column {
+export interface ColumnWithCards extends Column {
   cards: Card[]
 }
 
@@ -81,8 +81,8 @@ export interface Doc extends DocSummary {
 }
 
 /** What `GET /api/projects/:id` returns — the whole board in one call. */
-export interface Board {
+export interface ProjectDetail {
   project: Project
-  columns: BoardColumn[]
+  columns: ColumnWithCards[]
   docs: DocSummary[]
 }

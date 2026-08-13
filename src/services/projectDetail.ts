@@ -7,13 +7,13 @@ import type { ColumnsService } from './columns.js'
 import type { DocsService } from './docs.js'
 import type { ProjectsService } from './projects.js'
 
-export interface BoardColumn extends Column {
+export interface ColumnWithCards extends Column {
   cards: Card[]
 }
 
-export interface Board {
+export interface ProjectDetail {
   project: Project
-  columns: BoardColumn[]
+  columns: ColumnWithCards[]
   docs: Awaited<ReturnType<DocsService['listForProject']>>
 }
 
@@ -25,7 +25,7 @@ export interface Board {
  * queries regardless of how many columns there are — the cards come back in one
  * `IN` and are grouped in memory, so adding a column never adds a query.
  */
-export function boardService(
+export function projectDetailService(
   store: Store,
   services: {
     projects: ProjectsService
@@ -34,7 +34,7 @@ export function boardService(
     cards: CardsService
   },
 ) {
-  async function get(projectId: string): Promise<Board> {
+  async function get(projectId: string): Promise<ProjectDetail> {
     const project = await services.projects.get(projectId)
     const cols = await services.columns.listForProject(projectId)
 
@@ -60,4 +60,4 @@ export function boardService(
   return { get }
 }
 
-export type BoardService = ReturnType<typeof boardService>
+export type ProjectDetailService = ReturnType<typeof projectDetailService>

@@ -32,7 +32,7 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
 
   useEffect(() => {
     let live = true
-    Promise.all([api.getDoc(docId), api.getBoard(projectId)])
+    Promise.all([api.getDoc(docId), api.getProject(projectId)])
       .then(([d, board]) => {
         if (!live) return
         setDoc(d)

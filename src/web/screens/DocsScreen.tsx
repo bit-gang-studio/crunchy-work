@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import type { Board } from '../../shared/types'
+import type { ProjectDetail } from '../../shared/types'
 import { api } from '../lib/api'
 import { Screen } from '../components/Screen'
 import { DocList } from '../components/DocList'
@@ -10,13 +10,13 @@ import { useLiveUpdates } from '../lib/useLiveUpdates'
 /** A project's documents. The board read already carries them, so this is one call. */
 export function DocsScreen({ projectId }: { projectId: string }) {
   const navigate = useNavigate()
-  const [board, setBoard] = useState<Board | null>(null)
+  const [board, setBoard] = useState<ProjectDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [title, setTitle] = useState('')
 
   const load = useCallback(async () => {
     try {
-      setBoard(await api.getBoard(projectId))
+      setBoard(await api.getProject(projectId))
     } catch (e) {
       setError((e as Error).message)
     }

@@ -1,5 +1,5 @@
 import type { Store } from '../db/index.js'
-import { boardService } from './board.js'
+import { projectDetailService } from './projectDetail.js'
 import { cardsService } from './cards.js'
 import { columnsService } from './columns.js'
 import { docsService } from './docs.js'
@@ -15,8 +15,8 @@ export function createServices(store: Store) {
   const columns = columnsService(store)
   const cards = cardsService(store)
   const docs = docsService(store)
-  const board = boardService(store, { projects, columns, docs, cards })
-  return { projects, columns, cards, docs, board }
+  const projectDetail = projectDetailService(store, { projects, columns, docs, cards })
+  return { projects, columns, cards, docs, projectDetail }
 }
 
 export type Services = ReturnType<typeof createServices>

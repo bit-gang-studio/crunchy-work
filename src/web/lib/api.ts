@@ -1,6 +1,6 @@
 import type {
   AcceptanceCriterion,
-  Board,
+  ProjectDetail,
   Card,
   Doc,
   DocSummary,
@@ -50,7 +50,7 @@ export const api = {
   listProjects: () => request<ProjectSummary[]>('/projects'),
   createProject: (input: { name: string; description?: string }) =>
     request<Project>('/projects', { method: 'POST', body: JSON.stringify(input) }),
-  getBoard: (id: string) => request<Board>(`/projects/${id}`),
+  getProject: (id: string) => request<ProjectDetail>(`/projects/${id}`),
   updateProject: (id: string, patch: { name?: string; description?: string }) =>
     request<Project>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteProject: (id: string) => send('DELETE', `/projects/${id}`),

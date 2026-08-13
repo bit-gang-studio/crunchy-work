@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { BoardColumn, Card } from '../src/shared/types'
+import type { ColumnWithCards, Card } from '../src/shared/types'
 import {
   COLUMN_PREFIX,
   containerOf,
@@ -16,7 +16,7 @@ import { initialRanks } from '../src/shared/rank'
  * placement decided by the pointer rather than an index direction.
  */
 
-function board(shape: Record<string, string[]>): BoardColumn[] {
+function board(shape: Record<string, string[]>): ColumnWithCards[] {
   return Object.entries(shape).map(([name, titles], ci) => {
     const ranks = initialRanks(Math.max(titles.length, 1))
     return {
@@ -43,7 +43,7 @@ function board(shape: Record<string, string[]>): BoardColumn[] {
   })
 }
 
-const order = (cols: BoardColumn[]) => cols.map((c) => c.cards.map((k) => k.id))
+const order = (cols: ColumnWithCards[]) => cols.map((c) => c.cards.map((k) => k.id))
 
 describe('pastMidpoint', () => {
   it('is the pointer against the card midpoint, not the dragged rect', () => {
