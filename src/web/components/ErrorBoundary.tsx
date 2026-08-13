@@ -19,13 +19,13 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: E
   override render() {
     if (!this.state.error) return this.props.children
     return (
-      <div className="m-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
-        <p className="font-medium text-red-900">Something broke rendering this view.</p>
-        <p className="mt-1 text-red-700">{this.state.error.message}</p>
+      <div className="m-6 rounded-card border border-danger/30 bg-danger-soft p-4 text-sm">
+        <p className="font-medium text-danger">Something broke rendering this view.</p>
+        <p className="mt-1 text-danger">{this.state.error.message}</p>
         <button
           type="button"
           onClick={() => this.setState({ error: null })}
-          className="mt-3 rounded-md bg-red-900 px-3 py-1.5 text-xs font-medium text-white"
+          className="mt-3 rounded-control bg-danger px-3 py-1.5 text-xs font-medium text-accent-ink"
         >
           Try again
         </button>

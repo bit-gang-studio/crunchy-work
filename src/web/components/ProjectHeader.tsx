@@ -85,13 +85,13 @@ export function ProjectHeader({
   }
 
   return (
-    <div className="shrink-0 border-b border-neutral-200 bg-white px-4 md:px-6">
+    <div className="shrink-0 border-b border-line bg-surface px-4 md:px-6">
       <div className="flex items-center gap-2 pt-3">
-        <Link to="/" className="shrink-0 text-xs text-neutral-500 hover:text-neutral-800">
+        <Link to="/" className="shrink-0 text-xs text-ink-muted hover:text-ink">
           Projects
         </Link>
         <ProjectSwitcher currentId={projectId} />
-        <span className="shrink-0 text-xs text-neutral-300">/</span>
+        <span className="shrink-0 text-xs text-ink-faint">/</span>
 
         {editing ? (
           <form onSubmit={submit} className="min-w-0 flex-1">
@@ -107,7 +107,7 @@ export function ProjectHeader({
                 }
               }}
               aria-label={`Rename ${name}`}
-              className="w-full max-w-sm rounded-md border border-neutral-400 px-2 py-0.5 text-base font-semibold focus:outline-none"
+              className="w-full max-w-sm rounded-control border border-ink-faint px-2 py-0.5 text-base font-semibold focus:outline-none"
             />
           </form>
         ) : (
@@ -118,7 +118,7 @@ export function ProjectHeader({
               type="button"
               onClick={() => setEditing(true)}
               title="Rename project"
-              className="w-full truncate rounded px-1 text-left text-base font-semibold tracking-tight hover:bg-neutral-100"
+              className="w-full truncate rounded px-1 text-left text-base font-semibold tracking-tight hover:bg-hover"
             >
               {name}
             </button>
@@ -131,19 +131,19 @@ export function ProjectHeader({
             onClick={() => setMenuOpen((open) => !open)}
             aria-label={`Project actions for ${name}`}
             aria-expanded={menuOpen}
-            className="flex h-7 w-7 items-center justify-center rounded-md leading-none text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+            className="flex h-7 w-7 items-center justify-center rounded-control leading-none text-ink-faint hover:bg-hover hover:text-ink"
           >
             ⋯
           </button>
           {menuOpen && (
-            <div className="absolute right-0 z-20 mt-1 w-56 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg">
+            <div className="absolute right-0 z-20 mt-1 w-56 rounded-card border border-line bg-surface p-1 shadow-raised">
               <button
                 type="button"
                 onClick={() => {
                   setMenuOpen(false)
                   setEditing(true)
                 }}
-                className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-neutral-100"
+                className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-hover"
               >
                 Rename project
               </button>
@@ -153,7 +153,7 @@ export function ProjectHeader({
                   setMenuOpen(false)
                   setEditingAbout(true)
                 }}
-                className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-neutral-100"
+                className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-hover"
               >
                 {description ? 'Edit description' : 'Add a description'}
               </button>
@@ -163,7 +163,7 @@ export function ProjectHeader({
                 <ConfirmButton
                   onConfirm={remove}
                   confirmLabel="Delete the board and docs too"
-                  className="w-full rounded px-0 py-0.5 text-left text-sm text-red-700"
+                  className="w-full rounded px-0 py-0.5 text-left text-sm text-danger"
                 >
                   Delete project
                 </ConfirmButton>
@@ -192,7 +192,7 @@ export function ProjectHeader({
           aria-label="Project description"
           minRows={1}
           maxRows={3}
-          className="mt-1 w-full max-w-2xl resize-none rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-500 focus:outline-none"
+          className="mt-1 w-full max-w-2xl resize-none rounded-control border border-line-strong px-2 py-1 text-sm focus:border-ink-muted focus:outline-none"
         />
       ) : (
         description && (
@@ -200,7 +200,7 @@ export function ProjectHeader({
             type="button"
             onClick={() => setEditingAbout(true)}
             title="Edit description"
-            className="mt-0.5 block max-w-2xl truncate rounded px-1 text-left text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
+            className="mt-0.5 block max-w-2xl truncate rounded px-1 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink"
           >
             {description}
           </button>
@@ -226,8 +226,8 @@ function Tab({ to, active, children }: { to: string; active: boolean; children: 
       aria-current={active ? 'page' : undefined}
       className={`border-b-2 pb-2 text-sm ${
         active
-          ? 'border-neutral-900 font-medium text-neutral-900'
-          : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          ? 'border-accent font-medium text-ink'
+          : 'border-transparent text-ink-muted hover:text-ink'
       }`}
     >
       {children}

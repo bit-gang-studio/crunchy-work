@@ -115,17 +115,17 @@ function KanbanBoardInner({
       <DragOverlay>
         {activeCard && <CardView card={activeCard} dragging />}
         {activeColumn && (
-          <div className="w-72 rotate-2 rounded-xl bg-neutral-100/95 p-2 shadow-2xl ring-1 ring-neutral-300">
+          <div className="w-72 rotate-2 rounded-panel bg-sunken/95 p-2 shadow-overlay ring-1 ring-line-strong">
             <div className="mb-2 flex items-center gap-2 px-1">
-              <span className="truncate text-sm font-semibold text-neutral-700">{activeColumn.name}</span>
-              <span className="text-xs text-neutral-400">{activeColumn.cards.length}</span>
+              <span className="truncate text-sm font-semibold text-ink">{activeColumn.name}</span>
+              <span className="text-xs text-ink-faint">{activeColumn.cards.length}</span>
             </div>
             <div className="max-h-72 space-y-2 overflow-hidden">
               {activeColumn.cards.slice(0, 4).map((card) => (
                 <CardView key={card.id} card={card} />
               ))}
               {activeColumn.cards.length > 4 && (
-                <p className="px-1 pt-1 text-xs text-neutral-400">
+                <p className="px-1 pt-1 text-xs text-ink-faint">
                   +{activeColumn.cards.length - 4} more
                 </p>
               )}
@@ -179,7 +179,7 @@ function Column({
     <section
       ref={setSortableRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex max-h-full w-72 shrink-0 snap-start flex-col rounded-xl bg-neutral-100/80 p-2 ${
+      className={`flex max-h-full w-72 shrink-0 snap-start flex-col rounded-panel bg-sunken/80 p-2 ${
         isDragging ? 'opacity-25' : ''
       }`}
       data-testid="column"
@@ -251,7 +251,7 @@ function SortableCard({
           placeholder showing exactly where it will drop. An invisible copy of the card
           reserves the identical height so nothing jumps. */}
       {isDragging ? (
-        <div className="rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-100" aria-hidden>
+        <div className="rounded-card border-2 border-dashed border-line-strong bg-hover" aria-hidden>
           <div className="invisible">
             <CardView card={card} />
           </div>
@@ -278,8 +278,8 @@ function CardView({
   return (
     <div
       data-changed={changed || undefined}
-      className={`cursor-grab rounded-lg border bg-white p-3 text-sm active:cursor-grabbing ${
-        dragging ? 'rotate-3 border-neutral-300 shadow-xl' : 'border-neutral-200 shadow-sm'
+      className={`cursor-grab rounded-card border bg-surface p-3 text-sm active:cursor-grabbing ${
+        dragging ? 'rotate-3 border-line-strong shadow-overlay' : 'border-line shadow-card'
       } ${card.completed ? 'opacity-60' : ''} ${changed ? 'card-changed' : ''}`}
     >
       <div className="flex items-start gap-2">
@@ -290,7 +290,7 @@ function CardView({
           onToggle={onToggleComplete ? () => void onToggleComplete(card.id, !card.completed) : undefined}
           className="mt-0.5"
         />
-        <p className={`flex-1 ${card.completed ? 'text-neutral-400 line-through' : 'text-neutral-900'}`}>
+        <p className={`flex-1 ${card.completed ? 'text-ink-faint line-through' : 'text-ink'}`}>
           {card.title}
         </p>
       </div>
@@ -298,7 +298,7 @@ function CardView({
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
           {card.dueAt && <DueBadge dueAt={card.dueAt} completed={card.completed} />}
           {card.size && (
-            <span className="rounded bg-neutral-100 px-1.5 py-0.5 font-medium text-neutral-600">
+            <span className="rounded bg-hover px-1.5 py-0.5 font-medium text-ink-muted">
               {card.size}
             </span>
           )}
@@ -317,7 +317,7 @@ function CriteriaBadge({ criteria }: { criteria: { done: boolean }[] }) {
   return (
     <span
       title="Acceptance criteria"
-      className={`rounded px-1.5 py-0.5 ${all ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-neutral-600'}`}
+      className={`rounded px-1.5 py-0.5 ${all ? 'bg-success-soft text-success' : 'bg-hover text-ink-muted'}`}
     >
       ✓ {met}/{criteria.length}
     </span>
@@ -336,10 +336,10 @@ function DueBadge({ dueAt, completed }: { dueAt: string; completed: boolean }) {
       title={dueAt}
       className={`rounded px-1.5 py-0.5 ${
         overdue
-          ? 'bg-red-50 text-red-700'
+          ? 'bg-danger-soft text-danger'
           : soon
-            ? 'bg-amber-50 text-amber-700'
-            : 'bg-neutral-100 text-neutral-600'
+            ? 'bg-warning-soft text-warning'
+            : 'bg-hover text-ink-muted'
       }`}
     >
       {overdue ? 'Overdue · ' : ''}
@@ -367,7 +367,7 @@ function AddColumn({ onAdd }: { onAdd: (name: string) => void | Promise<void> })
       <button
         type="button"
         onClick={() => setAdding(true)}
-        className="mt-0 w-56 shrink-0 rounded-xl bg-neutral-100/80 px-3 py-2.5 text-left text-sm text-neutral-600 hover:bg-neutral-200/80 hover:text-neutral-900"
+        className="mt-0 w-56 shrink-0 rounded-panel bg-sunken/80 px-3 py-2.5 text-left text-sm text-ink-muted hover:bg-hover-strong/80 hover:text-ink"
       >
         + Add column
       </button>
@@ -384,16 +384,16 @@ function AddColumn({ onAdd }: { onAdd: (name: string) => void | Promise<void> })
         onKeyDown={(e) => e.key === 'Escape' && setAdding(false)}
         placeholder="Column name"
         aria-label="Column name"
-        className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none"
+        className="w-full rounded-card border border-line-strong px-3 py-2 text-sm focus:border-ink-muted focus:outline-none"
       />
       <div className="mt-1 flex gap-2">
-        <button type="submit" className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white">
+        <button type="submit" className="rounded-control bg-accent px-3 py-1.5 text-xs font-medium text-accent-ink">
           Add
         </button>
         <button
           type="button"
           onClick={() => setAdding(false)}
-          className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-800"
+          className="rounded-control px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
         >
           Cancel
         </button>
@@ -409,7 +409,7 @@ function AddCard({ onAdd }: { onAdd: (title: string) => void | Promise<void> }) 
     return (
       <button
         onClick={() => setAdding(true)}
-        className="w-full rounded-lg px-3 py-2 text-left text-sm text-neutral-600 hover:bg-neutral-200/70 hover:text-neutral-900"
+        className="w-full rounded-card px-3 py-2 text-left text-sm text-ink-muted hover:bg-hover-strong/70 hover:text-ink"
       >
         + Add card
       </button>
@@ -441,16 +441,16 @@ function CardComposer({ onAdd, onClose }: { onAdd: (title: string) => void | Pro
         onChange={(e) => setTitle(e.target.value)}
         onBlur={() => !title.trim() && onClose()}
         placeholder="Card title"
-        className="w-full select-text rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none"
+        className="w-full select-text rounded-card border border-line-strong px-3 py-2 text-sm focus:border-ink-muted focus:outline-none"
       />
       <div className="mt-1 flex gap-2">
-        <button type="submit" className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white">
+        <button type="submit" className="rounded-control bg-accent px-3 py-1.5 text-xs font-medium text-accent-ink">
           Add
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-800"
+          className="rounded-control px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
         >
           Cancel
         </button>

@@ -32,8 +32,8 @@ export function CompleteToggle({
       }}
       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] leading-none ${
         completed
-          ? 'border-neutral-800 bg-neutral-800 text-white'
-          : 'border-neutral-300 bg-white text-transparent hover:border-neutral-500'
+          ? 'border-accent-hover bg-accent-hover text-accent-ink'
+          : 'border-line-strong bg-surface text-transparent hover:border-ink-muted'
       } ${className ?? ''}`}
     >
       ✓

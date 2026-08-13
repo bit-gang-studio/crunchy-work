@@ -2,6 +2,91 @@
 @plugin "@tailwindcss/typography";
 
 /*
+ * The design tokens — the whole visual system, in one place.
+ *
+ * Every token is named for the **role** it plays, never for the colour it
+ * currently holds. That is the entire point: `bg-surface` says "the thing you
+ * read content off", and what that is can change. A screen written in
+ * `bg-white` and `text-neutral-900` has hard-coded a decision into itself and
+ * has to be rewritten to change it; a screen written in these does not.
+ *
+ * The immediate reason is the theme pass that follows this one, which should be
+ * a re-valuing of this block rather than a tour of every component. The
+ * longer-term one is dark mode, which is the same job again.
+ *
+ * These values are deliberately identical to the greys they replaced, so
+ * introducing them changed nothing on screen. That is what makes the migration
+ * checkable: if a screenshot moved, the migration was wrong, not the palette.
+ */
+@theme {
+  /* ── Ground ─────────────────────────────────────────────────────────── */
+  /** The page behind everything. */
+  --color-canvas: var(--color-neutral-50);
+  /** Cards, panels, menus, dialogs — anything you read content off. */
+  --color-surface: #ffffff;
+  /** Wells that sit *into* the page: column bodies, inset areas. */
+  --color-sunken: var(--color-neutral-100);
+  /** A pointer resting on something interactive. */
+  --color-hover: var(--color-neutral-100);
+  /** The same, over a sunken area, where `hover` would not read. */
+  --color-hover-strong: var(--color-neutral-200);
+
+  /* ── Lines ──────────────────────────────────────────────────────────── */
+  --color-line: var(--color-neutral-200);
+  --color-line-strong: var(--color-neutral-300);
+
+  /* ── Ink ────────────────────────────────────────────────────────────── */
+  --color-ink: var(--color-neutral-900);
+  --color-ink-muted: var(--color-neutral-600);
+  --color-ink-faint: var(--color-neutral-400);
+  --color-ink-inverse: #ffffff;
+
+  /*
+   * ── Accent ────────────────────────────────────────────────────────────
+   * The one colour carrying identity. Today it is near-black, which is to say
+   * the product has no identity yet — that is the theme pass's job, and this
+   * is the single token it turns.
+   */
+  --color-accent: var(--color-neutral-900);
+  --color-accent-hover: var(--color-neutral-800);
+  --color-accent-ink: #ffffff;
+
+  /* ── Status ─────────────────────────────────────────────────────────── */
+  --color-danger: var(--color-red-700);
+  --color-danger-soft: var(--color-red-50);
+  --color-warning: var(--color-amber-700);
+  --color-warning-soft: var(--color-amber-50);
+  --color-success: var(--color-green-700);
+  --color-success-soft: var(--color-green-50);
+
+  /* ── Radii ──────────────────────────────────────────────────────────── */
+  --radius-control: 0.375rem;
+  --radius-card: 0.5rem;
+  --radius-panel: 0.75rem;
+
+  /* ── Elevation ──────────────────────────────────────────────────────── */
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-raised: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/*
+ * One focus ring, everywhere, and it is never removed.
+ *
+ * Keyboard access had never been audited: most controls relied on the browser
+ * default, and several removed it with `focus:outline-none` while only styling
+ * a border — so tabbing through the app lost the caret entirely in places.
+ * `:focus-visible` means a mouse click still does not draw one.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+}
+
+/*
  * TipTap's placeholder. Without it a new document is a featureless white area
  * with no cue that you can type, and no hint that markdown shortcuts work —
  * which is a poor first impression for half the product's pitch.
@@ -11,7 +96,7 @@
   float: left;
   height: 0;
   pointer-events: none;
-  color: var(--color-neutral-400);
+  color: var(--color-ink-faint);
 }
 
 /*
@@ -27,11 +112,11 @@
  */
 @keyframes card-changed {
   0% {
-    box-shadow: 0 0 0 0 var(--color-neutral-900);
+    box-shadow: 0 0 0 0 var(--color-accent);
     transform: scale(1);
   }
   12% {
-    box-shadow: 0 0 0 3px var(--color-neutral-800);
+    box-shadow: 0 0 0 3px var(--color-accent);
     transform: scale(1.015);
   }
   100% {
@@ -95,12 +180,12 @@
 .tiptap ul[data-type='taskList'] input[type='checkbox'] {
   width: 1rem;
   height: 1rem;
-  accent-color: var(--color-neutral-900);
+  accent-color: var(--color-accent);
   cursor: pointer;
 }
 
 /* A ticked item reads as done at a glance, the way it does on a card. */
 .tiptap ul[data-type='taskList'] li[data-checked='true'] > div {
-  color: var(--color-neutral-400);
+  color: var(--color-ink-faint);
   text-decoration: line-through;
 }

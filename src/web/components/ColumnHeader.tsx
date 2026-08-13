@@ -78,7 +78,7 @@ export function ColumnHeader({
             }
           }}
           aria-label={`Rename ${column.name}`}
-          className="w-full rounded-md border border-neutral-400 px-2 py-1 text-sm font-semibold focus:outline-none"
+          className="w-full rounded-control border border-ink-faint px-2 py-1 text-sm font-semibold focus:outline-none"
         />
       </form>
     )
@@ -94,18 +94,18 @@ export function ColumnHeader({
      */
     <div
       {...dragHandle?.listeners}
-      className="mb-2 flex shrink-0 cursor-grab items-center gap-2 rounded-md px-1 py-0.5 hover:bg-neutral-200/70 active:cursor-grabbing"
+      className="mb-2 flex shrink-0 cursor-grab items-center gap-2 rounded-control px-1 py-0.5 hover:bg-hover-strong/70 active:cursor-grabbing"
     >
       <button
         type="button"
         {...dragHandle?.attributes}
         onClick={() => setEditing(true)}
         title="Rename, or drag to reorder"
-        className="cursor-grab truncate text-left text-sm font-semibold text-neutral-700 active:cursor-grabbing"
+        className="cursor-grab truncate text-left text-sm font-semibold text-ink active:cursor-grabbing"
       >
         {column.name}
       </button>
-      <span className="shrink-0 text-xs text-neutral-400">{column.cards.length}</span>
+      <span className="shrink-0 text-xs text-ink-faint">{column.cards.length}</span>
 
       <button
         onMouseDown={(e) => e.stopPropagation()}
@@ -114,7 +114,7 @@ export function ColumnHeader({
         onClick={onAddCard}
         aria-label={`Add card to top of ${column.name}`}
         title="Add card to top"
-        className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-base leading-none text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900"
+        className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-control text-base leading-none text-ink-muted hover:bg-hover-strong hover:text-ink"
       >
         +
       </button>
@@ -127,19 +127,19 @@ export function ColumnHeader({
           onClick={() => setMenuOpen((open) => !open)}
           aria-label={`Column actions for ${column.name}`}
           aria-expanded={menuOpen}
-          className="flex h-6 w-6 items-center justify-center rounded-md leading-none text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900"
+          className="flex h-6 w-6 items-center justify-center rounded-control leading-none text-ink-muted hover:bg-hover-strong hover:text-ink"
         >
           ⋯
         </button>
         {menuOpen && (
-          <div className="absolute right-0 z-10 mt-1 w-48 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg">
+          <div className="absolute right-0 z-10 mt-1 w-48 rounded-card border border-line bg-surface p-1 shadow-raised">
             <button
               type="button"
               onClick={() => {
                 setMenuOpen(false)
                 setEditing(true)
               }}
-              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-neutral-100"
+              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-hover"
             >
               Rename
             </button>
@@ -147,7 +147,7 @@ export function ColumnHeader({
               <ConfirmButton
                 onConfirm={onDelete}
                 confirmLabel={column.cards.length ? `Delete ${column.cards.length} cards` : 'Really delete'}
-                className="w-full rounded px-0 py-0.5 text-left text-sm text-red-700"
+                className="w-full rounded px-0 py-0.5 text-left text-sm text-danger"
               >
                 Delete column
               </ConfirmButton>

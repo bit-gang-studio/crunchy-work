@@ -75,7 +75,7 @@ export function DocEditor({
       handleKeyDown: (_view, event) => keys.current(event),
       attributes: {
         class:
-          'prose prose-neutral max-w-none focus:outline-none min-h-[60vh] prose-headings:font-semibold prose-pre:bg-neutral-900 prose-pre:text-neutral-100',
+          'prose prose-neutral max-w-none focus:outline-none min-h-[60vh] prose-headings:font-semibold prose-pre:bg-accent prose-pre:text-ink-inverse',
         'aria-label': 'Document body',
         'data-testid': 'doc-body',
       },

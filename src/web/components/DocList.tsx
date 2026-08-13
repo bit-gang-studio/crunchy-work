@@ -51,7 +51,7 @@ export function DocList({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-      <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+      <ul className="divide-y divide-line overflow-hidden rounded-panel border border-line bg-surface">
         <SortableContext items={docs.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {docs.map((doc) => (
             <SortableRow key={doc.id} projectId={projectId} doc={doc} />
@@ -71,7 +71,7 @@ function SortableRow({ projectId, doc }: { projectId: string; doc: DocSummary })
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`group relative bg-white ${isDragging ? 'z-10 shadow-lg' : ''}`}
+      className={`group relative bg-surface ${isDragging ? 'z-10 shadow-raised' : ''}`}
     >
       <Link
         to={`/projects/${projectId}/docs/${doc.id}`}
@@ -79,18 +79,18 @@ function SortableRow({ projectId, doc }: { projectId: string; doc: DocSummary })
         data-doc={doc.id}
         {...attributes}
         {...listeners}
-        className={`flex cursor-grab items-baseline gap-3 px-4 py-3 hover:bg-neutral-50 active:cursor-grabbing ${
+        className={`flex cursor-grab items-baseline gap-3 px-4 py-3 hover:bg-canvas active:cursor-grabbing ${
           isDragging ? 'opacity-80' : ''
         }`}
       >
         <span
           aria-hidden
-          className="select-none text-xs leading-5 text-neutral-300 opacity-0 transition-opacity group-hover:opacity-100"
+          className="select-none text-xs leading-5 text-ink-faint opacity-0 transition-opacity group-hover:opacity-100"
         >
           ⠿
         </span>
         <span className="min-w-0 flex-1 truncate font-medium">{doc.title}</span>
-        <span className="shrink-0 text-xs text-neutral-500">{formatRelative(doc.updatedAt)}</span>
+        <span className="shrink-0 text-xs text-ink-muted">{formatRelative(doc.updatedAt)}</span>
       </Link>
     </li>
   )

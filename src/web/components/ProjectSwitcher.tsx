@@ -70,7 +70,7 @@ export function ProjectSwitcher({ currentId }: { currentId: string }) {
         aria-label="Switch project"
         aria-expanded={open}
         title="Switch project"
-        className="rounded px-1 text-xs text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+        className="rounded px-1 text-xs text-ink-muted hover:bg-hover hover:text-ink"
       >
         ▾
       </button>
@@ -78,7 +78,7 @@ export function ProjectSwitcher({ currentId }: { currentId: string }) {
       {open && (
         <div
           data-testid="project-switcher"
-          className="absolute left-0 z-30 mt-1 w-72 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg"
+          className="absolute left-0 z-30 mt-1 w-72 rounded-card border border-line bg-surface p-1 shadow-raised"
         >
           {searchable && (
             <input
@@ -98,14 +98,14 @@ export function ProjectSwitcher({ currentId }: { currentId: string }) {
               }}
               placeholder="Find a project"
               aria-label="Find a project"
-              className="mb-1 w-full rounded border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-500 focus:outline-none"
+              className="mb-1 w-full rounded border border-line-strong px-2 py-1 text-sm focus:border-ink-muted focus:outline-none"
             />
           )}
 
           <div className="max-h-72 overflow-y-auto">
-            {projects === null && <p className="px-2 py-1.5 text-sm text-neutral-400">Loading…</p>}
+            {projects === null && <p className="px-2 py-1.5 text-sm text-ink-faint">Loading…</p>}
             {projects !== null && matches.length === 0 && (
-              <p className="px-2 py-1.5 text-sm text-neutral-400">No project matches that.</p>
+              <p className="px-2 py-1.5 text-sm text-ink-faint">No project matches that.</p>
             )}
             {matches.map((project, i) => (
               <button
@@ -115,11 +115,11 @@ export function ProjectSwitcher({ currentId }: { currentId: string }) {
                 onClick={() => go(project)}
                 aria-current={project.id === currentId ? 'true' : undefined}
                 className={`flex w-full items-baseline gap-2 rounded px-2 py-1.5 text-left text-sm ${
-                  i === active ? 'bg-neutral-100' : ''
+                  i === active ? 'bg-hover' : ''
                 } ${project.id === currentId ? 'font-medium' : ''}`}
               >
                 <span className="min-w-0 flex-1 truncate">{project.name}</span>
-                <span className="shrink-0 text-xs text-neutral-400">
+                <span className="shrink-0 text-xs text-ink-faint">
                   {plural(project.cardCount, 'card')}
                 </span>
               </button>
@@ -129,7 +129,7 @@ export function ProjectSwitcher({ currentId }: { currentId: string }) {
           <Link
             to="/"
             onClick={() => setOpen(false)}
-            className="mt-1 block border-t border-neutral-200 px-2 pb-1 pt-2 text-xs text-neutral-500 hover:text-neutral-800"
+            className="mt-1 block border-t border-line px-2 pb-1 pt-2 text-xs text-ink-muted hover:text-ink"
           >
             All projects
           </Link>

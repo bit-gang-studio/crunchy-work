@@ -13,8 +13,8 @@ import { DocScreen } from './screens/DocScreen'
 export function App() {
   return (
     <BrowserRouter>
-      <div className="flex h-screen flex-col overflow-hidden bg-neutral-50 text-neutral-900">
-        <header className="flex shrink-0 items-center gap-3 border-b border-neutral-200 bg-white px-4 py-3 md:px-6">
+      <div className="flex h-screen flex-col overflow-hidden bg-canvas text-ink">
+        <header className="flex shrink-0 items-center gap-3 border-b border-line bg-surface px-4 py-3 md:px-6">
           <Link to="/" className="text-sm font-semibold tracking-tight">
             Crunchy
           </Link>
@@ -53,7 +53,7 @@ function DocRoute() {
 
 function NotFound() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12 text-sm text-neutral-600">
+    <div className="mx-auto max-w-2xl px-6 py-12 text-sm text-ink-muted">
       <p>Nothing here.</p>
       <Link to="/" className="mt-2 inline-block underline">
         Back to projects

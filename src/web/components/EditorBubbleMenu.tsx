@@ -40,7 +40,7 @@ export function EditorBubbleMenu({ editor }: { editor: Editor }) {
     >
       <div
         data-testid="bubble-menu"
-        className="flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg"
+        className="flex items-center gap-0.5 rounded-card border border-line bg-surface p-1 shadow-raised"
       >
         {linking ? (
           <LinkInput editor={editor} onDone={() => setLinking(false)} />
@@ -64,7 +64,7 @@ export function EditorBubbleMenu({ editor }: { editor: Editor }) {
               Link
             </Button>
 
-            <span className="mx-1 h-4 w-px bg-neutral-200" aria-hidden />
+            <span className="mx-1 h-4 w-px bg-hover-strong" aria-hidden />
 
             {TURN_INTO.map((id) => {
               const block = BLOCKS.find((b) => b.id === id)!
@@ -155,7 +155,7 @@ function Button({
         onClick()
       }}
       className={`min-w-7 rounded px-1.5 py-1 text-xs leading-none ${
-        active ? 'bg-neutral-900 text-white' : 'text-neutral-600 hover:bg-neutral-100'
+        active ? 'bg-accent text-accent-ink' : 'text-ink-muted hover:bg-hover'
       } ${className ?? ''}`}
     >
       {children}
@@ -190,9 +190,9 @@ function LinkInput({ editor, onDone }: { editor: Editor; onDone: () => void }) {
         onKeyDown={(e) => e.key === 'Escape' && onDone()}
         placeholder="Paste a link"
         aria-label="Link URL"
-        className="w-48 rounded border border-neutral-300 px-2 py-1 text-xs focus:border-neutral-500 focus:outline-none"
+        className="w-48 rounded border border-line-strong px-2 py-1 text-xs focus:border-ink-muted focus:outline-none"
       />
-      <button type="submit" className="rounded bg-neutral-900 px-2 py-1 text-xs text-white">
+      <button type="submit" className="rounded bg-accent px-2 py-1 text-xs text-accent-ink">
         {href.trim() ? 'Apply' : 'Remove'}
       </button>
     </form>

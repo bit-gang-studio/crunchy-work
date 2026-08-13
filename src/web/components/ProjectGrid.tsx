@@ -73,17 +73,17 @@ function SortableTile({ project }: { project: ProjectSummary }) {
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       {...listeners}
-      className={`flex min-h-[7.5rem] cursor-grab flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition-colors hover:border-neutral-300 hover:shadow-sm ${
-        isDragging ? 'z-10 opacity-80 shadow-xl' : ''
+      className={`flex min-h-[7.5rem] cursor-grab flex-col overflow-hidden rounded-panel border border-line bg-surface transition-colors hover:border-line-strong hover:shadow-card ${
+        isDragging ? 'z-10 opacity-80 shadow-overlay' : ''
       }`}
     >
       <div className="h-2 shrink-0" style={{ background: color.bar }} aria-hidden />
       <div className="flex flex-1 flex-col p-4" style={{ background: color.tint }}>
         <span className="font-medium">{project.name}</span>
         {project.description && (
-          <span className="mt-1 line-clamp-2 text-sm text-neutral-600">{project.description}</span>
+          <span className="mt-1 line-clamp-2 text-sm text-ink-muted">{project.description}</span>
         )}
-        <span className="mt-auto pt-3 text-xs text-neutral-500">
+        <span className="mt-auto pt-3 text-xs text-ink-muted">
           {plural(project.cardCount, 'card')}
           {project.docCount > 0 && ` · ${plural(project.docCount, 'doc')}`}
         </span>

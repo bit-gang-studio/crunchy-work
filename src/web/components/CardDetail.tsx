@@ -94,7 +94,7 @@ export function CardDetail({
      * full-screen one.
      */
     <div
-      className="fixed inset-0 z-20 flex items-stretch justify-center bg-neutral-900/40 md:items-start md:p-8 md:pt-16"
+      className="fixed inset-0 z-20 flex items-stretch justify-center bg-ink/40 md:items-start md:p-8 md:pt-16"
       onClick={onClose}
       role="presentation"
     >
@@ -104,13 +104,13 @@ export function CardDetail({
         aria-label="Card detail"
         data-testid="card-detail"
         onClick={(e) => e.stopPropagation()}
-        className="flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl md:h-auto md:max-h-full md:w-[36rem] md:rounded-xl"
+        className="flex h-full w-full flex-col overflow-y-auto bg-surface shadow-overlay md:h-auto md:max-h-full md:w-[36rem] md:rounded-panel"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-3">
-          <span className="min-w-0 truncate text-xs text-neutral-500">
+        <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
+          <span className="min-w-0 truncate text-xs text-ink-muted">
             {columnName ? (
               <>
-                in <span className="font-medium text-neutral-700">{columnName}</span>
+                in <span className="font-medium text-ink">{columnName}</span>
               </>
             ) : (
               'Card'
@@ -120,14 +120,14 @@ export function CardDetail({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+            className="rounded-control px-2 py-1 text-sm text-ink-muted hover:bg-hover hover:text-ink"
           >
             ✕
           </button>
         </div>
 
-        {error && <p className="p-4 text-sm text-red-700">{error}</p>}
-        {!card && !error && <p className="p-4 text-sm text-neutral-500">Loading…</p>}
+        {error && <p className="p-4 text-sm text-danger">{error}</p>}
+        {!card && !error && <p className="p-4 text-sm text-ink-muted">Loading…</p>}
 
         {card && (
           <div className="flex flex-1 flex-col gap-5 p-4">
@@ -149,27 +149,27 @@ export function CardDetail({
                 aria-label="Card title"
                 minRows={1}
                 maxRows={4}
-                className="flex-1 rounded-md border border-transparent px-2 py-1 text-lg font-medium hover:border-neutral-200 focus:border-neutral-400 focus:outline-none"
+                className="flex-1 rounded-control border border-transparent px-2 py-1 text-lg font-medium hover:border-line focus:border-ink-faint focus:outline-none"
               />
             </div>
 
             <div className="flex flex-wrap gap-5">
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-neutral-500">Due date</span>
+                <span className="text-xs font-medium text-ink-muted">Due date</span>
                 <input
                   type="date"
                   value={card.dueAt ?? ''}
                   onChange={(e) => void commit({ dueAt: e.target.value || null })}
-                  className="w-44 rounded-md border border-neutral-300 px-2 py-1.5 text-sm focus:border-neutral-500 focus:outline-none"
+                  className="w-44 rounded-control border border-line-strong px-2 py-1.5 text-sm focus:border-ink-muted focus:outline-none"
                 />
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-neutral-500">Size</span>
+                <span className="text-xs font-medium text-ink-muted">Size</span>
                 <select
                   value={card.size ?? ''}
                   onChange={(e) => void commit({ size: (e.target.value || null) as Size | null })}
-                  className="w-28 rounded-md border border-neutral-300 px-2 py-1.5 text-sm focus:border-neutral-500 focus:outline-none"
+                  className="w-28 rounded-control border border-line-strong px-2 py-1.5 text-sm focus:border-ink-muted focus:outline-none"
                 >
                   {/* Unsized is the normal state, so it leads. */}
                   <option value="">—</option>
@@ -188,18 +188,18 @@ export function CardDetail({
             />
 
             <label className="flex flex-1 flex-col gap-1">
-              <span className="text-xs font-medium text-neutral-500">Description</span>
+              <span className="text-xs font-medium text-ink-muted">Description</span>
               <AutoGrowTextarea
                 value={card.description}
                 onChange={(e) => edit({ description: e.target.value })}
                 placeholder="Markdown welcome."
                 minRows={6}
                 maxRows={24}
-                className="rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none"
+                className="rounded-control border border-line-strong px-3 py-2 text-sm focus:border-ink-muted focus:outline-none"
               />
             </label>
 
-            <div className="mt-auto border-t border-neutral-200 pt-4">
+            <div className="mt-auto border-t border-line pt-4">
               <ConfirmButton onConfirm={remove}>Delete card</ConfirmButton>
             </div>
           </div>

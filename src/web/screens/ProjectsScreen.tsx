@@ -58,8 +58,8 @@ export function ProjectsScreen() {
       <div className="mx-auto max-w-4xl px-4 py-8 md:px-6">
         <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
 
-        {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
-        {projects === null && !error && <p className="mt-6 text-sm text-neutral-500">Loading…</p>}
+        {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+        {projects === null && !error && <p className="mt-6 text-sm text-ink-muted">Loading…</p>}
 
         {projects?.length === 0 && !creating && <EmptyState onStart={() => setCreating(true)} />}
 
@@ -71,7 +71,7 @@ export function ProjectsScreen() {
               <button
                 type="button"
                 onClick={() => setCreating(true)}
-                className="flex min-h-[7.5rem] flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-neutral-300 text-sm text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+                className="flex min-h-[7.5rem] flex-col items-center justify-center gap-1 rounded-panel border-2 border-dashed border-line-strong text-sm text-ink-muted hover:border-ink-faint hover:text-ink"
               >
                 <span className="text-xl leading-none">+</span>
                 New project
@@ -105,7 +105,7 @@ function NewProjectTile({
   return (
     <form
       onSubmit={submit}
-      className="flex min-h-[7.5rem] flex-col rounded-xl border border-neutral-300 bg-white p-4"
+      className="flex min-h-[7.5rem] flex-col rounded-panel border border-line-strong bg-surface p-4"
     >
       <input
         autoFocus
@@ -114,16 +114,16 @@ function NewProjectTile({
         onKeyDown={(e) => e.key === 'Escape' && onCancel()}
         placeholder="Project name"
         aria-label="Project name"
-        className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none"
+        className="w-full rounded-card border border-line-strong px-3 py-2 text-sm focus:border-ink-muted focus:outline-none"
       />
       <div className="mt-auto flex gap-2 pt-3">
-        <button type="submit" className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white">
+        <button type="submit" className="rounded-control bg-accent px-3 py-1.5 text-xs font-medium text-accent-ink">
           Create
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-md px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-800"
+          className="rounded-control px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
         >
           Cancel
         </button>
@@ -139,16 +139,16 @@ function NewProjectTile({
  */
 function EmptyState({ onStart }: { onStart: () => void }) {
   return (
-    <div className="mt-6 rounded-xl border border-dashed border-neutral-300 bg-white p-6">
+    <div className="mt-6 rounded-panel border border-dashed border-line-strong bg-surface p-6">
       <p className="text-sm font-medium">No projects yet.</p>
-      <p className="mt-1 text-sm text-neutral-600">Let your agent make one. Paste this into Claude Code:</p>
-      <pre className="mt-3 overflow-x-auto rounded-md bg-neutral-900 px-3 py-2 text-xs text-neutral-100">
+      <p className="mt-1 text-sm text-ink-muted">Let your agent make one. Paste this into Claude Code:</p>
+      <pre className="mt-3 overflow-x-auto rounded-control bg-accent px-3 py-2 text-xs text-ink-inverse">
         Make me a Crunchy project for this repo and add cards for the TODOs you find.
       </pre>
       <button
         type="button"
         onClick={onStart}
-        className="mt-4 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50"
+        className="mt-4 rounded-card border border-line-strong px-3 py-1.5 text-sm hover:bg-canvas"
       >
         Or create one yourself
       </button>

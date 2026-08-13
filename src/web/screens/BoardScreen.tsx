@@ -74,7 +74,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
     return (
       <Screen scroll="document">
         <div className="mx-auto max-w-2xl px-6 py-12 text-sm">
-          <p className="text-red-700">{error}</p>
+          <p className="text-danger">{error}</p>
           <Link to="/" className="mt-2 inline-block underline">
             Back to projects
           </Link>
@@ -86,7 +86,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   if (!board) {
     return (
       <Screen scroll="document">
-        <p className="px-6 py-12 text-sm text-neutral-500">Loading…</p>
+        <p className="px-6 py-12 text-sm text-ink-muted">Loading…</p>
       </Screen>
     )
   }

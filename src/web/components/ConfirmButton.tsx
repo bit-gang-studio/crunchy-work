@@ -44,7 +44,7 @@ export function ConfirmButton({
       <button
         type="button"
         onClick={() => setArmed(true)}
-        className={className ?? 'rounded-md px-3 py-1.5 text-sm text-red-700 hover:bg-red-50'}
+        className={className ?? 'rounded-control px-3 py-1.5 text-sm text-danger hover:bg-danger-soft'}
       >
         {children}
       </button>
@@ -57,14 +57,14 @@ export function ConfirmButton({
         type="button"
         autoFocus
         onClick={() => void onConfirm()}
-        className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800"
+        className="rounded-control bg-danger px-3 py-1.5 text-sm font-medium text-accent-ink hover:bg-danger"
       >
         {confirmLabel}
       </button>
       <button
         type="button"
         onClick={() => setArmed(false)}
-        className="rounded-md px-2 py-1.5 text-sm text-neutral-500 hover:text-neutral-800"
+        className="rounded-control px-2 py-1.5 text-sm text-ink-muted hover:text-ink"
       >
         Cancel
       </button>

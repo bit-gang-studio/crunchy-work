@@ -59,7 +59,7 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
     return (
       <Screen scroll="document">
         <div className="mx-auto max-w-2xl px-6 py-12 text-sm">
-          <p className="text-red-700">{error}</p>
+          <p className="text-danger">{error}</p>
           <Link to={`/projects/${projectId}/docs`} className="mt-2 inline-block underline">
             Back to docs
           </Link>
@@ -77,17 +77,17 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
           description={project?.description}
         />
         <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
-          {!doc && <p className="text-sm text-neutral-500">Loading…</p>}
+          {!doc && <p className="text-sm text-ink-muted">Loading…</p>}
           {doc && (
             <>
               <div className="mb-2 flex items-center justify-between gap-4">
                 <Link
                   to={`/projects/${projectId}/docs`}
-                  className="text-xs text-neutral-500 hover:text-neutral-800"
+                  className="text-xs text-ink-muted hover:text-ink"
                 >
                   ← All docs
                 </Link>
-                <span className="text-xs text-neutral-400" data-testid="save-state">
+                <span className="text-xs text-ink-faint" data-testid="save-state">
                   {saved === 'saving' ? 'Saving…' : saved === 'saved' ? 'Saved' : ''}
                 </span>
               </div>
@@ -98,11 +98,11 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
                 value={doc.title}
                 onChange={(e) => edit({ title: e.target.value })}
                 aria-label="Doc title"
-                className="w-full rounded-md border border-neutral-200 bg-white px-2 py-1 text-2xl font-semibold tracking-tight hover:border-neutral-300 focus:border-neutral-500 focus:outline-none"
+                className="w-full rounded-control border border-line bg-surface px-2 py-1 text-2xl font-semibold tracking-tight hover:border-line-strong focus:border-ink-muted focus:outline-none"
               />
 
-              <div className="mt-4 rounded-xl border border-neutral-200 bg-white px-4 py-3">
-                <Suspense fallback={<p className="text-sm text-neutral-400">Loading editor…</p>}>
+              <div className="mt-4 rounded-panel border border-line bg-surface px-4 py-3">
+                <Suspense fallback={<p className="text-sm text-ink-faint">Loading editor…</p>}>
                   <DocEditor
                     docId={doc.id}
                     initialMarkdown={doc.content}
@@ -111,7 +111,7 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
                 </Suspense>
               </div>
 
-              <div className="mt-6 border-t border-neutral-200 pt-4">
+              <div className="mt-6 border-t border-line pt-4">
                 <ConfirmButton onConfirm={remove}>Delete doc</ConfirmButton>
               </div>
             </>

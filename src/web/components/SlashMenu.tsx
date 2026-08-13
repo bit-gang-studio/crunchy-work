@@ -40,7 +40,7 @@ export function SlashMenu({ state }: { state: SlashMenuState }) {
       aria-label="Insert block"
       data-testid="slash-menu"
       style={{ position: 'fixed', ...style, maxWidth: 'calc(100vw - 2rem)' }}
-      className="z-50 max-h-64 w-64 overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-lg"
+      className="z-50 max-h-64 w-64 overflow-y-auto rounded-card border border-line bg-surface p-1 shadow-raised"
     >
       {state.items.map((block, i) => (
         <button
@@ -55,12 +55,12 @@ export function SlashMenu({ state }: { state: SlashMenuState }) {
             state.select(i)
           }}
           className={`flex w-full items-baseline gap-3 rounded px-2 py-1.5 text-left text-sm ${
-            i === state.activeIndex ? 'bg-neutral-100' : ''
+            i === state.activeIndex ? 'bg-hover' : ''
           }`}
         >
           <span className="min-w-0 flex-1 truncate">{block.label}</span>
           {block.hint && (
-            <span className="shrink-0 font-mono text-xs text-neutral-400">{block.hint}</span>
+            <span className="shrink-0 font-mono text-xs text-ink-faint">{block.hint}</span>
           )}
         </button>
       ))}

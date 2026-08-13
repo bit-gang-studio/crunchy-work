@@ -38,9 +38,9 @@ export function AcceptanceCriteria({
   return (
     <section data-testid="acceptance-criteria">
       <div className="flex items-baseline justify-between">
-        <span className="text-xs font-medium text-neutral-500">Done when</span>
+        <span className="text-xs font-medium text-ink-muted">Done when</span>
         {criteria.length > 0 && (
-          <span className="text-xs text-neutral-400">
+          <span className="text-xs text-ink-faint">
             {met}/{criteria.length}
           </span>
         )}
@@ -54,16 +54,16 @@ export function AcceptanceCriteria({
               checked={criterion.done}
               onChange={() => toggle(index)}
               aria-label={criterion.text}
-              className="mt-1 h-3.5 w-3.5 shrink-0 accent-neutral-800"
+              className="mt-1 h-3.5 w-3.5 shrink-0 accent-accent"
             />
-            <span className={`flex-1 text-sm ${criterion.done ? 'text-neutral-400 line-through' : ''}`}>
+            <span className={`flex-1 text-sm ${criterion.done ? 'text-ink-faint line-through' : ''}`}>
               {criterion.text}
             </span>
             <button
               type="button"
               onClick={() => remove(index)}
               aria-label={`Remove "${criterion.text}"`}
-              className="shrink-0 px-1 text-xs text-neutral-300 hover:text-red-700 group-hover:text-neutral-500"
+              className="shrink-0 px-1 text-xs text-ink-faint hover:text-danger group-hover:text-ink-muted"
             >
               ✕
             </button>
@@ -77,7 +77,7 @@ export function AcceptanceCriteria({
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Add a criterion…"
           aria-label="Add a criterion"
-          className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm focus:border-neutral-500 focus:outline-none"
+          className="w-full rounded-control border border-line-strong px-2 py-1.5 text-sm focus:border-ink-muted focus:outline-none"
         />
       </form>
     </section>
