@@ -154,7 +154,16 @@ against. It runs on **port 4424**, not 4420, so it never fights a running app se
 404. It is absent from the production build (only `index.html` is a Vite input).
 
 Seeds: default (small, exact orders) · `?big=1` (full columns, wrapping titles, real scroll
-containers) · `?flick=1` (a short card above a much taller one).
+containers) · `?flick=1` (a short card above a much taller one) · `?cols=1` (four columns —
+enough to overflow the board at 1280, which is the only state auto-scroll and scroll-snap
+engage in).
+
+**The harness must carry the real board's affordances, not just its cards.** Column reorder
+went untested for a release because the harness mounted `<KanbanBoard>` without
+`onMoveColumn`, which silently sets `sortable={false}` — the columns were not draggable there
+at all. The `+ Add column` button matters for the same reason: it is ~200px of board width,
+and it is the difference between four columns fitting on screen and the board scrolling. A
+harness that is a simplified board tests a board that does not ship.
 
 What each spec pins down, and why it exists:
 
@@ -166,10 +175,23 @@ What each spec pins down, and why it exists:
 | `flicker` | A held drag oscillating when two cards had different heights |
 | `loop` | React #185 — the measure→re-render→measure cascade that white-screened the board |
 | `touch` | A swipe must scroll; only a 200ms long-press picks a card up |
+| `column` | Dropping a column in the first slot landed it second, 3 runs in 5 |
+
+**Collision is decided by the pointer, never by the dragged element's rect** — on both the
+card path and the column path. The column path used dnd-kit's stock `closestCenter`, which
+measures from the dragged element's translated centre; a column is 288px wide and you grab it
+by its header, so that centre sits ~100px right of your pointer and aiming at the first
+column landed exactly on the boundary with the second. Scroll drift then broke the tie: the
+board scrolls horizontally, a pointer near the left edge sits inside dnd-kit's auto-scroll
+band, and the first column's measured centre swung from -26 to +5 across consecutive
+collision passes **while the pointer was stationary**. Horizontal distance from the pointer to
+each column's box does not care where you gripped and cannot be flipped by 100px of drift.
 
 **When a drag bug is reported, reproduce it in the harness first** — it's the fast,
 deterministic loop. Instrument `collisionDetection` with a `window.__dbg` trace and a sweep
-spec to see `over`/`after` per y. Reuse this pattern for any future draggable surface.
+spec to see `over`/`after` per y. Reuse this pattern for any future draggable surface. Note
+the harness reproduced the column bug only *after* it was made to match the real board's
+width — a bug that needs a scrolling container will not appear on a board that fits.
 
 ## Design rules that are load-bearing
 

@@ -66,6 +66,35 @@ export const inGapBetween = (page: Page, above: string, below: string) => async 
   return { x: a.x + a.width / 2, y: (a.y + a.height + b.y) / 2 }
 }
 
+/** The harness mirrors column order into its own node — see `column-order` there. */
+export async function readColumnOrder(page: Page): Promise<string[]> {
+  return JSON.parse((await page.getByTestId('column-order').textContent()) ?? '[]') as string[]
+}
+
+/**
+ * Drag a column by its header onto another column's slot.
+ *
+ * The grip is the header bar (that is where the sortable `listeners` live), and
+ * the aim point is the *target column's header*, which is where a user aims: you
+ * carry the list you are holding over the list you want to sit in front of.
+ */
+export async function dragColumnOnto(page: Page, columnId: string, targetColumnId: string) {
+  const grip = async (id: string) => {
+    const box = (await page.locator(`[data-column="${id}"]`).boundingBox())!
+    return { x: box.x + 40, y: box.y + 12 }
+  }
+  const from = await grip(columnId)
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  // Past the 5px activation constraint.
+  await page.mouse.move(from.x, from.y + 8, { steps: 3 })
+  const to = await grip(targetColumnId)
+  await page.mouse.move(to.x, to.y, { steps: 25 })
+  await page.waitForTimeout(200)
+  await page.mouse.up()
+  await page.waitForTimeout(350)
+}
+
 export async function openHarness(page: Page, query = '') {
   await page.goto(`/dnd-harness.html${query}`)
   await expect(page.locator('[data-testid="card"]').first()).toBeVisible()

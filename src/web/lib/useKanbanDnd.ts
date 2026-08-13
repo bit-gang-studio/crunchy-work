@@ -11,6 +11,7 @@ import {
   type DragStartEvent,
   type DragMoveEvent,
   type DragEndEvent,
+  type UniqueIdentifier,
 } from '@dnd-kit/core'
 import type { ColumnWithCards, Card } from '../../shared/types'
 import {
@@ -116,16 +117,58 @@ export function useKanbanDnd(
   const collisionDetection: CollisionDetection = useCallback(
     (args) => {
       /*
-       * Reordering a column is a different problem from moving a card, and it
-       * gets its own path rather than being folded into the card logic below —
-       * a horizontal list of equal-height items is exactly what dnd-kit's stock
-       * `closestCenter` handles well, and the card path stays untouched.
+       * Reordering a column is a different problem from moving a card — one
+       * horizontal list, no containers to cross, no before/after within an item
+       * — so it gets its own path rather than being folded into the card logic
+       * below, and the card path stays untouched.
+       *
+       * It used dnd-kit's stock `closestCenter`, on the reasoning that a
+       * horizontal list of equal-width items is exactly what the stock strategy
+       * is for. That was wrong for the reason below, and the two paths now agree
+       * on the one rule that matters: the pointer decides.
        */
       if (activeId && isColumnDrag(activeId)) {
-        return closestCenter({
-          ...args,
-          droppableContainers: args.droppableContainers.filter((c) => isColumnDrag(String(c.id))),
-        })
+        const columnDroppables = args.droppableContainers.filter((c) => isColumnDrag(String(c.id)))
+        const px = args.pointerCoordinates?.x
+        /*
+         * The column you are POINTING AT, not the one your dragged rect happens
+         * to centre on — the same rule the card path already follows, and for
+         * the same reason.
+         *
+         * This was `closestCenter`, which measures from the dragged element's
+         * translated centre. A column is 288px wide and you grab it by its
+         * header, usually near the left edge, so that centre sits ~100px to the
+         * RIGHT of your pointer. Aiming at the first column therefore put the
+         * measured centre almost exactly on the boundary between the first and
+         * second — a tie, decided by whatever the rects happened to be that
+         * frame.
+         *
+         * And they moved between frames: the board scrolls horizontally, the
+         * pointer at the left edge sits inside the auto-scroll band, and every
+         * column's rect slides while the pointer is perfectly still. Traced, on
+         * a stationary pointer: the first column's centre swung from -26 to +5
+         * across consecutive collision passes. So the tie broke whichever way
+         * the scroll happened to be mid-flight at the moment of release —
+         * dropping a column at the front landed it second about three times in
+         * five, on a board wide enough to scroll.
+         *
+         * Horizontal distance from the pointer to each column's box (zero when
+         * the pointer is inside it) has neither problem: it is what the user
+         * sees, it does not care where you gripped, and a 100px scroll drift
+         * cannot flip a decision separated by a column's full width.
+         */
+        if (px != null) {
+          let best: { id: UniqueIdentifier; dist: number } | null = null
+          for (const c of columnDroppables) {
+            const r = args.droppableRects.get(c.id)
+            if (!r) continue
+            const dist = px < r.left ? r.left - px : px > r.left + r.width ? px - (r.left + r.width) : 0
+            if (!best || dist < best.dist) best = { id: c.id, dist }
+          }
+          if (best) return [{ id: best.id }]
+        }
+        // No pointer (a keyboard drag) — the dragged rect is all there is.
+        return closestCenter({ ...args, droppableContainers: columnDroppables })
       }
 
       const hits = pointerWithin(args)

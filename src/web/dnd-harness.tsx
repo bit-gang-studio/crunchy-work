@@ -70,6 +70,22 @@ function seed(): ColumnWithCards[] {
     ]
   }
 
+  // `?cols=1`: four columns, which is what it takes to overflow the board
+  // horizontally at 1280 — the shape the failing journey uses. Column reorder
+  // behaves differently once the board scrolls (auto-scroll and scroll-snap both
+  // engage), so a seed that fits on screen would not reproduce it.
+  if (params.get('cols') === '1') {
+    const names = [
+      ['c1', 'Backlog'],
+      ['c2', 'In Progress'],
+      ['c3', 'Done'],
+      ['c4', 'Blocked'],
+    ]
+    return names.map(([id, name], ci) =>
+      column(id!, name!, [card(`${id}-1`, 'a0', id!), card(`${id}-2`, 'a1', id!)], ci),
+    )
+  }
+
   // `?big=1` fills the columns like a real board — many cards, some with long wrapping
   // titles (variable heights) — to exercise the drag-measuring loop regression. Default is
   // the small, exact seed the reachability/placeholder specs assert against.
@@ -117,9 +133,27 @@ function applyMove(cols: ColumnWithCards[], cardId: string, toColumnId: string, 
   })
 }
 
+/**
+ * Apply a committed column reorder locally — the harness's stand-in for the server.
+ *
+ * `index` is the target position among the *other* columns, i.e. after the moved
+ * one is taken out. That is exactly what `services/columns.move` does (it ranks
+ * against `others`) and what BoardScreen's optimistic splice does, so the harness
+ * agrees with production rather than inventing its own semantics.
+ */
+function applyColumnMove(cols: ColumnWithCards[], columnId: string, index: number): ColumnWithCards[] {
+  const from = cols.findIndex((c) => c.id === columnId)
+  if (from < 0) return cols
+  const next = [...cols]
+  const [moved] = next.splice(from, 1)
+  next.splice(index, 0, moved!)
+  return next
+}
+
 declare global {
   interface Window {
     __moves?: { cardId: string; toColumnId: string; rank: string }[]
+    __columnMoves?: { columnId: string; index: number }[]
     __opens?: string[]
   }
 }
@@ -160,6 +194,24 @@ function App() {
     )
   }
 
+  // Columns are draggable here for the same reason cards are: reordering one is
+  // browser behaviour — collision against rects that a sortable transform has
+  // already moved — and it shipped with no coverage at all, which is how "drop a
+  // column in the first slot" could be wrong most of the time without anyone
+  // seeing it. Passing this handler is also what turns `sortable` on at all.
+  const onMoveColumn = (columnId: string, index: number) => {
+    ;(window.__columnMoves ??= []).push({ columnId, index })
+    setColumns((cols) => applyColumnMove(cols, columnId, index))
+  }
+
+  // Present so the board carries its real trailing "+ Add column" affordance.
+  // That is not cosmetic: it is ~200px of board width, and it is the difference
+  // between four columns fitting at 1280 and the board scrolling horizontally —
+  // which is the state auto-scroll and scroll-snap only engage in.
+  const onAddColumn = (name: string) => {
+    setColumns((cols) => [...cols, column(name, name, [], cols.length)])
+  }
+
   const state = columns.map((c) => ({ id: c.id, cards: c.cards.map((k) => k.id) }))
 
   // Mirror the app's canvas layout: a fixed-height region so columns actually scroll — the
@@ -173,10 +225,18 @@ function App() {
           onOpenCard={onOpenCard}
           onAddCard={onAddCard}
           onToggleComplete={onToggleComplete}
+          onMoveColumn={onMoveColumn}
+          onAddColumn={onAddColumn}
         />
       </div>
       <pre data-testid="state" style={{ display: 'none' }}>
         {JSON.stringify(state)}
+      </pre>
+      {/* Column order gets its own node rather than being read off `state`'s key
+          order — the card specs parse that into an object, where order is an
+          accident of JS key iteration rather than something asserted. */}
+      <pre data-testid="column-order" style={{ display: 'none' }}>
+        {JSON.stringify(columns.map((c) => c.id))}
       </pre>
     </div>
   )

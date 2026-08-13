@@ -1,5 +1,5 @@
 import { expect, test, type CDPSession, type Page } from '@playwright/test'
-import { openHarness, readState } from './drag'
+import { openHarness, readColumnOrder, readState } from './drag'
 
 /**
  * Touch has to distinguish a swipe from a drag.
@@ -74,6 +74,35 @@ test.describe('touch', () => {
     const state = await readState(page)
     expect(state.doing).toContain('T1')
     expect(state.todo).not.toContain('T1')
+  })
+
+  /**
+   * Columns reorder on a phone too, and by the same rule.
+   *
+   * Worth its own case rather than trusting the mouse specs: the fix that made
+   * dropping a column in the first slot reliable reads `pointerCoordinates`, and
+   * a touch drag has to supply those the same way a mouse drag does. If it did
+   * not, this is the drag that would silently fall back to the old behaviour.
+   */
+  test('a long-press picks a column up and moves it to the first slot', async ({ page }) => {
+    await openHarness(page, '?cols=1')
+    const header = async (id: string) => {
+      const box = (await page.locator(`[data-column="${id}"]`).boundingBox())!
+      return { x: box.x + 40, y: box.y + 12 }
+    }
+    const from = await header('c4')
+    const to = await header('c1')
+    const finger = await Finger.open(page)
+
+    await finger.down(from.x, from.y)
+    await page.waitForTimeout(350) // past the 200ms press delay
+    await finger.glide(from, to, 12, 16)
+    await page.waitForTimeout(150)
+    await finger.up(to.x, to.y)
+    await page.waitForTimeout(350)
+    await finger.close()
+
+    expect(await readColumnOrder(page)).toEqual(['c4', 'c1', 'c2', 'c3'])
   })
 
   test('a quick swipe does not pick a card up', async ({ page }) => {
