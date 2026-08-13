@@ -54,6 +54,38 @@ async function seed(page: Page, name: string) {
 }
 
 test.describe('at 390px', () => {
+  /**
+   * A project screen shows one bar of chrome, not two.
+   *
+   * The app header is hidden here because everything it carried is either
+   * duplicated by the project header ("Projects" goes home, exactly as the
+   * wordmark did) or moved into the project menu (the theme). That leaves the
+   * theme with a single phone-sized route to reach it, so this asserts the
+   * route exists — a change that drops the menu row would otherwise strand the
+   * control at this width with nothing failing.
+   */
+  test('a project screen spends one bar on chrome, and the theme is still reachable', async ({
+    page,
+  }) => {
+    await seed(page, 'Phone chrome')
+
+    // The wordmark's bar is gone here...
+    await expect(page.getByRole('link', { name: 'Crunchy' })).toBeHidden()
+    // ...and the thing it duplicated is what remains.
+    await expect(page.getByRole('link', { name: 'Projects' })).toBeVisible()
+
+    await page.getByRole('button', { name: /Project actions for Phone chrome/ }).click()
+    const dark = page.getByRole('button', { name: 'Dark' })
+    await expect(dark).toBeVisible()
+    await dark.click()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+
+    // The projects list keeps its header — there is no project chrome there to
+    // carry the name, so hiding it would leave the app anonymous.
+    await page.getByRole('link', { name: 'Projects' }).click()
+    await expect(page.getByRole('link', { name: 'Crunchy' })).toBeVisible()
+  })
+
   test('the projects screen does not overflow', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()

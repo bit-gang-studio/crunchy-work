@@ -1,9 +1,9 @@
-import { BrowserRouter, Link, Route, Routes, useParams } from 'react-router-dom'
-import { ThemeToggle } from './components/ThemeToggle'
+import { BrowserRouter, Link, Route, Routes, useMatch, useParams } from 'react-router-dom'
 import { ProjectsScreen } from './screens/ProjectsScreen'
 import { BoardScreen } from './screens/BoardScreen'
 import { DocsScreen } from './screens/DocsScreen'
 import { DocScreen } from './screens/DocScreen'
+import { ThemeToggle } from './components/ThemeToggle'
 
 /**
  * The shell is a fixed-height flex column: header as fixed chrome, and one
@@ -14,31 +14,59 @@ import { DocScreen } from './screens/DocScreen'
 export function App() {
   return (
     <BrowserRouter>
-      <div className="flex h-screen flex-col overflow-hidden bg-canvas text-ink">
-        <header className="flex shrink-0 items-center gap-3 border-b border-line bg-surface px-4 py-3 md:px-6">
-          <Link to="/" className="text-sm font-semibold tracking-tight">
-            Crunchy
-          </Link>
-          {/* Pushed to the trailing edge: the theme is app chrome, not part of
-              the navigation, and it should not sit between the wordmark and
-              whatever the project header adds next to it. */}
-          <div className="ml-auto">
-            <ThemeToggle />
-          </div>
-        </header>
-        <main className="min-h-0 flex-1">
-          <Routes>
-            <Route path="/" element={<ProjectsScreen />} />
-            <Route path="/projects/:projectId" element={<BoardRoute />} />
-            {/* A card is a route, not component state — so it deep-links and Back closes it. */}
-            <Route path="/projects/:projectId/cards/:cardId" element={<BoardRoute />} />
-            <Route path="/projects/:projectId/docs" element={<DocsRoute />} />
-            <Route path="/projects/:projectId/docs/:docId" element={<DocRoute />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
-      </div>
+      <Shell />
     </BrowserRouter>
+  )
+}
+
+/** Inside the router, so the shell can see which route is showing. */
+function Shell() {
+  /*
+   * A phone showed two stacked bars before any card: this one, and the project
+   * header's breadcrumb + name + description + tabs. Together they spent about
+   * a fifth of an 800px screen on orientation, on the surface you are meant to
+   * be reading.
+   *
+   * So on a project screen, at phone width, this bar goes away. It is the one
+   * that carries the least: the wordmark links home, and the project header's
+   * "Projects" breadcrumb already does exactly that, two rows below — the app
+   * was spending 48px of a phone on a duplicate. The theme toggle moves into
+   * the project menu, where a setting you change twice a year belongs.
+   *
+   * Everywhere else — the projects list, and every screen from `md` up — it
+   * stays, because there the bar is the only thing carrying the product's name.
+   */
+  const onProject = useMatch('/projects/*')
+
+  return (
+    <div className="flex h-screen flex-col overflow-hidden bg-canvas text-ink">
+      <header
+        className={`shrink-0 items-center gap-3 border-b border-line bg-surface px-4 py-3 md:flex md:px-6 ${
+          onProject ? 'hidden' : 'flex'
+        }`}
+      >
+        <Link to="/" className="text-sm font-semibold tracking-tight">
+          Crunchy
+        </Link>
+        {/* Pushed to the trailing edge: the theme is app chrome, not part of
+            the navigation, and it should not sit between the wordmark and
+            whatever the project header adds next to it. */}
+        <div className="ml-auto">
+          <ThemeToggle />
+        </div>
+      </header>
+      <main className="min-h-0 flex-1">
+        <Routes>
+          <Route path="/" element={<ProjectsScreen />} />
+          <Route path="/projects/:projectId" element={<BoardRoute />} />
+          {/* A card is a route, not component state — so it deep-links and Back closes it. */}
+          <Route path="/projects/:projectId/cards/:cardId" element={<BoardRoute />} />
+          <Route path="/projects/:projectId/docs" element={<DocsRoute />} />
+          <Route path="/projects/:projectId/docs/:docId" element={<DocRoute />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+    </div>
   )
 }
 

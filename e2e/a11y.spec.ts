@@ -100,6 +100,14 @@ async function walkEveryScreen(
   await scan(page, `column menu open · ${label}`)
   await page.mouse.click(5, 5)
 
+  // The project menu carries the theme control at phone width, where the app
+  // header that normally holds it is hidden — so at that size this menu is the
+  // only place those buttons exist, and an unscanned menu is an unscanned
+  // control.
+  await page.getByRole('button', { name: /Project actions for/ }).click()
+  await scan(page, `project menu open · ${label}`)
+  await page.mouse.click(5, 5)
+
   await page.getByTestId('card').first().click()
   await expect(page.getByTestId('card-detail')).toBeVisible()
   await scan(page, `card detail · ${label}`)

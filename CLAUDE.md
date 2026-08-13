@@ -258,6 +258,16 @@ width — a bug that needs a scrolling container will not appear on a board that
   **The theme is applied by an inline script in `index.html`, before first paint.** The bundle
   is a module, so it runs after the document paints — React's first effect is a whole frame
   too late, and every load flashes light. Those six duplicated lines are the point of them.
+- **A project screen spends one bar of chrome on a phone, not two.** Below `md` the app
+  header is hidden on `/projects/*`: everything it carried was either a duplicate (the
+  wordmark went home; the project header's "Projects" breadcrumb already did, two rows
+  below) or belonged elsewhere (the theme toggle moved into the project menu — a setting
+  you change twice a year does not earn 120px of a 390px bar). The project description is
+  hidden at that width too, because truncated to one line it delivered its first six words
+  and cost a row; it is still shown in full from `md` up and editable from the menu. Both
+  changes are phone-only and the two bars remain everywhere else — the projects list has no
+  project header to carry the name, so hiding it there would leave the app anonymous.
+  Together they moved the first card from 218px down the screen to 146px.
 - **A loading state renders the whole shell, not just the missing part.** The board's
   skeleton was column-shaped so the columns would not jump — but it rendered *without the
   project header*, so the entire board dropped by the header's height (~120px) the instant

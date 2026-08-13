@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { ConfirmButton } from './ConfirmButton'
 import { ProjectSwitcher } from './ProjectSwitcher'
+import { ThemeToggle } from './ThemeToggle'
 
 /**
  * The project chrome: the project's name, what you can do to it, and the
@@ -157,6 +158,14 @@ export function ProjectHeader({
               >
                 {description ? 'Edit description' : 'Add a description'}
               </button>
+              {/* Phone only, and only because the app header — which carries
+                  the toggle everywhere else — is hidden on a project screen at
+                  this width. A setting you change twice a year does not earn a
+                  permanent 120px of a 390px bar; it earns a row in the menu. */}
+              <div className="border-b border-line px-2 pb-2 pt-1 md:hidden">
+                <span className="mb-1 block text-xs text-ink-muted">Theme</span>
+                <ThemeToggle />
+              </div>
               <div className="px-2 py-1">
                 {/* Says what goes with it: deleting a project takes its board,
                     its cards and its docs, none of which are visible from here. */}
@@ -209,7 +218,7 @@ export function ProjectHeader({
             // this did not. Caught by the screenshot matrix at 390; invisible to
             // the responsive spec, which asserts the *page* does not overflow —
             // and it did not, because the shell was hiding it.
-            className="mt-0.5 block w-full max-w-2xl truncate rounded px-1 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink"
+            className="mt-0.5 hidden w-full max-w-2xl truncate rounded px-1 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink md:block"
           >
             {description}
           </button>
