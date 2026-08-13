@@ -4,6 +4,17 @@ import { newId } from '../db/id.js'
 import { rankAfter, rankForIndex } from '../shared/rank.js'
 import { docs, projects, type Doc } from '../db/schema.js'
 import { NotFoundError, ValidationError } from './errors.js'
+import { MAX_TITLE } from '../shared/limits.js'
+
+/** Doc titles appear in every project read, so the same cap applies. */
+function normalizeTitle(title: string): string {
+  const clean = (title ?? '').replace(/\s*\n+\s*/g, ' ').trim()
+  if (!clean) throw new ValidationError('A doc needs a title')
+  if (clean.length > MAX_TITLE) {
+    throw new ValidationError(`A doc title is one line (max ${MAX_TITLE} characters).`)
+  }
+  return clean
+}
 
 const touch = { updatedAt: sql`(datetime('now'))` }
 
@@ -46,8 +57,7 @@ export function docsService(store: Store) {
     input: { title: string; content?: string },
   ): Promise<Doc> {
     await requireProject(projectId)
-    const title = input.title?.trim()
-    if (!title) throw new ValidationError('A doc needs a title')
+    const title = normalizeTitle(input.title)
 
     const existing = await listForProject(projectId)
     const id = newId()
@@ -64,11 +74,7 @@ export function docsService(store: Store) {
   async function update(id: string, patch: { title?: string; content?: string }): Promise<Doc> {
     await get(id)
     const next: Record<string, unknown> = { ...touch }
-    if (patch.title !== undefined) {
-      const title = patch.title.trim()
-      if (!title) throw new ValidationError('A doc needs a title')
-      next.title = title
-    }
+    if (patch.title !== undefined) next.title = normalizeTitle(patch.title)
     if (patch.content !== undefined) next.content = patch.content
     await db.update(docs).set(next).where(eq(docs.id, id))
     return get(id)

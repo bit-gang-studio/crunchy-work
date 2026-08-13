@@ -5,11 +5,22 @@ import { initialRanks, rankAfter, rankForIndex } from '../shared/rank.js'
 import { cards, columns, docs, projects, type Project } from '../db/schema.js'
 import type { ProjectSummary } from '../shared/types.js'
 import { NotFoundError, ValidationError } from './errors.js'
+import { MAX_NAME } from '../shared/limits.js'
 
 /** A new project starts usable, not empty — an empty board teaches nothing. */
 const DEFAULT_COLUMNS = ['To Do', 'In Progress', 'Done']
 
 const touch = { updatedAt: sql`(datetime('now'))` }
+
+/** A project name heads every listing, so it gets the same cap titles get. */
+function normalizeName(name: string): string {
+  const clean = (name ?? '').replace(/\s*\n+\s*/g, ' ').trim()
+  if (!clean) throw new ValidationError('A project needs a name')
+  if (clean.length > MAX_NAME) {
+    throw new ValidationError(`A project name is one line (max ${MAX_NAME} characters).`)
+  }
+  return clean
+}
 
 export function projectsService(store: Store) {
   const { db } = store
@@ -56,8 +67,7 @@ export function projectsService(store: Store) {
   }
 
   async function create(input: { name: string; description?: string }): Promise<Project> {
-    const name = input.name?.trim()
-    if (!name) throw new ValidationError('A project needs a name')
+    const name = normalizeName(input.name)
 
     const existing = await db
       .select({ rank: projects.rank })
@@ -91,11 +101,7 @@ export function projectsService(store: Store) {
   ): Promise<Project> {
     await get(id)
     const next: Record<string, unknown> = { ...touch }
-    if (patch.name !== undefined) {
-      const name = patch.name.trim()
-      if (!name) throw new ValidationError('A project needs a name')
-      next.name = name
-    }
+    if (patch.name !== undefined) next.name = normalizeName(patch.name)
     if (patch.description !== undefined) next.description = patch.description
     await db.update(projects).set(next).where(eq(projects.id, id))
     return get(id)

@@ -4,6 +4,7 @@ import { newId } from '../db/id.js'
 import { rankAfter, rankForIndex } from '../shared/rank.js'
 import { cards, columns } from '../db/schema.js'
 import { SIZES, type AcceptanceCriterion, type Card, type Size } from '../shared/types.js'
+import { MAX_TITLE } from '../shared/limits.js'
 import { NotFoundError, ValidationError } from './errors.js'
 
 const touch = { updatedAt: sql`(datetime('now'))` }
@@ -216,9 +217,18 @@ export function cardsService(store: Store) {
 /**
  * Card titles are semantically single-line — a pasted newline should not turn
  * one card into a two-line title that breaks every row it appears in.
+ *
+ * The length cap is the other half of that: every title rides in every board
+ * read, so one pathological card taxes every call. See `shared/limits.ts`.
  */
 function normalizeTitle(title: string): string {
-  return (title ?? '').replace(/\s*\n+\s*/g, ' ').trim()
+  const clean = (title ?? '').replace(/\s*\n+\s*/g, ' ').trim()
+  if (clean.length > MAX_TITLE) {
+    throw new ValidationError(
+      `A card title is one line (max ${MAX_TITLE} characters) — put the detail in the description.`,
+    )
+  }
+  return clean
 }
 
 export type CardsService = ReturnType<typeof cardsService>

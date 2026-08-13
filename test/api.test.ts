@@ -149,6 +149,66 @@ describe('columns', () => {
   })
 })
 
+/**
+ * Found by the real-world testing pass, driving the installed package over
+ * stdio MCP: a 5,000-character card title was accepted, and then rode in every
+ * `get_project` read forever. Not a crash — a slow poisoning of the one call an
+ * agent makes to orient itself.
+ */
+describe('title and name length', () => {
+  const long = (n: number) => 'x'.repeat(n)
+
+  it('refuses a card title longer than one line, pointing at the description', async () => {
+    const project = await newProject()
+    const todo = (await board(project.id)).columns[0]!
+    const { status, json } = await req('POST', `/columns/${todo.id}/cards`, { title: long(501) })
+    expect(status).toBe(400)
+    expect(json.error).toContain('description')
+  })
+
+  it('allows a title right up to the limit', async () => {
+    const project = await newProject()
+    const todo = (await board(project.id)).columns[0]!
+    expect((await req('POST', `/columns/${todo.id}/cards`, { title: long(500) })).status).toBe(201)
+  })
+
+  it('refuses on update too, not just create', async () => {
+    const project = await newProject()
+    const todo = (await board(project.id)).columns[0]!
+    const { json } = await req('POST', `/columns/${todo.id}/cards`, { title: 'Fine' })
+    expect((await req('PATCH', `/cards/${json.id}`, { title: long(501) })).status).toBe(400)
+  })
+
+  it('caps project, column and doc names as well — they all ride in listings', async () => {
+    expect((await req('POST', '/projects', { name: long(201) })).status).toBe(400)
+
+    const project = await newProject()
+    expect((await req('POST', `/projects/${project.id}/columns`, { name: long(201) })).status).toBe(400)
+    expect((await req('POST', `/projects/${project.id}/docs`, { title: long(501) })).status).toBe(400)
+  })
+
+  it('leaves descriptions and doc bodies uncapped — they are read on demand', async () => {
+    const project = await newProject()
+    const todo = (await board(project.id)).columns[0]!
+    expect(
+      (await req('POST', `/columns/${todo.id}/cards`, { title: 'Fine', description: long(50_000) })).status,
+    ).toBe(201)
+    expect(
+      (await req('POST', `/projects/${project.id}/docs`, { title: 'Long', content: long(200_000) })).status,
+    ).toBe(201)
+  })
+
+  it('measures the length after collapsing newlines, not before', async () => {
+    const project = await newProject()
+    const todo = (await board(project.id)).columns[0]!
+    // 500 characters once the padding around the newlines is collapsed.
+    const padded = `${long(250)}   \n\n   ${long(249)}`
+    const { status, json } = await req('POST', `/columns/${todo.id}/cards`, { title: padded })
+    expect(status).toBe(201)
+    expect(json.title).toHaveLength(500)
+  })
+})
+
 describe('card due dates', () => {
   /**
    * The whole UI treats `dueAt` as a calendar day: the badge compares it to
