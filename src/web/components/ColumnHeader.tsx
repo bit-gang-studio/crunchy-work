@@ -23,8 +23,20 @@ export function ColumnHeader({
   onAddCard: () => void
   onRename: (name: string) => void | Promise<void>
   onDelete: () => void | Promise<void>
-  /** Props that make this header the grip for reordering the column. */
-  dragHandle?: React.HTMLAttributes<HTMLElement>
+  /**
+   * Split deliberately. The pointer `listeners` go on the whole bar so the grip
+   * is big (Trello's list headers work this way), but the ARIA `attributes` —
+   * `role="button"`, tabindex, roledescription — go on the *name button*.
+   *
+   * Putting them on the container makes a role="button" that contains other
+   * buttons: invalid nested interactive elements, and its accessible name
+   * swallows every child's label into one long string. A screen reader would
+   * announce the whole header as a single control.
+   */
+  dragHandle?: {
+    listeners?: React.HTMLAttributes<HTMLElement>
+    attributes?: React.HTMLAttributes<HTMLElement>
+  }
 }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(column.name)
@@ -73,20 +85,31 @@ export function ColumnHeader({
   }
 
   return (
-    <div className="mb-2 flex shrink-0 items-center gap-2 px-1">
-      {/* The name is the grip: dragging anywhere on the header moves the column. */}
+    /*
+     * The whole header bar is the grip, which is how Trello's lists work — a
+     * small text-sized target is the difference between "draggable" and
+     * "draggable if you aim". The buttons inside stop propagation so they still
+     * behave as buttons, and clicking the name still renames because a plain
+     * click never crosses the 5px drag threshold.
+     */
+    <div
+      {...dragHandle?.listeners}
+      className="mb-2 flex shrink-0 cursor-grab items-center gap-2 rounded-md px-1 py-0.5 hover:bg-neutral-100/70 active:cursor-grabbing"
+    >
       <button
         type="button"
-        {...dragHandle}
+        {...dragHandle?.attributes}
         onClick={() => setEditing(true)}
         title="Rename, or drag to reorder"
-        className="cursor-grab truncate text-left text-sm font-semibold text-neutral-700 hover:text-neutral-900"
+        className="cursor-grab truncate text-left text-sm font-semibold text-neutral-700 active:cursor-grabbing"
       >
         {column.name}
       </button>
       <span className="shrink-0 text-xs text-neutral-400">{column.cards.length}</span>
 
       <button
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
         type="button"
         onClick={onAddCard}
         aria-label={`Add card to top of ${column.name}`}
@@ -99,6 +122,8 @@ export function ColumnHeader({
       <div className="relative shrink-0" ref={menuRef}>
         <button
           type="button"
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           onClick={() => setMenuOpen((open) => !open)}
           aria-label={`Column actions for ${column.name}`}
           aria-expanded={menuOpen}

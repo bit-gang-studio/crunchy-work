@@ -57,7 +57,7 @@ function KanbanBoardInner({
   onDeleteColumn,
   onMoveColumn,
 }: KanbanBoardProps) {
-  const { columns: dndColumns, activeCard, dndProps } = useKanbanDnd(
+  const { columns: dndColumns, activeCard, activeColumn, dndProps } = useKanbanDnd(
     columns,
     onMove,
     columns,
@@ -101,7 +101,29 @@ function KanbanBoardInner({
         </SortableContext>
         {onAddColumn && <AddColumn onAdd={onAddColumn} />}
       </div>
-      <DragOverlay>{activeCard ? <CardView card={activeCard} dragging /> : null}</DragOverlay>
+      {/* Trello lifts the whole list, not just a ghost of its header — the thing
+          you picked up should be the thing you see moving. */}
+      <DragOverlay>
+        {activeCard && <CardView card={activeCard} dragging />}
+        {activeColumn && (
+          <div className="w-72 rotate-2 rounded-lg bg-neutral-50/95 p-2 shadow-2xl ring-1 ring-neutral-300">
+            <div className="mb-2 flex items-center gap-2 px-1">
+              <span className="truncate text-sm font-semibold text-neutral-700">{activeColumn.name}</span>
+              <span className="text-xs text-neutral-400">{activeColumn.cards.length}</span>
+            </div>
+            <div className="max-h-72 space-y-2 overflow-hidden">
+              {activeColumn.cards.slice(0, 4).map((card) => (
+                <CardView key={card.id} card={card} />
+              ))}
+              {activeColumn.cards.length > 4 && (
+                <p className="px-1 pt-1 text-xs text-neutral-400">
+                  +{activeColumn.cards.length - 4} more
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </DragOverlay>
     </DndContext>
   )
 }
@@ -135,11 +157,13 @@ function Column({
   // The top composer, opened by the pinned "+" in the header. Separate from the bottom
   // AddCard's own state so both can be open at once and neither disturbs the other.
   const [addingTop, setAddingTop] = useState(false)
+  // While a column is lifted into the overlay, its slot reads as a gap to drop
+  // into rather than a faded duplicate of what is already in your hand.
   return (
     <section
       ref={setSortableRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex max-h-full w-72 shrink-0 snap-start flex-col ${isDragging ? 'opacity-50' : ''}`}
+      className={`flex max-h-full w-72 shrink-0 snap-start flex-col ${isDragging ? 'opacity-25' : ''}`}
       data-testid="column"
       data-column={column.id}
     >
@@ -148,7 +172,7 @@ function Column({
         onAddCard={() => setAddingTop(true)}
         onRename={(name) => onRename?.(column.id, name)}
         onDelete={() => onDelete?.(column.id)}
-        dragHandle={sortable ? { ...attributes, ...listeners } : undefined}
+        dragHandle={sortable ? { listeners, attributes } : undefined}
       />
       {/* The column caps at the board height (max-h-full); this body scrolls when the cards
           outgrow it, and add-card flows right after the last card so short columns stay tight. */}
@@ -224,7 +248,7 @@ function CardView({
 }) {
   return (
     <div
-      className={`cursor-grab rounded-lg border bg-white p-3 text-sm ${
+      className={`cursor-grab rounded-lg border bg-white p-3 text-sm active:cursor-grabbing ${
         dragging ? 'rotate-3 border-neutral-300 shadow-xl' : 'border-neutral-200 shadow-sm'
       } ${card.completed ? 'opacity-60' : ''}`}
     >

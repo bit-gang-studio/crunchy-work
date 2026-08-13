@@ -103,6 +103,11 @@ export function useKanbanDnd(
   const activeCard: Card | null = activeId
     ? (rendered.flatMap((c) => c.cards).find((t) => t.id === activeId) ?? null)
     : null
+  /** The column being reordered, so the board can float it like Trello lifts a list. */
+  const activeColumn: BoardColumn | null =
+    activeId && isColumnDrag(activeId)
+      ? (rendered.find((c) => c.id === columnIdFromDrag(activeId)) ?? null)
+      : null
 
   // `over` = the card under the pointer, preferring a real card over the dragged card's own
   // placeholder, and a card over its column. If only the placeholder is under the pointer,
@@ -258,6 +263,23 @@ export function useKanbanDnd(
   return {
     columns: rendered,
     activeCard,
-    dndProps: { sensors, collisionDetection, onDragStart, onDragMove, onDragEnd, onDragCancel },
+    activeColumn,
+    dndProps: {
+      sensors,
+      collisionDetection,
+      onDragStart,
+      onDragMove,
+      onDragEnd,
+      onDragCancel,
+      /*
+       * Auto-scroll, tuned. dnd-kit enables it by default but with a narrow
+       * activation band, which on a horizontally scrolling board means dragging
+       * a card to an off-screen column mostly doesn't work — you hit the edge
+       * and nothing happens. A wider threshold and gentler acceleration is
+       * closer to Trello, where approaching the edge reliably pulls the board
+       * along.
+       */
+      autoScroll: { threshold: { x: 0.2, y: 0.2 }, acceleration: 12, interval: 5 },
+    },
   }
 }
