@@ -79,7 +79,14 @@ function SortableRow({ projectId, doc }: { projectId: string; doc: DocSummary })
         data-doc={doc.id}
         {...attributes}
         {...listeners}
-        className={`flex cursor-grab items-baseline gap-3 px-4 py-3 hover:bg-canvas active:cursor-grabbing ${
+        // `hover`, not `canvas`. Canvas is a *ground* role — the page behind
+        // everything — and using it as a hover state only looked right by
+        // accident in light, where the page is a shade darker than a surface.
+        // In dark the page is near-black and a surface is not, so hovering a doc
+        // row dropped it almost to black: a heavy flash, and nothing else in the
+        // app behaves that way. Exactly the kind of thing a second palette
+        // exposes and a single one hides.
+        className={`flex cursor-grab items-baseline gap-3 px-4 py-3 hover:bg-hover active:cursor-grabbing ${
           isDragging ? 'opacity-80' : ''
         }`}
       >

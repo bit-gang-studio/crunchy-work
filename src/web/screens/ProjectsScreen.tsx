@@ -156,7 +156,9 @@ function NoProjects({ onStart }: { onStart: () => void }) {
           <button
             type="button"
             onClick={onStart}
-            className="rounded-card border border-line-strong px-3 py-1.5 text-sm hover:bg-canvas"
+            // See DocList: `canvas` is a ground role, not a hover state, and
+            // using it as one only reads correctly in the light palette.
+            className="rounded-card border border-line-strong px-3 py-1.5 text-sm hover:bg-hover"
           >
             Or create one yourself
           </button>
