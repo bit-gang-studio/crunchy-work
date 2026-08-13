@@ -87,12 +87,34 @@ export function ProjectHeader({
 
   return (
     <div className="shrink-0 border-b border-line bg-surface px-4 md:px-6">
-      <div className="flex items-center gap-2 pt-3">
-        <Link to="/" className="shrink-0 text-xs text-ink-muted hover:text-ink">
-          Projects
-        </Link>
-        <ProjectSwitcher currentId={projectId} />
-        <span className="shrink-0 text-xs text-ink-faint">/</span>
+      <div className="flex items-center gap-1.5 pt-3">
+        {/*
+          * "Projects" and its chevron are one object, not two.
+          *
+          * They are still a link and a button — going to the list and opening
+          * the switcher are different actions, and the switcher belongs to the
+          * crumb rather than to the name, because the name is already
+          * click-to-rename and one control cannot mean two things. That
+          * decision was right; the rendering was not. With a gap between them
+          * the chevron sat orphaned mid-row, attached to nothing, at a third
+          * type size — it read as a stray mark rather than as "…or jump
+          * somewhere else". Joined, with no gap and one hover, they read as the
+          * single control they behave as.
+          *
+          * The crumb is `text-sm` rather than `text-xs` too: xs against the
+          * name's base was a two-step jump inside four words, which is what
+          * made the line look assembled rather than designed.
+          */}
+        <span className="flex shrink-0 items-center rounded-control hover:bg-hover">
+          <Link
+            to="/"
+            className="rounded-control py-0.5 pl-1.5 pr-1 text-sm text-ink-muted hover:text-ink"
+          >
+            Projects
+          </Link>
+          <ProjectSwitcher currentId={projectId} />
+        </span>
+        <span className="shrink-0 text-sm text-ink-faint">/</span>
 
         {editing ? (
           <form onSubmit={submit} className="min-w-0 flex-1">
@@ -204,7 +226,27 @@ export function ProjectHeader({
           className="mt-1 w-full max-w-2xl resize-none rounded-control border border-line-strong px-2 py-1 text-sm focus:border-ink-muted focus:outline-none"
         />
       ) : (
-        description && (
+        /*
+         * With no description there was no affordance on the page at all — the
+         * only way in was "Add a description" inside the ⋯ menu, which is a
+         * fine place for it to *also* live and a terrible place for it to only
+         * live. It read as "you cannot describe this project", which is what it
+         * was reported as.
+         *
+         * So the empty state is the same control, in the same slot, saying what
+         * it does. Faint, because an unwritten description should not compete
+         * with a written one, and it disappears the moment there is something
+         * to show.
+         */
+        !description ? (
+          <button
+            type="button"
+            onClick={() => setEditingAbout(true)}
+            className="mt-0.5 hidden rounded px-1 text-left text-sm text-ink-faint hover:bg-hover hover:text-ink md:block"
+          >
+            Add a description
+          </button>
+        ) : (
           <button
             type="button"
             onClick={() => setEditingAbout(true)}

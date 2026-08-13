@@ -71,7 +71,9 @@ test.describe('a new user builds a board', () => {
     await page.getByRole('button', { name: 'Create' }).click()
     await page.getByTestId('project-tile').filter({ hasText: 'Empty board' }).click()
 
-    await expect(page.getByText('No cards yet.')).toBeVisible()
+    // A line and a prompt, not a panel: the columns already answer "is there
+    // anything here", so this only has to say what to do about it.
+    await expect(page.getByText(/your agent can fill it in/)).toBeVisible()
     // The prompt is the point: it names this project, so it can be pasted as-is.
     await expect(page.getByText(/add cards to Empty board for what needs doing/)).toBeVisible()
 
@@ -80,7 +82,7 @@ test.describe('a new user builds a board', () => {
     await page.getByPlaceholder('Card title').press('Enter')
 
     await expect(page.getByTestId('card')).toHaveCount(1)
-    await expect(page.getByText('No cards yet.')).toHaveCount(0)
+    await expect(page.getByText(/your agent can fill it in/)).toHaveCount(0)
   })
 
   test('a project can be renamed and deleted', async ({ page }) => {
@@ -133,8 +135,12 @@ test.describe('a new user builds a board', () => {
     await expect(page).toHaveURL(/\/projects\/\w+$/)
 
     // A description: settable at last, and it reaches the projects grid.
-    await page.getByRole('button', { name: 'Project actions for Hopper B', exact: true }).click()
-    await page.getByRole('button', { name: 'Add a description' }).click()
+    // Straight from the header, not out of the ⋯ menu. A project with no
+    // description now offers the control in the slot the description will
+    // occupy — the menu keeps its copy for phone width, where that slot is
+    // hidden, which is also why this has to be scoped rather than matched by
+    // name alone.
+    await page.locator('header ~ * button', { hasText: 'Add a description' }).first().click()
     await page.getByLabel('Project description').fill('The second one.')
     // Tab out rather than clicking the heading — the heading is click-to-rename,
     // so using it to dismiss this field would open the other editor.

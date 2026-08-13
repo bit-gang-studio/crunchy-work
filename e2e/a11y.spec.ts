@@ -172,7 +172,7 @@ async function walkEmptyStates(page: Page, label: string) {
   await page.getByRole('button', { name: 'Create' }).click()
   await page.getByTestId('project-tile').filter({ hasText: `Empty ${label}` }).click()
 
-  await expect(page.getByText('No cards yet.')).toBeVisible()
+  await expect(page.getByText(/your agent can fill it in/)).toBeVisible()
   await scan(page, `empty board · ${label}`)
 
   await page.getByRole('link', { name: 'Docs' }).click()

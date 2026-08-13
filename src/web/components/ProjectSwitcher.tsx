@@ -71,9 +71,15 @@ export function ProjectSwitcher({ currentId }: { currentId: string }) {
         aria-label="Switch project"
         aria-expanded={open}
         title="Switch project"
-        className="rounded px-1 text-xs text-ink-muted hover:bg-hover hover:text-ink"
+        // No hover background of its own: the crumb it sits inside owns that, so
+        // the pair lights up together as one control. An SVG rather than the
+        // "▾" character, which renders at a different size and baseline in every
+        // font and was the reason it never sat on the line properly.
+        className="flex items-center rounded-control py-1 pl-0.5 pr-1.5 text-ink-faint hover:text-ink"
       >
-        ▾
+        <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 4.75 6 7.75l3-3" />
+        </svg>
       </button>
 
       {open && (

@@ -6,7 +6,7 @@ import { Screen } from '../components/Screen'
 import { KanbanBoard } from '../components/KanbanBoard'
 import { CardDetail } from '../components/CardDetail'
 import { ProjectHeader } from '../components/ProjectHeader'
-import { EmptyState, ErrorState, Loading } from '../components/States'
+import { ErrorState, Loading } from '../components/States'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 import { useRecentChanges } from '../lib/useRecentChanges'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
@@ -103,13 +103,16 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
         <div className="flex h-full flex-col">
           <ProjectHeader projectId={projectId} name="…" onChanged={() => void load()} />
           <div className="min-h-0 flex-1">
-            {/* Column-shaped, so the board does not jump when it lands. */}
-            <div className="flex h-full gap-4 px-4 py-4 md:px-6 md:py-6">
+            {/* Column-shaped, so the board does not jump when it lands — which
+                now means content-height and top-aligned, matching the real
+                columns. A full-height skeleton would have been a shape the
+                loaded board no longer takes. */}
+            <div className="flex h-full items-start gap-4 px-4 py-4 md:px-6 md:py-6">
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
                   data-testid="column-skeleton"
-                  className="h-full w-72 shrink-0 rounded-panel bg-sunken/80 p-2"
+                  className="w-72 shrink-0 rounded-panel bg-sunken/80 p-2"
                 >
                   <Loading label="Loading board" rows={2} />
                 </div>
@@ -133,24 +136,28 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
           onChanged={() => void load()}
         />
         {/*
-          * A project with columns and no cards showed an empty board and said
-          * nothing — on the main surface of the product, at the exact moment a
-          * new user is deciding whether this is worth their time. The projects
-          * and docs screens have taught the pitch since day one; this one, the
-          * one you actually land on, did not.
+          * A line and a prompt, not a panel.
           *
-          * Left-aligned on the board's own gutter rather than centred: centred,
-          * it floated free of the columns underneath and read as a different
-          * page. It sits over the first column now.
+          * This was the full `EmptyState` box — dashed border, heading, body,
+          * code block — sitting above the columns and shoving them down the
+          * page. On the one screen a new user lands on, the first thing they
+          * met was a large empty container announcing emptiness, above three
+          * more empty containers.
+          *
+          * The columns are already the answer to "is there anything here". So
+          * this says the one thing they do not: what to do about it. Two lines
+          * on the board's own gutter, and the prompt still copyable, because
+          * pasting that at an agent is the entire pitch.
           */}
         {cardCount === 0 && (
-          <div className="w-full max-w-2xl px-4 pt-6 md:px-6">
-            <EmptyState
-              title="No cards yet."
-              prompt={`Look at this repo and add cards to ${board.project.name} for what needs doing.`}
-            >
-              Your agent can fill this in. Paste this into Claude Code — or add a card yourself below.
-            </EmptyState>
+          <div className="w-full max-w-xl px-4 pt-4 md:px-6">
+            <p className="text-sm text-ink-muted">
+              Nothing on this board yet — your agent can fill it in. Paste this into Claude Code,
+              or add a card below.
+            </p>
+            <pre className="mt-2 rounded-control bg-code px-3 py-2 text-xs whitespace-pre-wrap break-words text-code-ink">
+              {`Look at this repo and add cards to ${board.project.name} for what needs doing.`}
+            </pre>
           </div>
         )}
 

@@ -87,11 +87,23 @@ function KanbanBoardInner({
       {/* `tabIndex` for the same reason the column bodies have one: the board
           scrolls horizontally, and a scrollable region that cannot be focused
           is content a keyboard user can see and cannot reach. */}
-      {/* `items-stretch` (the default) rather than `items-start`: columns run the
-          full height of the board, so the bottom edge is a straight line instead
-          of a ragged one with a field of grey under it. */}
+      {/*
+        * `items-start`: a column is as tall as what is in it.
+        *
+        * This was `items-stretch`, so every column ran the full height of the
+        * board. That was a fix for a real problem — columns stopping at content
+        * height left a ragged bottom edge over a field of flat grey, which read
+        * as absence — but it was the wrong fix, and it only looked necessary
+        * because the canvas was a flat neutral with nowhere for the eye to
+        * rest. Full-height wells make an empty board look like three enormous
+        * empty rectangles, and they lie about how much is in a column.
+        *
+        * The palette solved the problem the old fix was for: a near-black
+        * canvas with a subtly lighter well no longer needs the well to reach
+        * the floor to look deliberate. Trello has always done it this way.
+        */}
       <div
-        className="flex h-full snap-x select-none gap-4 overflow-x-auto px-4 py-4 md:px-6 md:py-6"
+        className="flex h-full snap-x select-none items-start gap-4 overflow-x-auto px-4 py-4 md:px-6 md:py-6"
         data-testid="kanban-board"
         tabIndex={0}
         role="group"
@@ -188,7 +200,12 @@ function Column({
     <section
       ref={setSortableRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex h-full w-72 shrink-0 snap-start flex-col rounded-panel bg-sunken/80 p-2 ${
+      // `max-h-full`, not `h-full`: it grows with its cards and stops at the
+      // board's height, at which point the body below scrolls. So a column is
+      // always exactly as tall as its contents until it runs out of room —
+      // which is also the size it takes in the drag overlay, so picking one up
+      // no longer changes its shape.
+      className={`flex max-h-full w-72 shrink-0 snap-start flex-col rounded-panel bg-sunken/80 p-2 ${
         isDragging ? 'opacity-25' : ''
       }`}
       data-testid="column"
@@ -207,12 +224,13 @@ function Column({
           `tabIndex` because a scrollable region has to be reachable by keyboard —
           otherwise a column taller than the board is content you can see and
           cannot get to without a mouse. The name says which column it scrolls. */}
-      {/* `flex-1` so the well fills the column and the space below the last card
-          is column interior rather than board background — while the cards and
-          the add-card row stay pinned to the top, which is the whole reason the
-          column was content-height before. */}
+      {/* Not `flex-1` any more. That existed to make the well fill a
+          full-height column; now the column is content-height, so the body
+          takes its natural size and only starts scrolling once `max-h-full` on
+          the column caps it. `min-h-0` still matters — without it a flex child
+          refuses to shrink below its content and the scroll never engages. */}
       <div
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="min-h-0 shrink overflow-y-auto"
         tabIndex={0}
         role="group"
         aria-label={`${column.name} cards`}
