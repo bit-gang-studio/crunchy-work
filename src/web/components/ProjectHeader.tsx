@@ -113,20 +113,26 @@ export function ProjectHeader({
           * somewhere else". Joined, with no gap and one hover, they read as the
           * single control they behave as.
           *
-          * The crumb is `text-sm` rather than `text-xs` too: xs against the
-          * name's base was a two-step jump inside four words, which is what
-          * made the line look assembled rather than designed.
+          * The whole path is one type size, and that is the rule: a
+          * breadcrumb is a single object, so its segments do not change size
+          * partway through. The current item earns its emphasis from weight and
+          * colour instead — which is what GitHub does with `owner / repo`.
+          *
+          * This was 14px crumb against a 20px name for a while, after the name
+          * was enlarged to give the page a title it did not have. That fixed
+          * the hierarchy and broke the path: two sizes inside four words is the
+          * thing that reads as assembled rather than designed.
           */}
         <span className="flex shrink-0 items-center rounded-control hover:bg-hover">
           <Link
             to="/"
-            className="rounded-control py-0.5 pl-1.5 pr-0.5 text-sm text-ink-muted hover:text-ink"
+            className="rounded-control py-0.5 pl-1.5 pr-0.5 text-xl text-ink-muted hover:text-ink"
           >
             Projects
           </Link>
           <ProjectSwitcher currentId={projectId} />
         </span>
-        <span className="-mx-0.5 shrink-0 select-none text-sm text-ink-faint">/</span>
+        <span className="-mx-0.5 shrink-0 select-none text-xl text-ink-faint">/</span>
 
         {editing ? (
           <form onSubmit={submit} className="min-w-0 flex-1">

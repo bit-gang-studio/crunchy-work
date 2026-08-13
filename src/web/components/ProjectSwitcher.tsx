@@ -77,7 +77,7 @@ export function ProjectSwitcher({ currentId }: { currentId: string }) {
         // font and was the reason it never sat on the line properly.
         className="flex items-center rounded-control py-1 pl-0.5 pr-1.5 text-ink-faint hover:text-ink"
       >
-        <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <svg viewBox="0 0 12 12" className="h-4 w-4" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 4.75 6 7.75l3-3" />
         </svg>
       </button>
