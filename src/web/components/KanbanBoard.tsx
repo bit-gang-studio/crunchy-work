@@ -33,6 +33,12 @@ interface KanbanBoardProps {
   onRenameColumn?: (columnId: string, name: string) => void | Promise<void>
   onDeleteColumn?: (columnId: string) => void | Promise<void>
   onMoveColumn?: (columnId: string, index: number) => void | Promise<void>
+  /**
+   * Cards that changed a moment ago, which mark themselves briefly. This is what
+   * makes "watch your agent work" visible: without it a card arriving in a
+   * column you are not looking at is a silent redraw.
+   */
+  recentlyChanged?: ReadonlySet<string>
 }
 
 /** Wrapped in an error boundary — a drag hiccup shows a recoverable panel instead of
@@ -56,6 +62,7 @@ function KanbanBoardInner({
   onRenameColumn,
   onDeleteColumn,
   onMoveColumn,
+  recentlyChanged,
 }: KanbanBoardProps) {
   const { columns: dndColumns, activeCard, activeColumn, dndProps } = useKanbanDnd(
     columns,
@@ -96,6 +103,7 @@ function KanbanBoardInner({
               onRename={onRenameColumn}
               onDelete={onDeleteColumn}
               sortable={!!onMoveColumn}
+              recentlyChanged={recentlyChanged}
             />
           ))}
         </SortableContext>
@@ -136,6 +144,7 @@ function Column({
   onRename,
   onDelete,
   sortable,
+  recentlyChanged,
 }: {
   column: BoardColumnType
   onAdd: (columnId: string, title: string, position?: 'top' | 'bottom') => void | Promise<void>
@@ -144,6 +153,7 @@ function Column({
   onRename?: (columnId: string, name: string) => void | Promise<void>
   onDelete?: (columnId: string) => void | Promise<void>
   sortable: boolean
+  recentlyChanged?: ReadonlySet<string>
 }) {
   const { setNodeRef } = useDroppable({ id: `${COLUMN_PREFIX}${column.id}` })
   const {
@@ -192,7 +202,13 @@ function Column({
           <div className={column.cards.length ? 'space-y-2 pb-3' : ''}>
             <SortableContext items={column.cards.map((c) => c.id)} strategy={noSort}>
               {column.cards.map((card) => (
-                <SortableCard key={card.id} card={card} onOpen={onOpen} onToggleComplete={onToggleComplete} />
+                <SortableCard
+                  key={card.id}
+                  card={card}
+                  onOpen={onOpen}
+                  onToggleComplete={onToggleComplete}
+                  changed={!!recentlyChanged?.has(card.id)}
+                />
               ))}
             </SortableContext>
           </div>
@@ -207,10 +223,12 @@ function SortableCard({
   card,
   onOpen,
   onToggleComplete,
+  changed = false,
 }: {
   card: Card
   onOpen: (cardId: string) => void
   onToggleComplete: (cardId: string, completed: boolean) => void | Promise<void>
+  changed?: boolean
 }) {
   // The preview array is the source of truth for order, so the card must NOT slide from its
   // old index to the new one when the array reorders (that produced the "animate from the
@@ -231,7 +249,7 @@ function SortableCard({
           </div>
         </div>
       ) : (
-        <CardView card={card} onToggleComplete={onToggleComplete} />
+        <CardView card={card} onToggleComplete={onToggleComplete} changed={changed} />
       )}
     </div>
   )
@@ -240,17 +258,21 @@ function SortableCard({
 function CardView({
   card,
   dragging = false,
+  changed = false,
   onToggleComplete,
 }: {
   card: Card
   dragging?: boolean
+  /** Arrived or was ticked off a moment ago — marks itself, then settles. */
+  changed?: boolean
   onToggleComplete?: (cardId: string, completed: boolean) => void | Promise<void>
 }) {
   return (
     <div
+      data-changed={changed || undefined}
       className={`cursor-grab rounded-lg border bg-white p-3 text-sm active:cursor-grabbing ${
         dragging ? 'rotate-3 border-neutral-300 shadow-xl' : 'border-neutral-200 shadow-sm'
-      } ${card.completed ? 'opacity-60' : ''}`}
+      } ${card.completed ? 'opacity-60' : ''} ${changed ? 'card-changed' : ''}`}
     >
       <div className="flex items-start gap-2">
         {/* Always shown — in the drag preview there's no handler, so it renders display-only

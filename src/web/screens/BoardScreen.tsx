@@ -7,6 +7,7 @@ import { KanbanBoard } from '../components/KanbanBoard'
 import { CardDetail } from '../components/CardDetail'
 import { ProjectHeader } from '../components/ProjectHeader'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
+import { useRecentChanges } from '../lib/useRecentChanges'
 
 export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?: string }) {
   const navigate = useNavigate()
@@ -28,6 +29,9 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
 
   // Cards appear as the agent writes them; held while a drag is in flight.
   useLiveUpdates(() => void load(), { paused: dragging })
+
+  // …and the ones that just arrived say so, briefly.
+  const recentlyChanged = useRecentChanges(board)
 
   /**
    * Moves are applied optimistically: the drag engine already resolved the exact
@@ -99,6 +103,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
             onToggleComplete={onToggleComplete}
             onOpenCard={(id) => navigate(`/projects/${projectId}/cards/${id}`)}
             onDragStateChange={setDragging}
+            recentlyChanged={recentlyChanged}
             onAddColumn={async (name) => {
               await api.addColumn(projectId, name)
               await load()

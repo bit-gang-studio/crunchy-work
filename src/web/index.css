@@ -15,6 +15,46 @@
 }
 
 /*
+ * A card that just arrived, or just got ticked off, marks itself for a beat.
+ *
+ * This is the visible half of live updates: the demo is watching your agent
+ * work, and a card appearing in a column you are not looking at is otherwise a
+ * silent redraw. It is a ring rather than a background change so it reads on top
+ * of the completed/overdue states a card may already be wearing.
+ *
+ * The ring is drawn with `box-shadow`, not `outline` or a border, so nothing
+ * reflows — a card lighting up must not nudge the column it sits in.
+ */
+@keyframes card-changed {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-neutral-900);
+    transform: scale(1);
+  }
+  12% {
+    box-shadow: 0 0 0 3px var(--color-neutral-800);
+    transform: scale(1.015);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(0 0 0 / 0);
+    transform: scale(1);
+  }
+}
+
+.card-changed {
+  animation: card-changed 2.2s ease-out;
+}
+
+/*
+ * Motion here is decoration over information that is already on screen, so
+ * honouring the preference costs nothing.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .card-changed {
+    animation: none;
+  }
+}
+
+/*
  * Checklists. TipTap emits `<li><label><input></label><div>…</div></li>`, which
  * the typography plugin would otherwise render as a bulleted list with the
  * checkbox sitting on its own line. The markdown behind it is `- [ ]` / `- [x]`,

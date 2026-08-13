@@ -66,6 +66,13 @@ test('a card written by a separate MCP process appears on an open board', async 
     timeout: 10_000,
   })
 
+  // It also *announces* itself. The board is wider than the eye, so a card that
+  // silently materialises in a column you were not watching may as well not have
+  // arrived — `useRecentChanges` diffs the refetch and marks what is new.
+  await expect(
+    page.getByTestId('card').filter({ hasText: 'Written by the agent' }).locator('[data-changed]'),
+  ).toHaveCount(1)
+
   // And a second write lands too, so this is a live stream and not a one-off.
   await callMcpTool('add_card', {
     project: 'Live board',
@@ -75,6 +82,11 @@ test('a card written by a separate MCP process appears on an open board', async 
   await expect(page.getByTestId('card').filter({ hasText: 'And another' })).toBeVisible({
     timeout: 10_000,
   })
+
+  // The mark is temporary — a board where everything stays lit says nothing.
+  await expect(
+    page.getByTestId('card').filter({ hasText: 'And another' }).locator('[data-changed]'),
+  ).toHaveCount(0, { timeout: 10_000 })
 })
 
 test('the projects list picks up a project created elsewhere', async ({ page }) => {
