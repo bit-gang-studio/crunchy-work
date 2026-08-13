@@ -96,9 +96,11 @@ bin/crunchy.js     entry; handles the Node 22 SQLite flag, then boots
 src/db             node:sqlite + Drizzle adapter, migrations
 src/server         Hono app; serves the API and the built SPA
 src/web            Vite + React 19 + Tailwind v4 SPA
-test/              Vitest
-dist/              build output: dist/server, dist/db, dist/web
 src/mcp            tool surface, name resolver, JSON-RPC, stdio transport
+test/              Vitest
+e2e/               Playwright journeys + the accessibility gate
+e2e-dnd/           Playwright against the auth-free drag harness
+dist/              build output: dist/server, dist/db, dist/web
 ~/.crunchy         runtime data — CRUNCHY_DATA overrides
 ```
 
@@ -115,7 +117,12 @@ One npm package, two build outputs, one process in production. `npm run dev` run
 ## Commands
 
 `npm install` · `npm run dev` · `npm run dev:server` · `npm run build` ·
-`npm run typecheck` · `npm run lint` · `npm test`
+`npm run typecheck` · `npm run lint` · `npm test` · `npm run test:e2e` · `npm run test:dnd`
+
+**On a fresh machine:** `git clone` → `npm install` → `npx playwright install chromium` →
+`npm run dev`. Node **≥22.5.0**, and that is the whole list — there is no `.env`, no API
+key, no Docker and no account. Local board data lives at `~/.crunchy` and does **not**
+travel with the repo, by design.
 
 ## Testing
 
@@ -123,6 +130,18 @@ Vitest for logic, Playwright for the browser.
 
 **Definition of done, per phase:** units for new logic · one integration test through each
 new seam · one e2e journey per UI surface · all gates green on Node 22 **and** 24.
+
+### Accessibility is a gate, not a claim (`e2e/a11y.spec.ts`)
+
+axe-core runs against WCAG 2.1 AA over every screen, five states and three widths — 390,
+768, 1440 — **including menus and modals open**, since that markup does not exist to scan
+while they are closed. Plus a hand-walked tab order and a check that Escape does not strand
+focus, neither of which an automated scan can tell you.
+
+It exists because "keyboard navigable with visible focus rings" had been asserted in a
+commit message and never measured. It failed on the first run and found three real bugs.
+Assert on a compact list of rule ids, never the raw violation objects — axe's objects are
+enormous and a `toEqual([])` diff against them buries the actual problem.
 
 ### The drag-and-drop harness (`npm run test:dnd`)
 
@@ -157,9 +176,38 @@ spec to see `over`/`after` per y. Reuse this pattern for any future draggable su
 - **MCP tools address by name, never by UUID.** `add_card(project, column, title)`, not
   `add_card(boardId)`. Resolve names server-side with a clear disambiguation error. An
   agent forced to look up IDs burns turns and gets them wrong.
-- **Keep the tool surface ≤ ~12 tools and the descriptions terse.** Measured on Crunchy
-  Team: verbose tool descriptions took a model from 0/7 to 4/7 failures on an *unrelated*
-  task. Every tool added taxes every other tool.
+- **The tool ceiling is 18, raised from 12 on purpose — and the descriptions stay terse.**
+  Measured on Crunchy Team: verbose tool descriptions took a model from 0/7 to 4/7 failures
+  on an *unrelated* task. Every tool added taxes every other tool, so the number is not
+  free. It moved because the old surface let an agent create a column but never rename,
+  reorder or delete one, and create a doc but never delete one — an agent could make a mess
+  it had no way to clean up, and the only fix was a human opening the browser. That is a
+  worse failure than a slightly larger surface.
+
+  The rule that replaces the number: **every entity gets full CRUD, and reorder folds into
+  update rather than getting its own tool.** `update_project` / `update_column` /
+  `update_doc` all take an optional `position`, the way `move_card` does. One verb per tool
+  would have been 21. `test/mcp.test.ts` asserts both the ceiling and that `move_card` is
+  still the only `move_*`.
+- **A "board" is not an entity — say project.** There are four tables: `projects`,
+  `columns`, `cards`, `docs`. There is no `boards` table; a board is the *shape of a read*
+  (`ProjectDetail = { project, columns, docs }`). The word came from Crunchy Team, where a
+  project really does have many boards. Here it gave us a type called `Board` that contained
+  `docs`, and an MCP tool called `get_board` — the first one an agent reaches for — named
+  after something that does not exist. Renamed 13 Aug, before publish, because renaming a
+  published tool is expensive. **"Board" is still the right word in the UI** (`<KanbanBoard>`,
+  `BoardScreen`, the Board tab), where it means the kanban surface on screen.
+- **Never hard-code a palette value in a component.** Every colour, radius and shadow goes
+  through a role token in `src/web/index.css` — `bg-surface`, `text-ink-muted`, `border-line`,
+  `rounded-panel`, `shadow-card`. A component written in `bg-white` has baked a decision into
+  itself and has to be rewritten to change it. This is what makes the theme pass a re-valuing
+  of one block rather than a tour of every screen, and dark mode the same job again.
+- **We are a guest on the user's machine.** `crunchy connect` writes to config files we did
+  not create. It once replaced a VS Code `mcp.json` that had a comment in it — valid JSONC,
+  which VS Code accepts — with one containing only Crunchy, silently deleting every other MCP
+  server the user had, while printing "Connected". Never write a file you could not first
+  read and understand; absent ≠ unreadable. Back up before touching someone else's file. If
+  in doubt, refuse and print the JSON to paste.
 - **One cheap call that returns the whole board** as compact markdown, so an agent orients
   in one call rather than five. Token efficiency is the agent's UX.
 - **Frictionlessness is the product.** Target: under 60 seconds from landing on the repo to
@@ -168,6 +216,33 @@ spec to see `over`/`after` per y. Reuse this pattern for any future draggable su
 
 ## Gotchas
 
+- **WAL gives concurrent *readers*, not writers.** `src/db/index.ts` sets
+  `busy_timeout`; without it the second writer took `SQLITE_BUSY` instantly and the write
+  was simply lost — measured at 19 of 30 landing between the web server and an MCP process,
+  with the browser showing a 500 for a card the user had just typed. That is the product's
+  core demo, not an edge case. Fixing the timeout then exposed a second race: appending a
+  card reads the last rank and inserts, and as two awaited steps another writer reads the
+  same "last". `cards.create` does the read and the insert in one `BEGIN IMMEDIATE`
+  transaction on the raw synchronous handle. `test/concurrency.test.ts` guards both.
+- **Drizzle hides the useful half of a driver error.** `.message` is the entire failed SQL
+  statement with parameters; the fact that matters ("database is locked") is on `.cause`.
+  `src/mcp/jsonrpc.ts` unwraps it, because a model told "Failed query: insert into…" has no
+  idea the call is retryable.
+- **dnd-kit's `attributes` must not go on an element that wraps a button.** They are
+  `role="button"` + `tabindex`, so a card wrapper carrying them around the complete-toggle
+  is invalid nested interactives and a screen reader announces the whole card as one
+  control. Put `listeners` on the big drag target and `attributes` on a real focusable child
+  — the card title, the column name. **This bug has been introduced twice**; the axe gate is
+  what now catches it.
+- **`npm run test:e2e` runs two Playwright projects in order.** Every spec shares one server
+  and one SQLite file, and the "from an empty install" journey needs an empty database. That
+  used to work only because it sorted first alphabetically, and adding `a11y.spec.ts` broke
+  it instantly. `playwright.config.ts` makes it explicit with a `dependencies` edge:
+  `journeys` first against a clean database, then `a11y` against what they left behind.
+- **The e2e config passes `--no-open`.** It boots the real binary, and the real binary opens
+  your browser — which is correct for `npx crunchy-work` and wrong in a test run. Without it
+  every local run threw a window in your face and CI tried to launch a browser on a machine
+  with no display.
 - **Don't run this and Crunchy Team's dev server at once** — both default to 4420/4421.
   `PORT` overrides here.
 - **`serveStatic` resolves relative to the working directory**, not to the module, so
