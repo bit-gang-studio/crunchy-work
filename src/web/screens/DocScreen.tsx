@@ -50,6 +50,21 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
   function edit(patch: { title?: string; content?: string }) {
     setDoc((d) => (d ? { ...d, ...patch } : d))
     queued.current = { ...queued.current, ...patch }
+    /*
+     * Say "Saving…" from the keystroke, not from the flush.
+     *
+     * The state only moved off 'saved' inside the debounced callback, 500ms
+     * later — so for half a second after every edit the indicator claimed the
+     * document was written when the change had not left the browser. That is
+     * the one thing a save indicator must never do; "Saved" is a promise, and a
+     * user who reads it and closes the tab is entitled to keep their work.
+     * (The `pagehide` flush means they usually do — but the label was lying
+     * regardless, and it is the label people act on.)
+     *
+     * Found by an e2e assertion that trusted the indicator, read the API inside
+     * that window, and got a document one character long.
+     */
+    setSaved('saving')
     save.schedule(queued.current)
   }
 

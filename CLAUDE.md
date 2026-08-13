@@ -74,6 +74,14 @@ surface. That is the bar any further field has to clear.
   **paused while a drag is in flight** — swapping the columns mid-drag would change what the
   drop resolves its rank against. `e2e/live.spec.ts` spawns a real stdio MCP process and
   asserts the card lands on an already-open board.
+- **A save indicator must never be ahead of the save.** The doc editor's state only left
+  `saved` inside the debounced callback, so for the 500ms between a keystroke and the flush
+  the label read "Saved" over a change that had not left the browser. `pagehide` meant the
+  work was usually rescued anyway — but the label is the thing people act on, and it was
+  lying. It says "Saving…" from the keystroke now. Found because an e2e assertion trusted
+  the indicator, read the API inside that window, and got back a one-character document;
+  the test had been passing on timing for as long as it existed, and a 4px change to an
+  unrelated header was enough to tip it.
 - **Autosave flushes on `pagehide`, with `keepalive`.** The unmount flush only covers
   in-app navigation; a reload, a closed tab or a followed link tears the page down without
   React cleanup completing, and anything typed inside the debounce window is silently lost.

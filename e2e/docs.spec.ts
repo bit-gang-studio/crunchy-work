@@ -39,6 +39,17 @@ test.describe('docs', () => {
 
     await body.click()
     await page.keyboard.type('# Storage')
+
+    /*
+     * "Saved" has to mean saved.
+     *
+     * The indicator used to stay on "Saved" through the whole debounce window,
+     * so for half a second after every keystroke it reported a document that
+     * had not left the browser. A test that trusted it read the API mid-window
+     * and got back one character.
+     */
+    await expect(page.getByTestId('save-state')).toHaveText('Saving…')
+
     await page.keyboard.press('Enter')
     await page.keyboard.type('SQLite, because it has no native module.')
 

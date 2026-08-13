@@ -99,7 +99,7 @@ export function ProjectHeader({
         * than the items are to anything else; that difference is the only thing
         * that makes it scan as one address instead of a list.
         */}
-      <div className="flex items-center gap-1 pt-3">
+      <div className="flex items-center gap-1 pt-4">
         {/*
           * "Projects" and its chevron are one object, not two.
           *
@@ -142,7 +142,7 @@ export function ProjectHeader({
                 }
               }}
               aria-label={`Rename ${name}`}
-              className="w-full max-w-sm rounded-control border border-ink-faint px-2 py-0.5 text-base font-semibold focus:outline-none"
+              className="w-full max-w-sm rounded-control border border-ink-faint px-2 py-0.5 text-xl font-semibold focus:outline-none"
             />
           </form>
         ) : (
@@ -153,7 +153,7 @@ export function ProjectHeader({
               type="button"
               onClick={() => setEditing(true)}
               title="Rename project"
-              className="w-full truncate rounded px-1 text-left text-base font-semibold tracking-tight hover:bg-hover"
+              className="w-full truncate rounded px-1 text-left text-xl font-semibold tracking-tight hover:bg-hover"
             >
               {name}
             </button>
@@ -166,9 +166,13 @@ export function ProjectHeader({
             onClick={() => setMenuOpen((open) => !open)}
             aria-label={`Project actions for ${name}`}
             aria-expanded={menuOpen}
-            className="flex h-7 w-7 items-center justify-center rounded-control leading-none text-ink-faint hover:bg-hover hover:text-ink"
+            className="flex h-8 w-8 items-center justify-center rounded-control text-ink-faint hover:bg-hover hover:text-ink"
           >
-            ⋯
+            <svg viewBox="0 0 16 16" className="h-4 w-4" fill="currentColor" aria-hidden>
+              <circle cx="3.5" cy="8" r="1.3" />
+              <circle cx="8" cy="8" r="1.3" />
+              <circle cx="12.5" cy="8" r="1.3" />
+            </svg>
           </button>
           {menuOpen && (
             <div className="absolute right-0 z-20 mt-1 w-56 rounded-card border border-line bg-surface p-1 shadow-raised">
@@ -254,7 +258,7 @@ export function ProjectHeader({
           <button
             type="button"
             onClick={() => setEditingAbout(true)}
-            className="mt-0.5 hidden rounded px-1 text-left text-sm text-ink-faint hover:bg-hover hover:text-ink md:block"
+            className="mt-1 hidden rounded px-1 text-left text-sm text-ink-faint hover:bg-hover hover:text-ink md:block"
           >
             Add a description
           </button>
@@ -272,7 +276,7 @@ export function ProjectHeader({
             // this did not. Caught by the screenshot matrix at 390; invisible to
             // the responsive spec, which asserts the *page* does not overflow —
             // and it did not, because the shell was hiding it.
-            className="mt-0.5 hidden w-full max-w-2xl truncate rounded px-1 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink md:block"
+            className="mt-1 hidden w-full max-w-2xl truncate rounded px-1 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink md:block"
           >
             {description}
           </button>
@@ -283,7 +287,7 @@ export function ProjectHeader({
           board-scoped controls belong beside the thing that selects the board,
           and the phone header has no spare vertical space to give away. */}
       <div className="flex items-end justify-between gap-4">
-        <nav className="-mb-px flex gap-4 pt-2" aria-label="Project sections">
+        <nav className="-mb-px flex gap-4 pt-3" aria-label="Project sections">
           <Tab to={`/projects/${projectId}`} active={!onDocs}>
             Board
           </Tab>
