@@ -3,6 +3,7 @@ import { DndContext, DragOverlay, useDroppable } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { BoardColumn as BoardColumnType, Card } from '../../shared/types'
+import { formatDueDate, todayISO } from '../../shared/time'
 import { useKanbanDnd } from '../lib/useKanbanDnd'
 import { COLUMN_DRAG_PREFIX, COLUMN_PREFIX, noSort } from '../lib/boardDnd'
 import { normalizeCardTitle } from '../lib/title'
@@ -114,7 +115,7 @@ function KanbanBoardInner({
       <DragOverlay>
         {activeCard && <CardView card={activeCard} dragging />}
         {activeColumn && (
-          <div className="w-72 rotate-2 rounded-lg bg-neutral-50/95 p-2 shadow-2xl ring-1 ring-neutral-300">
+          <div className="w-72 rotate-2 rounded-xl bg-neutral-100/95 p-2 shadow-2xl ring-1 ring-neutral-300">
             <div className="mb-2 flex items-center gap-2 px-1">
               <span className="truncate text-sm font-semibold text-neutral-700">{activeColumn.name}</span>
               <span className="text-xs text-neutral-400">{activeColumn.cards.length}</span>
@@ -169,11 +170,18 @@ function Column({
   const [addingTop, setAddingTop] = useState(false)
   // While a column is lifted into the overlay, its slot reads as a gap to drop
   // into rather than a faded duplicate of what is already in your hand.
+  //
+  // The tinted panel is Trello's, and it earns its keep: without it the cards
+  // float on the page background and a column is only implied by alignment —
+  // which falls apart exactly where it matters, in a column whose cards are
+  // faded because they are done, or one that is empty.
   return (
     <section
       ref={setSortableRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex max-h-full w-72 shrink-0 snap-start flex-col ${isDragging ? 'opacity-25' : ''}`}
+      className={`flex max-h-full w-72 shrink-0 snap-start flex-col rounded-xl bg-neutral-100/80 p-2 ${
+        isDragging ? 'opacity-25' : ''
+      }`}
       data-testid="column"
       data-column={column.id}
     >
@@ -318,11 +326,14 @@ function CriteriaBadge({ criteria }: { criteria: { done: boolean }[] }) {
 
 /** Due dates read by urgency, not by exact date — overdue is the only state worth alarming about. */
 function DueBadge({ dueAt, completed }: { dueAt: string; completed: boolean }) {
-  const today = new Date().toISOString().slice(0, 10)
+  // `todayISO` is the viewer's local day, not UTC: a card due today should stop
+  // reading "Overdue" at their midnight, not at Greenwich's.
+  const today = todayISO()
   const overdue = !completed && dueAt < today
   const soon = !completed && dueAt === today
   return (
     <span
+      title={dueAt}
       className={`rounded px-1.5 py-0.5 ${
         overdue
           ? 'bg-red-50 text-red-700'
@@ -331,8 +342,8 @@ function DueBadge({ dueAt, completed }: { dueAt: string; completed: boolean }) {
             : 'bg-neutral-100 text-neutral-600'
       }`}
     >
-      {overdue ? 'Overdue ' : ''}
-      {dueAt}
+      {overdue ? 'Overdue · ' : ''}
+      {formatDueDate(dueAt)}
     </span>
   )
 }
@@ -356,7 +367,7 @@ function AddColumn({ onAdd }: { onAdd: (name: string) => void | Promise<void> })
       <button
         type="button"
         onClick={() => setAdding(true)}
-        className="mt-0 w-56 shrink-0 rounded-lg border-2 border-dashed border-neutral-300 px-3 py-2 text-left text-sm text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+        className="mt-0 w-56 shrink-0 rounded-xl bg-neutral-100/80 px-3 py-2.5 text-left text-sm text-neutral-600 hover:bg-neutral-200/80 hover:text-neutral-900"
       >
         + Add column
       </button>
@@ -398,7 +409,7 @@ function AddCard({ onAdd }: { onAdd: (title: string) => void | Promise<void> }) 
     return (
       <button
         onClick={() => setAdding(true)}
-        className="w-full rounded-lg px-3 py-2 text-left text-sm text-neutral-500 hover:bg-neutral-100"
+        className="w-full rounded-lg px-3 py-2 text-left text-sm text-neutral-600 hover:bg-neutral-200/70 hover:text-neutral-900"
       >
         + Add card
       </button>

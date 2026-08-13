@@ -68,7 +68,11 @@ export function DocsScreen({ projectId }: { projectId: string }) {
   return (
     <Screen scroll="document">
       <div className="flex min-h-full flex-col">
-        <ProjectHeader projectId={projectId} name={board?.project.name ?? '…'} />
+        <ProjectHeader
+          projectId={projectId}
+          name={board?.project.name ?? '…'}
+          onChanged={() => void load()}
+        />
         <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
           {!board && <p className="text-sm text-neutral-500">Loading…</p>}
 

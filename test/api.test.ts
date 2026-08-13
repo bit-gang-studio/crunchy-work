@@ -149,6 +149,60 @@ describe('columns', () => {
   })
 })
 
+describe('card due dates', () => {
+  /**
+   * The whole UI treats `dueAt` as a calendar day: the badge compares it to
+   * today as a string and the date input reads it verbatim. Nothing enforced
+   * that, and the MCP tool description saying "YYYY-MM-DD" is not a validator —
+   * a model asked for a due date will happily send an ISO timestamp, which
+   * stored fine and then rendered as a raw string on the card.
+   */
+  async function cardWithDue(due: unknown) {
+    const project = await newProject()
+    const todo = (await board(project.id)).columns[0]!
+    return req('POST', `/columns/${todo.id}/cards`, { title: 'Ship', dueAt: due })
+  }
+
+  it('accepts a plain calendar day', async () => {
+    expect((await cardWithDue('2026-08-20')).json.dueAt).toBe('2026-08-20')
+  })
+
+  it('takes the date half of a timestamp rather than storing it whole', async () => {
+    expect((await cardWithDue('2026-08-20T00:00:00.000Z')).json.dueAt).toBe('2026-08-20')
+    expect((await cardWithDue('2026-08-20 09:30:00')).json.dueAt).toBe('2026-08-20')
+  })
+
+  it('treats an absent or empty due date as none', async () => {
+    expect((await cardWithDue(null)).json.dueAt).toBeNull()
+    expect((await cardWithDue('')).json.dueAt).toBeNull()
+    expect((await cardWithDue('   ')).json.dueAt).toBeNull()
+  })
+
+  it('refuses what is not a date, with a message that says what to send', async () => {
+    const { status, json } = await cardWithDue('next Tuesday')
+    expect(status).toBe(400)
+    expect(json.error).toContain('YYYY-MM-DD')
+  })
+
+  it('refuses a date that does not exist', async () => {
+    expect((await cardWithDue('2026-13-45')).status).toBe(400)
+    expect((await cardWithDue('2026-02-30')).status).toBe(400)
+  })
+
+  it('normalises on update too, and clears with null', async () => {
+    const created = await cardWithDue('2026-08-20')
+    const id = created.json.id as string
+
+    await req('PATCH', `/cards/${id}`, { dueAt: '2027-01-02T18:00:00Z' })
+    expect((await req('GET', `/cards/${id}`)).json.dueAt).toBe('2027-01-02')
+
+    await req('PATCH', `/cards/${id}`, { dueAt: null })
+    expect((await req('GET', `/cards/${id}`)).json.dueAt).toBeNull()
+
+    expect((await req('PATCH', `/cards/${id}`, { dueAt: 'soon' })).status).toBe(400)
+  })
+})
+
 describe('cards', () => {
   it('creates in order and reads back on the board', async () => {
     const project = await newProject()

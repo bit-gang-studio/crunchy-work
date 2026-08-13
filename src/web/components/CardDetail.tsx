@@ -17,10 +17,17 @@ import { AcceptanceCriteria } from './AcceptanceCriteria'
  */
 export function CardDetail({
   cardId,
+  columnName,
   onClose,
   onChanged,
 }: {
   cardId: string
+  /**
+   * Which column it is in. Trello's equivalent header says "in list To Do", and
+   * that is the one fact worth the space: an eyebrow reading "CARD" over a card
+   * tells you what you can already see.
+   */
+  columnName?: string
   onClose: () => void
   onChanged: () => void
 }) {
@@ -100,7 +107,15 @@ export function CardDetail({
         className="flex h-full w-full flex-col overflow-y-auto bg-white shadow-2xl md:h-auto md:max-h-full md:w-[36rem] md:rounded-xl"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-4 py-3">
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">Card</span>
+          <span className="min-w-0 truncate text-xs text-neutral-500">
+            {columnName ? (
+              <>
+                in <span className="font-medium text-neutral-700">{columnName}</span>
+              </>
+            ) : (
+              'Card'
+            )}
+          </span>
           <button
             type="button"
             onClick={onClose}

@@ -94,7 +94,7 @@ export function ColumnHeader({
      */
     <div
       {...dragHandle?.listeners}
-      className="mb-2 flex shrink-0 cursor-grab items-center gap-2 rounded-md px-1 py-0.5 hover:bg-neutral-100/70 active:cursor-grabbing"
+      className="mb-2 flex shrink-0 cursor-grab items-center gap-2 rounded-md px-1 py-0.5 hover:bg-neutral-200/70 active:cursor-grabbing"
     >
       <button
         type="button"
@@ -114,7 +114,7 @@ export function ColumnHeader({
         onClick={onAddCard}
         aria-label={`Add card to top of ${column.name}`}
         title="Add card to top"
-        className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-base leading-none text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+        className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-base leading-none text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900"
       >
         +
       </button>
@@ -127,7 +127,7 @@ export function ColumnHeader({
           onClick={() => setMenuOpen((open) => !open)}
           aria-label={`Column actions for ${column.name}`}
           aria-expanded={menuOpen}
-          className="flex h-6 w-6 items-center justify-center rounded-md leading-none text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+          className="flex h-6 w-6 items-center justify-center rounded-md leading-none text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900"
         >
           ⋯
         </button>

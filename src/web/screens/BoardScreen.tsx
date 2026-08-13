@@ -94,7 +94,11 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   return (
     <Screen scroll="canvas">
       <div className="flex h-full flex-col">
-        <ProjectHeader projectId={projectId} name={board.project.name} />
+        <ProjectHeader
+          projectId={projectId}
+          name={board.project.name}
+          onChanged={() => void load()}
+        />
         <div className="min-h-0 flex-1">
           <KanbanBoard
             columns={board.columns}
@@ -137,6 +141,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
       {cardId && (
         <CardDetail
           cardId={cardId}
+          columnName={board.columns.find((c) => c.cards.some((k) => k.id === cardId))?.name}
           onClose={() => navigate(`/projects/${projectId}`)}
           onChanged={() => void load()}
         />

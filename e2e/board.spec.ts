@@ -59,6 +59,36 @@ test.describe('a new user builds a board', () => {
     await expect(page.getByPlaceholder('Markdown welcome.')).toHaveValue('Cover the MCP story first.')
   })
 
+  test('a project can be renamed and deleted', async ({ page }) => {
+    // Until this existed the REST routes had rename and delete and no front
+    // door called them — a project made with a typo was permanent.
+    await page.goto('/')
+    await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+    await page.getByLabel('Project name').fill('Untitledd')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'Untitledd' }).click()
+
+    // The name is click-to-edit, like a column.
+    await page.getByRole('heading', { name: 'Untitledd' }).click()
+    await page.getByLabel('Rename Untitledd').fill('Untitled')
+    await page.getByLabel('Rename Untitledd').press('Enter')
+    await expect(page.getByRole('heading', { name: 'Untitled', exact: true })).toBeVisible()
+
+    // It reached the database, not just the header's local state.
+    await page.goto('/')
+    await expect(page.getByTestId('project-tile').filter({ hasText: 'Untitled' })).toBeVisible()
+
+    await page.getByTestId('project-tile').filter({ hasText: 'Untitled' }).click()
+    await page.getByRole('button', { name: 'Project actions for Untitled', exact: true }).click()
+
+    // Deleting asks first, and says what goes with it.
+    await page.getByRole('button', { name: 'Delete project' }).click()
+    await page.getByRole('button', { name: 'Delete the board and docs too' }).click()
+
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByTestId('project-tile').filter({ hasText: 'Untitled' })).toHaveCount(0)
+  })
+
   test('projects can be dragged into a different order, and it sticks', async ({ page }) => {
     await page.goto('/')
     for (const name of ['Alpha', 'Beta', 'Gamma']) {

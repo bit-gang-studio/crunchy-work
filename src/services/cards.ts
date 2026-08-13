@@ -63,6 +63,37 @@ function normalizeCriteria(input: AcceptanceCriterion[]): string {
   return JSON.stringify(cleaned)
 }
 
+/**
+ * A due date is a **calendar day**, stored as `YYYY-MM-DD`, and the whole UI
+ * depends on that: the badge compares it to today as a string, and the date
+ * input reads it verbatim.
+ *
+ * Nothing enforced it until this existed, and the tool description saying
+ * "YYYY-MM-DD" is not a validator. A model asked for a due date will quite
+ * reasonably send `2026-08-20T00:00:00.000Z` — which stored fine, then rendered
+ * as a raw ISO string on the card face and left the date input blank. So the
+ * date half of a timestamp is accepted and truncated, and anything that is not
+ * a real calendar day is refused with a message that says what to send.
+ */
+function normalizeDueDate(value: string | null): string | null {
+  if (value === null) return null
+  const trimmed = String(value).trim()
+  if (!trimmed) return null
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/.exec(trimmed)
+  if (!match) {
+    throw new ValidationError(`Due date "${value}" is not a date — use YYYY-MM-DD`)
+  }
+
+  // The regex admits 2026-13-45; only a round-trip through Date rejects it.
+  const [, year, month, day] = match as unknown as [string, string, string, string]
+  const date = new Date(`${year}-${month}-${day}T00:00:00Z`)
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== `${year}-${month}-${day}`) {
+    throw new ValidationError(`Due date "${value}" is not a real date`)
+  }
+  return `${year}-${month}-${day}`
+}
+
 function normalizeSize(size: Size | null): string | null {
   if (size === null) return null
   if (!SIZES.includes(size)) {
@@ -115,7 +146,7 @@ export function cardsService(store: Store) {
       columnId,
       title,
       description: input.description ?? '',
-      dueAt: input.dueAt ?? null,
+      dueAt: normalizeDueDate(input.dueAt ?? null),
       acceptanceCriteria: normalizeCriteria(input.acceptanceCriteria ?? []),
       size: normalizeSize(input.size ?? null),
       rank: rankAfter(existing.at(-1)?.rank ?? null),
@@ -132,7 +163,7 @@ export function cardsService(store: Store) {
       next.title = title
     }
     if (patch.description !== undefined) next.description = patch.description
-    if (patch.dueAt !== undefined) next.dueAt = patch.dueAt
+    if (patch.dueAt !== undefined) next.dueAt = normalizeDueDate(patch.dueAt)
     if (patch.completed !== undefined) next.completed = patch.completed
     // Sending the whole list replaces it — the caller always has the full set on
     // screen, and per-item patching would need ids these never had.

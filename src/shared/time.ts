@@ -39,3 +39,39 @@ export function formatRelative(value: string, now: Date = new Date()): string {
 }
 
 const count = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'} ago`
+
+/** Today, as `YYYY-MM-DD` in the viewer's own timezone — the form due dates are stored in. */
+export function todayISO(now: Date = new Date()): string {
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
+  return local.toISOString().slice(0, 10)
+}
+
+/**
+ * A due date as a person would say it: "Today", "Tomorrow", "20 Aug".
+ *
+ * The stored value is a calendar day (`YYYY-MM-DD`) and printing it raw reads
+ * like a debug view — the same reason `formatRelative` exists for timestamps.
+ * The year only appears when it is not the current one, because on a board where
+ * everything is due this year it is four characters of noise on every card.
+ */
+export function formatDueDate(dueAt: string, now: Date = new Date()): string {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dueAt)
+  // Anything else is a value the service should have rejected; show it rather
+  // than hiding it, so a bad row is visible instead of silently blank.
+  if (!parts) return dueAt
+
+  const today = todayISO(now)
+  if (dueAt === today) return 'Today'
+
+  const tomorrow = todayISO(new Date(now.getTime() + DAY))
+  if (dueAt === tomorrow) return 'Tomorrow'
+
+  const year = parts[1]!
+  const date = new Date(`${dueAt}T00:00:00Z`)
+  const formatted = date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+  return year === today.slice(0, 4) ? formatted : `${formatted} ${year}`
+}
