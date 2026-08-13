@@ -7,11 +7,13 @@ import { DocList } from '../components/DocList'
 import { ProjectHeader } from '../components/ProjectHeader'
 import { EmptyState, ErrorState, Loading } from '../components/States'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 /** A project's documents. The board read already carries them, so this is one call. */
 export function DocsScreen({ projectId }: { projectId: string }) {
   const navigate = useNavigate()
   const [board, setBoard] = useState<ProjectDetail | null>(null)
+  useDocumentTitle('Docs', board?.project.name)
   const [error, setError] = useState<string | null>(null)
   const [title, setTitle] = useState('')
 

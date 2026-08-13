@@ -9,10 +9,12 @@ import { ProjectHeader } from '../components/ProjectHeader'
 import { EmptyState, ErrorState, Loading } from '../components/States'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 import { useRecentChanges } from '../lib/useRecentChanges'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?: string }) {
   const navigate = useNavigate()
   const [board, setBoard] = useState<ProjectDetail | null>(null)
+  useDocumentTitle(board?.project.name)
   const [error, setError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
 

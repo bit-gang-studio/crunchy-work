@@ -7,6 +7,7 @@ import { Screen } from '../components/Screen'
 import { ProjectHeader } from '../components/ProjectHeader'
 import { ConfirmButton } from '../components/ConfirmButton'
 import { ErrorState, Loading } from '../components/States'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 /**
  * The editor is code-split. TipTap and ProseMirror are by far the heaviest
  * dependency in the app, and most sessions never open a document — making the
@@ -19,6 +20,7 @@ const DocEditor = lazy(() => import('../components/DocEditor').then((m) => ({ de
 export function DocScreen({ projectId, docId }: { projectId: string; docId: string }) {
   const navigate = useNavigate()
   const [doc, setDoc] = useState<Doc | null>(null)
+  useDocumentTitle(doc?.title, 'Docs')
   const [project, setProject] = useState<{ name: string; description: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle')

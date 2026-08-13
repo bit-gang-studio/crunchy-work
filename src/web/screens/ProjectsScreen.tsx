@@ -5,6 +5,7 @@ import { Screen } from '../components/Screen'
 import { ProjectGrid } from '../components/ProjectGrid'
 import { EmptyState, ErrorState, Loading } from '../components/States'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 /**
  * The projects screen: a grid of tiles rather than a list.
@@ -15,6 +16,7 @@ import { useLiveUpdates } from '../lib/useLiveUpdates'
  */
 export function ProjectsScreen() {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
+  useDocumentTitle('Projects')
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
 
@@ -73,14 +75,22 @@ export function ProjectsScreen() {
             * The create action belongs in the header, not trailing the grid.
             * As a dashed tile it was the same size and weight as a project —
             * so the eye had to read it to discover it was not one — and it
-            * pushed the grid's last row out of alignment. Up here it is
-            * always in the same place whether you have one project or thirty,
-            * and the grid is nothing but projects.
+            * pushed the grid's last row out of alignment. Up here it is always
+            * in the same place whether you have one project or thirty, and the
+            * grid is nothing but projects.
+            *
+            * It also stays put while the composer is open. Hiding it meant the
+            * control you had just pressed vanished from under the cursor and
+            * the header re-flowed; pressing it again re-focuses the field
+            * instead, which is what pressing it again should do.
             */}
-          {!!projects?.length && !creating && (
+          {!!projects?.length && (
             <button
               type="button"
-              onClick={() => setCreating(true)}
+              onClick={() => {
+                setCreating(true)
+                document.querySelector<HTMLInputElement>('[data-testid="new-project-name"]')?.focus()
+              }}
               className="shrink-0 rounded-control bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition-colors hover:bg-accent-hover"
             >
               New project
@@ -141,6 +151,7 @@ function NewProjectTile({
         onKeyDown={(e) => e.key === 'Escape' && onCancel()}
         placeholder="Project name"
         aria-label="Project name"
+        data-testid="new-project-name"
         className="w-full rounded-card border border-line-strong px-3 py-2 text-sm focus:border-ink-muted focus:outline-none"
       />
       <div className="mt-auto flex gap-2 pt-3">

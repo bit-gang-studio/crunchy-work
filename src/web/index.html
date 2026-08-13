@@ -3,7 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Crunchy</title>
+    <meta
+      name="description"
+      content="A kanban board and markdown docs your coding agent can drive, running locally over MCP."
+    />
+    <!--
+      The favicon, inline as a data URI rather than a file in `public/`.
+
+      Same reasoning that keeps the migrations inlined: no asset-copying step in
+      the build, and therefore nothing that can go missing from the npm tarball.
+      A 16px file would have been the only thing in `public/`, and the only
+      reason the build needed to copy anything at all.
+
+      The mark is the one in the header, so the tab and the app agree, and it is
+      drawn as an arc rather than a letter in a font — a text glyph in an SVG
+      favicon depends on whatever font the browser resolves, which is not a
+      thing to leave to chance at 16 pixels.
+
+      Amber on both themes deliberately: a favicon sits on the browser's chrome,
+      not on ours, so it cannot know which palette it is against.
+    -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c2410c'/%3E%3Cpath d='M22.5 11.2a7.6 7.6 0 1 0 0 9.6' fill='none' stroke='white' stroke-width='3.6' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <title>Crunchy — a board your coding agent can drive</title>
     <script>
       /*
        * Set the theme BEFORE first paint.
