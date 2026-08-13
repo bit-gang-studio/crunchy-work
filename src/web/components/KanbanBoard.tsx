@@ -87,8 +87,11 @@ function KanbanBoardInner({
       {/* `tabIndex` for the same reason the column bodies have one: the board
           scrolls horizontally, and a scrollable region that cannot be focused
           is content a keyboard user can see and cannot reach. */}
+      {/* `items-stretch` (the default) rather than `items-start`: columns run the
+          full height of the board, so the bottom edge is a straight line instead
+          of a ragged one with a field of grey under it. */}
       <div
-        className="flex h-full snap-x select-none items-start gap-4 overflow-x-auto px-4 py-6 md:px-6"
+        className="flex h-full snap-x select-none gap-4 overflow-x-auto px-4 py-6 md:px-6"
         data-testid="kanban-board"
         tabIndex={0}
         role="group"
@@ -185,7 +188,7 @@ function Column({
     <section
       ref={setSortableRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex max-h-full w-72 shrink-0 snap-start flex-col rounded-panel bg-sunken/80 p-2 ${
+      className={`flex h-full w-72 shrink-0 snap-start flex-col rounded-panel bg-sunken/80 p-2 ${
         isDragging ? 'opacity-25' : ''
       }`}
       data-testid="column"
@@ -204,8 +207,12 @@ function Column({
           `tabIndex` because a scrollable region has to be reachable by keyboard —
           otherwise a column taller than the board is content you can see and
           cannot get to without a mouse. The name says which column it scrolls. */}
+      {/* `flex-1` so the well fills the column and the space below the last card
+          is column interior rather than board background — while the cards and
+          the add-card row stay pinned to the top, which is the whole reason the
+          column was content-height before. */}
       <div
-        className="min-h-0 overflow-y-auto"
+        className="min-h-0 flex-1 overflow-y-auto"
         tabIndex={0}
         role="group"
         aria-label={`${column.name} cards`}
@@ -437,7 +444,9 @@ function AddColumn({ onAdd }: { onAdd: (name: string) => void | Promise<void> })
       <button
         type="button"
         onClick={() => setAdding(true)}
-        className="mt-0 w-56 shrink-0 rounded-panel bg-sunken/80 px-3 py-2.5 text-left text-sm text-ink-muted hover:bg-hover-strong/80 hover:text-ink"
+        // `self-start` so this stays a button rather than stretching to the full
+        // board height alongside the columns.
+        className="w-56 shrink-0 self-start rounded-panel bg-sunken/80 px-3 py-2.5 text-left text-sm text-ink-muted hover:bg-hover-strong/80 hover:text-ink"
       >
         + Add column
       </button>
@@ -445,7 +454,7 @@ function AddColumn({ onAdd }: { onAdd: (name: string) => void | Promise<void> })
   }
 
   return (
-    <form onSubmit={submit} className="w-56 shrink-0">
+    <form onSubmit={submit} className="w-56 shrink-0 self-start">
       <input
         autoFocus
         value={name}

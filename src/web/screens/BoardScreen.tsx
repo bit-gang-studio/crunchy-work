@@ -113,9 +113,13 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
           * new user is deciding whether this is worth their time. The projects
           * and docs screens have taught the pitch since day one; this one, the
           * one you actually land on, did not.
+          *
+          * Left-aligned on the board's own gutter rather than centred: centred,
+          * it floated free of the columns underneath and read as a different
+          * page. It sits over the first column now.
           */}
         {cardCount === 0 && (
-          <div className="mx-auto w-full max-w-2xl px-4 pt-6 md:px-6">
+          <div className="w-full max-w-2xl px-4 pt-6 md:px-6">
             <EmptyState
               title="No cards yet."
               prompt={`Look at this repo and add cards to ${board.project.name} for what needs doing.`}
