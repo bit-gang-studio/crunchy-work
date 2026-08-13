@@ -89,7 +89,7 @@ export function ErrorState({
           <button
             type="button"
             onClick={retry}
-            className="rounded-control bg-danger px-3 py-1.5 text-xs font-medium text-accent-ink"
+            className="rounded-control bg-danger px-3 py-1.5 text-xs font-medium text-danger-ink"
           >
             Try again
           </button>
@@ -135,7 +135,7 @@ export function EmptyState({
         * no business being. Wrapping solves both.
         */}
       {prompt && (
-        <pre className="mt-3 rounded-control bg-accent px-3 py-2 text-xs whitespace-pre-wrap break-words text-accent-ink">
+        <pre className="mt-3 rounded-control bg-code px-3 py-2 text-xs whitespace-pre-wrap break-words text-code-ink">
           {prompt}
         </pre>
       )}

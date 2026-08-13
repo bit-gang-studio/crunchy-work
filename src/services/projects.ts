@@ -38,12 +38,27 @@ export function projectsService(store: Store) {
    * an N+1 that grows with the number of projects.
    */
   async function listWithCounts(): Promise<ProjectSummary[]> {
-    const [rows, cardCounts, docCounts] = await Promise.all([
+    const [rows, cardCounts, doneCounts, docCounts] = await Promise.all([
       db.select().from(projects).orderBy(asc(projects.rank)),
       db
         .select({ projectId: columns.projectId, n: count() })
         .from(cards)
         .innerJoin(columns, eq(cards.columnId, columns.id))
+        .groupBy(columns.projectId),
+      /*
+       * Completed cards, for the tile's progress bar. A raw total tells you how
+       * big a pile is, not how it is going — so the tile leads with "3 of 8
+       * done" the way Linear and GitHub lead with progress and recency.
+       *
+       * Its own aggregate rather than a SUM(CASE…) beside the first: same one
+       * round trip (they run concurrently), and `completed` is a per-card tick
+       * independent of the column, so it cannot be derived from a Done column.
+       */
+      db
+        .select({ projectId: columns.projectId, n: count() })
+        .from(cards)
+        .innerJoin(columns, eq(cards.columnId, columns.id))
+        .where(eq(cards.completed, true))
         .groupBy(columns.projectId),
       db.select({ projectId: docs.projectId, n: count() }).from(docs).groupBy(docs.projectId),
     ])
@@ -51,11 +66,13 @@ export function projectsService(store: Store) {
     const byProject = (list: { projectId: string; n: number }[]) =>
       new Map(list.map((r) => [r.projectId, r.n]))
     const cardsBy = byProject(cardCounts)
+    const doneBy = byProject(doneCounts)
     const docsBy = byProject(docCounts)
 
     return rows.map((p) => ({
       ...p,
       cardCount: cardsBy.get(p.id) ?? 0,
+      doneCount: doneBy.get(p.id) ?? 0,
       docCount: docsBy.get(p.id) ?? 0,
     }))
   }

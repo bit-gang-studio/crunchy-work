@@ -22,7 +22,9 @@ test.describe('a new user builds a board', () => {
     // The project appears as a tile, and a new project starts usable.
     const tile = page.getByTestId('project-tile').filter({ hasText: 'Launch plan' })
     await expect(tile).toBeVisible()
-    await expect(tile).toContainText('0 cards')
+    // A tile leads with progress, not a pile size — so a project with nothing
+    // in it says so, rather than reporting "0 cards".
+    await expect(tile).toContainText('Nothing on the board yet')
     await tile.click()
 
     await expect(page.getByRole('heading', { name: 'Launch plan' })).toBeVisible()
@@ -161,9 +163,14 @@ test.describe('a new user builds a board', () => {
     // this test's own projects rather than the whole list.
     const mine = ['Alpha', 'Beta', 'Gamma']
     const names = async () => {
+      // By its own testid, not "the first span in the tile" — which is what
+      // this used to do, and which silently started reading the monogram the
+      // moment a tile grew one.
       const all = await page
         .getByTestId('project-tile')
-        .evaluateAll((els) => els.map((el) => el.querySelector('span')?.textContent ?? ''))
+        .evaluateAll((els) =>
+          els.map((el) => el.querySelector('[data-testid="project-name"]')?.textContent ?? ''),
+        )
       return all.filter((n) => mine.includes(n))
     }
     expect(await names()).toEqual(['Alpha', 'Beta', 'Gamma'])

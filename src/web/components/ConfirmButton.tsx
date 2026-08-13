@@ -57,7 +57,7 @@ export function ConfirmButton({
         type="button"
         autoFocus
         onClick={() => void onConfirm()}
-        className="rounded-control bg-danger px-3 py-1.5 text-sm font-medium text-accent-ink hover:bg-danger"
+        className="rounded-control bg-danger px-3 py-1.5 text-sm font-medium text-danger-ink hover:bg-danger"
       >
         {confirmLabel}
       </button>

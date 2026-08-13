@@ -79,7 +79,7 @@ export function DocEditor({
         // without it a document is dark grey text on a dark surface. This is the
         // one place a `dark:` variant belongs: styles we do not own.
         class:
-          'prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[60vh] prose-headings:font-semibold prose-pre:bg-accent prose-pre:text-ink-inverse',
+          'prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[60vh] prose-headings:font-semibold prose-pre:bg-code prose-pre:text-code-ink',
         'aria-label': 'Document body',
         'data-testid': 'doc-body',
       },

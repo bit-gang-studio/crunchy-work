@@ -16,6 +16,7 @@ const projects = (...names: string[]): ProjectSummary[] =>
     createdAt: '',
     updatedAt: '',
     cardCount: 0,
+    doneCount: 0,
     docCount: 0,
   }))
 

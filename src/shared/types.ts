@@ -19,6 +19,8 @@ export interface Project {
 /** A project plus the counts the projects screen shows on its tile. */
 export interface ProjectSummary extends Project {
   cardCount: number
+  /** Cards ticked complete — the tile shows progress, not a raw pile size. */
+  doneCount: number
   docCount: number
 }
 

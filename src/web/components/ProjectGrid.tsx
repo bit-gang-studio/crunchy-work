@@ -82,21 +82,80 @@ function SortableTile({ project }: { project: ProjectSummary }) {
       }
       {...attributes}
       {...listeners}
-      className={`flex min-h-[7.5rem] cursor-grab flex-col overflow-hidden rounded-panel border border-line bg-surface transition-colors hover:border-line-strong hover:shadow-card ${
+      className={`flex min-h-[9rem] cursor-grab flex-col gap-3 rounded-panel border border-line bg-surface p-4 transition-colors hover:border-line-strong ${
         isDragging ? 'z-10 opacity-80 shadow-overlay' : ''
       }`}
     >
-      <div className="project-bar h-2 shrink-0" aria-hidden />
-      <div className="project-tint flex flex-1 flex-col p-4">
-        <span className="font-medium">{project.name}</span>
-        {project.description && (
-          <span className="mt-1 line-clamp-2 text-sm text-ink-muted">{project.description}</span>
-        )}
-        <span className="mt-auto pt-3 text-xs text-ink-muted">
-          {plural(project.cardCount, 'card')}
-          {project.docCount > 0 && ` · ${plural(project.docCount, 'doc')}`}
+      <div className="flex items-center gap-3">
+        {/* The monogram is the only place the project's colour appears. Two
+            letters, because one is ambiguous across a list and three stops
+            being a mark and starts being a word. */}
+        <span
+          aria-hidden
+          className="project-swatch flex h-10 w-10 shrink-0 items-center justify-center rounded-card text-sm font-semibold"
+        >
+          {monogram(project.name)}
+        </span>
+        {/* Docs only. The card count is carried by the progress line at the
+            bottom — "1 of 8 done" already says there are eight — and a tile
+            that says "8 cards" up here and "1 of 8 done" down there is stating
+            the same number twice in two different shapes. */}
+        <span className="min-w-0 flex-1">
+          <span data-testid="project-name" className="block truncate font-medium">
+            {project.name}
+          </span>
+          {project.docCount > 0 && (
+            <span className="block text-xs text-ink-faint">{plural(project.docCount, 'doc')}</span>
+          )}
         </span>
       </div>
+
+      {project.description && (
+        <span className="line-clamp-2 text-sm text-ink-muted">{project.description}</span>
+      )}
+
+      {/*
+        * Progress, not a pile size.
+        *
+        * "8 cards" tells you how much there is, never how it is going — which is
+        * the question you actually open this screen with. Linear leads its
+        * project list with a progress bar and GitHub leads with recency for the
+        * same reason: the number that changes is the one worth showing.
+        *
+        * A project with no cards gets no bar at all rather than an empty one:
+        * 0 of 0 is not 0% done, it is "not started", and a permanently empty
+        * track on every new project reads as a broken component.
+        */}
+      {project.cardCount > 0 ? (
+        <span className="mt-auto flex items-center gap-2">
+          <span aria-hidden className="h-1.5 flex-1 overflow-hidden rounded-full bg-hover-strong">
+            <span
+              className="project-progress block h-full rounded-full"
+              style={{ width: `${Math.round((project.doneCount / project.cardCount) * 100)}%` }}
+            />
+          </span>
+          <span className="shrink-0 text-xs tabular-nums text-ink-faint">
+            {project.doneCount} of {project.cardCount} done
+          </span>
+        </span>
+      ) : (
+        /* Every tile ends on the same line, so the grid reads as a set rather
+           than as cards of different kinds. An empty project says so instead of
+           leaving a hole where the progress bar lives on its neighbours. */
+        <span className="mt-auto text-xs text-ink-faint">Nothing on the board yet</span>
+      )}
     </Link>
   )
+}
+
+/**
+ * Up to two letters for the swatch: initials for a multi-word name, the first
+ * two characters otherwise. Falls back to a dash rather than rendering an empty
+ * square, because a name is only blank mid-rename.
+ */
+function monogram(name: string): string {
+  const words = name.trim().split(/[\s—–-]+/).filter(Boolean)
+  if (words.length === 0) return '–'
+  if (words.length === 1) return words[0]!.slice(0, 2).toUpperCase()
+  return (words[0]![0]! + words[1]![0]!).toUpperCase()
 }

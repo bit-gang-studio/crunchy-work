@@ -57,7 +57,17 @@ export function ProjectsScreen() {
   return (
     <Screen scroll="document">
       <div className="mx-auto max-w-4xl px-4 py-8 md:px-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+        {/* The count sits with the heading rather than being implied by the
+            grid: it is the one fact about this screen you cannot get by
+            glancing, once there are more projects than fit above the fold.
+            `baseline`, not `center` — two different type sizes centred against
+            each other never look aligned. */}
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+          {!!projects?.length && (
+            <span className="text-sm tabular-nums text-ink-faint">{projects.length}</span>
+          )}
+        </div>
 
         {error && (
           <div className="mt-4">

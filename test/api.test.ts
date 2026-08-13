@@ -65,7 +65,25 @@ describe('projects', () => {
     await req('POST', `/projects/${project.id}/docs`, { title: 'Notes' })
 
     const { json } = await req('GET', '/projects')
-    expect(json[0]).toMatchObject({ name: 'Crunchy', cardCount: 2, docCount: 1 })
+    expect(json[0]).toMatchObject({ name: 'Crunchy', cardCount: 2, doneCount: 0, docCount: 1 })
+  })
+
+  /**
+   * The tile shows progress, so the count that drives it has to mean what it
+   * says. `completed` is a per-card tick that is deliberately independent of the
+   * column, so this cannot be derived from a card sitting in Done — a card can
+   * be ticked in To Do, and one in Done can be unticked.
+   */
+  it('counts completed cards, by the tick and not by the column', async () => {
+    const project = await newProject()
+    const view = await board(project.id)
+    const [todo, , done] = view.columns
+    const { json: ticked } = await req('POST', `/columns/${todo!.id}/cards`, { title: 'Ticked in To Do' })
+    await req('POST', `/columns/${done!.id}/cards`, { title: 'Sitting in Done, not ticked' })
+    await req('PATCH', `/cards/${ticked.id}`, { completed: true })
+
+    const { json } = await req('GET', '/projects')
+    expect(json[0]).toMatchObject({ cardCount: 2, doneCount: 1 })
   })
 
   it('rejects a blank name', async () => {

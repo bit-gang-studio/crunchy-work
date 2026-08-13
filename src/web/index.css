@@ -56,17 +56,36 @@
 
   /*
    * ── Accent ────────────────────────────────────────────────────────────
-   * The one colour carrying identity. Today it is near-black, which is to say
-   * the product has no identity yet — that is the theme pass's job, and this
-   * is the single token it turns.
+   * The one colour carrying identity. It was near-black — which is to say the
+   * product had none — and is now a blue, the same hue in both palettes so the
+   * app is recognisably itself either way.
+   *
+   * Provisional, and deliberately not Graphic Realism's final answer: the point
+   * of turning it on now is that an accent with no chroma cannot be judged. The
+   * theme pass turns this one token and the whole app follows.
    */
-  --color-accent: var(--color-neutral-900);
-  --color-accent-hover: var(--color-neutral-800);
+  --color-accent: #3b5bdb;
+  --color-accent-hover: #2f4bc4;
   --color-accent-ink: #ffffff;
+
+  /*
+   * ── Code ──────────────────────────────────────────────────────────────
+   * Code blocks and the "paste this at your agent" prompts had been painted
+   * with the *accent* — which worked only while the accent happened to be
+   * near-black. The moment it carried a hue, every code block turned blue.
+   * A code surface is its own role: high-contrast, neutral, and never the
+   * thing carrying identity.
+   */
+  --color-code: var(--color-neutral-900);
+  --color-code-ink: var(--color-neutral-50);
 
   /* ── Status ─────────────────────────────────────────────────────────── */
   --color-danger: var(--color-red-700);
   --color-danger-soft: var(--color-red-50);
+  /* Its own ink. Destructive buttons were printing `accent-ink` on a danger
+     fill, which only worked while both palettes happened to agree — the same
+     wrong-role trap as painting code blocks with the accent. */
+  --color-danger-ink: #ffffff;
   --color-warning: var(--color-amber-700);
   --color-warning-soft: var(--color-amber-50);
   --color-success: var(--color-green-700);
@@ -113,19 +132,35 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* Ground — neutral 950 / 900 / 800, page → well → card. */
-  --color-canvas: #0a0a0a;
-  --color-surface: #262626;
-  --color-sunken: #171717;
-  /* One step above surface, not two. `hover` is a background that muted ink
-     gets printed on (the acceptance-criteria pill), and at #404040 that pairing
-     measured 4.11:1 — under AA, which the dark scan caught. */
-  --color-hover: #333333;
-  --color-hover-strong: #404040;
+  /*
+   * Ground — a ladder, and slightly cool rather than dead neutral.
+   *
+   * Pure greys are what makes a dark UI look cheap: nothing in the physical
+   * world is a perfect neutral in shadow, and screens full of #262626 read as
+   * flat plastic. A few points of blue in the dark end is what almost every
+   * dark UI you like is doing, and it costs nothing.
+   *
+   * The steps are also further apart than they were. Elevation in the dark
+   * cannot lean on shadow — there is no ground for a shadow to fall on — so the
+   * *only* thing separating a card from the page is that the card is lighter.
+   * canvas → sunken → surface has to be legible as three distinct planes.
+   */
+  --color-canvas: #0b0c0f;
+  --color-sunken: #101216;
+  --color-surface: #16181d;
+  --color-hover: #1d2027;
+  --color-hover-strong: #262a33;
 
-  /* Lines have to lift off the surface they sit on, so they invert too. */
-  --color-line: #404040;
-  --color-line-strong: #525252;
+  /*
+   * Borders as low-alpha white, not opaque grey.
+   *
+   * An opaque grey line is its own colour and reads as a bar drawn *between*
+   * two things. White at 9% is the surface it sits on, lit — so it reads as an
+   * edge, and it stays correct over canvas, sunken and surface alike instead of
+   * needing a value per ground.
+   */
+  --color-line: #ffffff17;
+  --color-line-strong: #ffffff2e;
 
   /*
    * Ink, chosen by computing the ratios rather than by mirroring the light
@@ -135,30 +170,43 @@
    * failed on the first run.
    *
    * The binding constraint is the *faint* step on the two grounds small text
-   * actually sits on — surface (#262626) and a hovered row (#333333) — because
-   * `text-xs` is nowhere near axe's large-text threshold, so it owes the full
-   * 4.5:1. Solving for that puts faint at #a0a0a0 (5.79:1 on surface, 4.83:1 on
-   * hover), and muted then has to climb to stay visibly *above* faint rather
-   * than collapsing into it.
+   * actually sits on — the card surface and a hovered row — because `text-xs`
+   * is nowhere near axe's large-text threshold, so it owes the full 4.5:1.
+   * Solve for that first, then push muted up so it stays visibly *above* faint
+   * rather than collapsing into it.
    *
    * Dark needs a narrower ink range than light, and that is not a mistake to be
    * corrected in the theme pass: dim grey on black is genuinely harder to read
    * than the mirror-image grey on white.
+   *
+   * Cooled to match the grounds. Grey ink on blue-shifted surfaces is the
+   * tell-tale of a palette assembled from two different sets — the ink has to
+   * live in the same world as the thing it is printed on.
    */
-  --color-ink: #fafafa; /* 13.6:1 on surface */
-  --color-ink-muted: #c4c4c4; /* 8.67:1 */
-  --color-ink-faint: #a0a0a0; /* 5.79:1, and 4.83:1 on a hovered row */
-  --color-ink-inverse: #0a0a0a;
+  --color-ink: #f2f4f8; /* 15.9:1 on surface */
+  --color-ink-muted: #c3c9d4; /* 10.9:1 */
+  --color-ink-faint: #9ba3b2; /* 7.0:1 on surface, 6.4:1 on a hovered row */
+  --color-ink-inverse: #0b0c0f;
 
-  /* The accent flips with everything else — near-white on near-black. */
-  --color-accent: #f5f5f5;
-  --color-accent-hover: #d4d4d4;
-  --color-accent-ink: #0a0a0a;
+  /*
+   * The same blue as light, lifted so it reads on a dark ground — a mid-tone
+   * blue that is legible on white is muddy on black. Its ink goes dark, because
+   * white on this measures 3.1:1 and black measures 6.3:1.
+   */
+  --color-accent: #6e8bff;
+  --color-accent-hover: #8ba3ff;
+  --color-accent-ink: #0b0c0f;
+
+  /* Code recesses in the dark rather than standing out: the page colour, so it
+     reads as a well cut into the surface it sits on. */
+  --color-code: #0b0c0f;
+  --color-code-ink: #f2f4f8;
 
   /* Status: the 400 step reads on a dark ground where the 700 step disappears;
      the soft fills go to the 950 step for the same reason in reverse. */
   --color-danger: #f87171;
   --color-danger-soft: #450a0a;
+  --color-danger-ink: #0b0c0f;
   --color-warning: #fbbf24;
   --color-warning-soft: #451a03;
   --color-success: #4ade80;
@@ -179,45 +227,55 @@
 }
 
 /*
- * A project tile's colour, per theme.
+ * A project's colour lives in one small object, not in a band.
  *
- * The hue is derived from the project's name in `lib/projectColor.ts` and
- * arrives as `--project-hue`; the lightness lives here so it belongs to the
- * palette rather than to a TypeScript file. It used to be a finished
- * `hsl(h 62% 97%)` computed in JS, and it stayed near-white in dark mode while
- * the ink on top of it inverted — which the dark axe scan caught as a contrast
- * failure on every tile at once.
+ * This was an 8px bar across the top of the tile and a wash behind its body.
+ * Neither worked: a stripe across a neutral card is the shape of browser
+ * chrome, so the eye files it as a tab rather than as identity, and a large
+ * dark fill carrying a hue reads as a stain rather than a tint.
  *
- * Dark drops the tint to 16% lightness and takes the saturation down with it:
- * a fully saturated dark colour reads as a stain rather than as a tint, and the
- * band above it is already carrying the identity.
+ * Every tool that does this well puts identity either in the *whole* surface
+ * (Trello, where a board is its background) or in a *small object* — GitHub's
+ * language dot, Vercel's favicon square, Linear's project icon. A monogram is
+ * the small object, and it earns the chroma precisely because it is 40px:
+ * saturation that would be a stain across a card is exactly right in a swatch.
+ *
+ * The hue is still derived from the project's name in `lib/projectColor.ts`;
+ * only the hue crosses from JS, and every value lives here with the palette.
  */
-.project-bar {
-  background-color: hsl(var(--project-hue) 62% 52%);
-}
-
-.project-tint {
-  background-color: hsl(var(--project-hue) 62% 97%);
-}
-
-:root[data-theme='dark'] .project-bar {
-  background-color: hsl(var(--project-hue) 52% 58%);
-}
-
 /*
- * Much less chroma than the light tint carries, because chroma behaves
- * differently down here. At 22% saturation and 16% lightness the warm hues
- * stopped reading as "a red tile" and started reading as brown — and the greens
- * as olive. A large dark fill holding that much colour reads as a stain rather
- * than a tint, which is the thing that made these look unfinished.
+ * OKLCH, not HSL, and that is the whole reason this works.
  *
- * 9% at 17% lightness keeps the tile a hair above the plain surface it sits
- * against, so it is still recognisably *this* project's tile, and hands the
- * actual identity to the bar above it — which is bright enough to carry it and
- * is the part you pattern-match on anyway.
+ * In HSL, "lightness" is not lightness: `hsl(220 58% 56%)` is a mid blue you
+ * can barely read black text on, while `hsl(60 58% 56%)` at the *same* stated
+ * lightness is a bright yellow you cannot read white on. The monogram carries
+ * text over a hue derived from a hash — so every hue on the circle has to work,
+ * and with HSL there is no single ink colour that does. The dark axe scan
+ * failed on exactly the blue end.
+ *
+ * OKLCH is perceptually uniform: fix L and every hue really is the same
+ * lightness, so one ink is correct for all 360 of them. Light mode takes a dark
+ * swatch with white text, dark mode a bright swatch with near-black text.
  */
-:root[data-theme='dark'] .project-tint {
-  background-color: hsl(var(--project-hue) 9% 17%);
+.project-swatch {
+  background-color: oklch(0.5 0.17 var(--project-hue));
+  color: #ffffff;
+}
+
+:root[data-theme='dark'] .project-swatch {
+  background-color: oklch(0.74 0.15 var(--project-hue));
+  color: #0b0c0f;
+}
+
+/* The filled part of a tile's progress bar, in the project's own hue, so the
+   bar reads as belonging to that project rather than as generic chrome. No text
+   sits on it, but it uses the same values so a tile reads as one object. */
+.project-progress {
+  background-color: oklch(0.5 0.17 var(--project-hue));
+}
+
+:root[data-theme='dark'] .project-progress {
+  background-color: oklch(0.74 0.15 var(--project-hue));
 }
 
 /*
@@ -229,6 +287,26 @@
  * `:focus-visible` means a mouse click still does not draw one.
  */
 @layer base {
+  /*
+   * Buttons point.
+   *
+   * Tailwind v4's preflight sets `cursor: default` on buttons — a deliberate
+   * change from v3, on the reasoning that a native button is not a link. The
+   * effect in an app that is almost entirely buttons is that nothing on screen
+   * ever tells your hand it is over a control, which reads as the whole page
+   * being inert. Restored globally rather than a `cursor-pointer` per button,
+   * which is how it would otherwise be fixed forty times and forgotten on the
+   * forty-first.
+   *
+   * `:disabled` keeps the default arrow, which is the one case v4 is right
+   * about.
+   */
+  button:not(:disabled),
+  [role='button']:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
