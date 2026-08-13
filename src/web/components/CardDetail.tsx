@@ -187,7 +187,15 @@ export function CardDetail({
               onChange={(next) => void commit({ acceptanceCriteria: next })}
             />
 
-            <label className="flex flex-1 flex-col gap-1">
+            {/* Not `flex-1`. It was, which had the description field claiming
+                all the leftover height of the full-screen phone sheet and then
+                not using it — the textarea inside sizes itself, so the growth
+                went nowhere. Removing it moves no pixels: the footer's
+                `mt-auto` already collects the slack, so the ~200px gap above
+                "Delete card" on a phone is unchanged, and it is the right place
+                for it — separation before a destructive action. The field just
+                no longer claims space it cannot use. */}
+            <label className="flex flex-col gap-1">
               <span className="text-xs font-medium text-ink-muted">Description</span>
               <AutoGrowTextarea
                 value={card.description}

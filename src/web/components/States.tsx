@@ -19,17 +19,40 @@ import { Link } from 'react-router-dom'
  * this is mostly seen for an instant — which is exactly why it must not be a
  * flash of centred spinner in a different place from the content.
  */
-export function Loading({ label = 'Loading', rows = 3 }: { label?: string; rows?: number }) {
+export function Loading({
+  label = 'Loading',
+  rows = 3,
+  /**
+   * `compact` swaps card-shaped placeholders for line-shaped ones, for the
+   * inside of a popover rather than a screen. Same component because the
+   * decision — a shape, never a word, and the same `role="status"` wiring — is
+   * the same one; only the shape it is standing in for differs.
+   */
+  compact = false,
+}: {
+  label?: string
+  rows?: number
+  compact?: boolean
+}) {
   return (
-    <div role="status" aria-live="polite" aria-busy="true" className="space-y-3">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      className={compact ? 'space-y-1.5 px-2 py-1.5' : 'space-y-3'}
+    >
       <span className="sr-only">{label}…</span>
       {Array.from({ length: rows }, (_, i) => (
         <div
           key={i}
           aria-hidden
-          className="h-16 animate-pulse rounded-card border border-line bg-surface"
+          className={
+            compact
+              ? 'h-4 animate-pulse rounded bg-hover'
+              : 'h-16 animate-pulse rounded-card border border-line bg-surface'
+          }
           // Descending width reads as a list of things rather than a grey slab.
-          style={{ width: `${100 - i * 6}%` }}
+          style={{ width: compact ? `${75 - i * 15}%` : `${100 - i * 6}%` }}
         />
       ))}
     </div>

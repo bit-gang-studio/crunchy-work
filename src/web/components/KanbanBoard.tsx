@@ -91,7 +91,7 @@ function KanbanBoardInner({
           full height of the board, so the bottom edge is a straight line instead
           of a ragged one with a field of grey under it. */}
       <div
-        className="flex h-full snap-x select-none gap-4 overflow-x-auto px-4 py-6 md:px-6"
+        className="flex h-full snap-x select-none gap-4 overflow-x-auto px-4 py-4 md:px-6 md:py-6"
         data-testid="kanban-board"
         tabIndex={0}
         role="group"

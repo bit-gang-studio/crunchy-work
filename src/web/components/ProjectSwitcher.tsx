@@ -4,6 +4,7 @@ import type { ProjectSummary } from '../../shared/types'
 import { api } from '../lib/api'
 import { filterProjects } from '../lib/projectSearch'
 import { plural } from '../../shared/plural'
+import { Loading } from './States'
 
 /**
  * Jump straight to another project, from inside one.
@@ -103,7 +104,17 @@ export function ProjectSwitcher({ currentId }: { currentId: string }) {
           )}
 
           <div className="max-h-72 overflow-y-auto">
-            {projects === null && <p className="px-2 py-1.5 text-sm text-ink-faint">Loading…</p>}
+            {/*
+              * A skeleton, not the word "Loading…", for the reason the screens
+              * already settled: a spinner or a word says "something is
+              * happening", where a shape says "and here is what will be here",
+              * so nothing jumps when the rows land. The screens got this
+              * treatment in the states pass and this popover was missed — which
+              * mattered more than it looks, because the switcher is opened far
+              * more often than any screen is cold-loaded. The screenshot matrix
+              * caught it mid-fetch.
+              */}
+            {projects === null && <Loading label="Loading projects" rows={3} compact />}
             {projects !== null && matches.length === 0 && (
               <p className="px-2 py-1.5 text-sm text-ink-faint">No project matches that.</p>
             )}

@@ -200,7 +200,16 @@ export function ProjectHeader({
             type="button"
             onClick={() => setEditingAbout(true)}
             title="Edit description"
-            className="mt-0.5 block max-w-2xl truncate rounded px-1 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink"
+            // `w-full` is load-bearing, not decoration. A <button> shrink-to-fits
+            // even at `display: block`, so without a width it sizes to its text
+            // and `truncate` never engages — the description then ran past the
+            // right edge and was cut mid-word by the shell's `overflow-hidden`,
+            // on every project screen below ~700px. The heading button beside it
+            // has always had `w-full`, which is why it truncated correctly and
+            // this did not. Caught by the screenshot matrix at 390; invisible to
+            // the responsive spec, which asserts the *page* does not overflow —
+            // and it did not, because the shell was hiding it.
+            className="mt-0.5 block w-full max-w-2xl truncate rounded px-1 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink"
           >
             {description}
           </button>
