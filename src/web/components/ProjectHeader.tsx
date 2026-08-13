@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { ConfirmButton } from './ConfirmButton'
+import { ProjectSwitcher } from './ProjectSwitcher'
 
 /**
  * The project chrome: the project's name, what you can do to it, and the
@@ -21,10 +23,17 @@ import { ConfirmButton } from './ConfirmButton'
 export function ProjectHeader({
   projectId,
   name,
+  description = '',
   onChanged,
 }: {
   projectId: string
   name: string
+  /**
+   * One line on what this project is. The column and the projects grid have
+   * always rendered it — nothing could ever *set* it, so in practice every
+   * project's description was empty unless someone curled the API.
+   */
+  description?: string
   /** Optional: live updates will catch a rename anyway, this just makes it instant. */
   onChanged?: () => void
 }) {
@@ -35,9 +44,21 @@ export function ProjectHeader({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(name)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [editingAbout, setEditingAbout] = useState(false)
+  const [about, setAbout] = useState(description)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => setDraft(name), [name])
+  useEffect(() => setAbout(description), [description])
+
+  async function saveAbout() {
+    setEditingAbout(false)
+    const trimmed = about.trim()
+    if (trimmed === description) return
+    setAbout(trimmed)
+    await api.updateProject(projectId, { description: trimmed })
+    onChanged?.()
+  }
 
   useEffect(() => {
     if (!menuOpen) return
@@ -69,6 +90,7 @@ export function ProjectHeader({
         <Link to="/" className="shrink-0 text-xs text-neutral-500 hover:text-neutral-800">
           Projects
         </Link>
+        <ProjectSwitcher currentId={projectId} />
         <span className="shrink-0 text-xs text-neutral-300">/</span>
 
         {editing ? (
@@ -125,6 +147,16 @@ export function ProjectHeader({
               >
                 Rename project
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false)
+                  setEditingAbout(true)
+                }}
+                className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-neutral-100"
+              >
+                {description ? 'Edit description' : 'Add a description'}
+              </button>
               <div className="px-2 py-1">
                 {/* Says what goes with it: deleting a project takes its board,
                     its cards and its docs, none of which are visible from here. */}
@@ -140,6 +172,40 @@ export function ProjectHeader({
           )}
         </div>
       </div>
+
+      {/* Costs a row only when there is one to show, or you are writing it —
+          an always-present empty field would tax every board with a prompt
+          nobody asked for. */}
+      {editingAbout ? (
+        <AutoGrowTextarea
+          autoFocus
+          value={about}
+          onChange={(e) => setAbout(e.target.value)}
+          onBlur={() => void saveAbout()}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setAbout(description)
+              setEditingAbout(false)
+            }
+          }}
+          placeholder="What is this project?"
+          aria-label="Project description"
+          minRows={1}
+          maxRows={3}
+          className="mt-1 w-full max-w-2xl resize-none rounded-md border border-neutral-300 px-2 py-1 text-sm focus:border-neutral-500 focus:outline-none"
+        />
+      ) : (
+        description && (
+          <button
+            type="button"
+            onClick={() => setEditingAbout(true)}
+            title="Edit description"
+            className="mt-0.5 block max-w-2xl truncate rounded px-1 text-left text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
+          >
+            {description}
+          </button>
+        )
+      )}
 
       <nav className="-mb-px flex gap-4 pt-2" aria-label="Project sections">
         <Tab to={`/projects/${projectId}`} active={!onDocs}>

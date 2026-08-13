@@ -89,6 +89,43 @@ test.describe('a new user builds a board', () => {
     await expect(page.getByTestId('project-tile').filter({ hasText: 'Untitled' })).toHaveCount(0)
   })
 
+  test('you can hop between projects and describe one, without going home', async ({ page }) => {
+    await page.goto('/')
+    for (const name of ['Hopper A', 'Hopper B']) {
+      await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+      await page.getByLabel('Project name').fill(name)
+      await page.getByRole('button', { name: 'Create' }).click()
+      await expect(page.getByTestId('project-tile').filter({ hasText: name })).toBeVisible()
+    }
+
+    await page.getByTestId('project-tile').filter({ hasText: 'Hopper A' }).click()
+    await expect(page.getByRole('heading', { name: 'Hopper A' })).toBeVisible()
+
+    // The switcher hangs off the "Projects" crumb, not the name — the name is
+    // already click-to-rename and one control cannot mean two things.
+    await page.getByRole('button', { name: 'Switch project' }).click()
+    await page.getByTestId('project-switcher').getByRole('button', { name: /Hopper B/ }).click()
+    await expect(page.getByRole('heading', { name: 'Hopper B' })).toBeVisible()
+    await expect(page).toHaveURL(/\/projects\/\w+$/)
+
+    // A description: settable at last, and it reaches the projects grid.
+    await page.getByRole('button', { name: 'Project actions for Hopper B', exact: true }).click()
+    await page.getByRole('button', { name: 'Add a description' }).click()
+    await page.getByLabel('Project description').fill('The second one.')
+    // Tab out rather than clicking the heading — the heading is click-to-rename,
+    // so using it to dismiss this field would open the other editor.
+    await page.keyboard.press('Tab')
+
+    await expect(page.getByRole('button', { name: 'The second one.' })).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('button', { name: 'The second one.' })).toBeVisible()
+
+    await page.goto('/')
+    await expect(page.getByTestId('project-tile').filter({ hasText: 'Hopper B' })).toContainText(
+      'The second one.',
+    )
+  })
+
   test('projects can be dragged into a different order, and it sticks', async ({ page }) => {
     await page.goto('/')
     for (const name of ['Alpha', 'Beta', 'Gamma']) {

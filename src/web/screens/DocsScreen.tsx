@@ -71,6 +71,7 @@ export function DocsScreen({ projectId }: { projectId: string }) {
         <ProjectHeader
           projectId={projectId}
           name={board?.project.name ?? '…'}
+          description={board?.project.description}
           onChanged={() => void load()}
         />
         <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">

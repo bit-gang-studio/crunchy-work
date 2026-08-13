@@ -97,6 +97,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
         <ProjectHeader
           projectId={projectId}
           name={board.project.name}
+          description={board.project.description}
           onChanged={() => void load()}
         />
         <div className="min-h-0 flex-1">

@@ -18,7 +18,7 @@ const DocEditor = lazy(() => import('../components/DocEditor').then((m) => ({ de
 export function DocScreen({ projectId, docId }: { projectId: string; docId: string }) {
   const navigate = useNavigate()
   const [doc, setDoc] = useState<Doc | null>(null)
-  const [projectName, setProjectName] = useState('…')
+  const [project, setProject] = useState<{ name: string; description: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle')
 
@@ -36,7 +36,7 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
       .then(([d, board]) => {
         if (!live) return
         setDoc(d)
-        setProjectName(board.project.name)
+        setProject(board.project)
       })
       .catch((e: Error) => live && setError(e.message))
     return () => {
@@ -71,7 +71,11 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
   return (
     <Screen scroll="document">
       <div className="flex min-h-full flex-col">
-        <ProjectHeader projectId={projectId} name={projectName} />
+        <ProjectHeader
+          projectId={projectId}
+          name={project?.name ?? '…'}
+          description={project?.description}
+        />
         <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
           {!doc && <p className="text-sm text-neutral-500">Loading…</p>}
           {doc && (
