@@ -89,7 +89,7 @@ export function ProjectHeader({
   }
 
   return (
-    <div className="shrink-0 border-b border-line bg-surface px-4 md:px-6">
+    <div className="shrink-0 border-b border-line bg-surface px-4 py-2.5 md:px-6">
       {/*
         * `gap-1` and a separator with its own tighter margins.
         *
@@ -99,7 +99,7 @@ export function ProjectHeader({
         * than the items are to anything else; that difference is the only thing
         * that makes it scan as one address instead of a list.
         */}
-      <div className="flex flex-wrap items-center gap-x-1 gap-y-2 py-2.5">
+      <div className="flex min-h-8 flex-wrap items-center gap-x-1 gap-y-2">
         {/*
           * "Projects" and its chevron are one object, not two.
           *
@@ -272,8 +272,19 @@ export function ProjectHeader({
         </div>
       </div>
 
-      {/* Costs a row only when there is one to show, or you are writing it. A
-          project with none says so on the title row instead, where it is free. */}
+      {/*
+        * Costs a row only when there is one to show, or you are writing it. A
+        * project with none says so on the title row instead, where it is free.
+        *
+        * The vertical padding lives on the block above, not on the title row —
+        * it used to be the row's own `py`, which meant the description hung
+        * below all of it and ended 1px from the bottom border. Measured: 12px
+        * of air above the description and 1px below. That asymmetry is what
+        * read as broken; no type size would have fixed it.
+        *
+        * `px-1.5` rather than `px-1` so its left edge lands on the crumb's
+        * text, not 2px inside it.
+        */}
       {editingAbout ? (
         <AutoGrowTextarea
           autoFocus
@@ -290,7 +301,7 @@ export function ProjectHeader({
           aria-label="Project description"
           minRows={1}
           maxRows={3}
-          className="mt-1 w-full max-w-2xl resize-none rounded-control border border-line-strong px-2 py-1 text-sm focus:border-ink-muted focus:outline-none"
+          className="mt-1.5 w-full max-w-2xl resize-none rounded-control border border-line-strong px-2 py-1 text-sm focus:border-ink-muted focus:outline-none"
         />
       ) : (
         description && (
@@ -307,7 +318,7 @@ export function ProjectHeader({
             // this did not. Caught by the screenshot matrix at 390; invisible to
             // the responsive spec, which asserts the *page* does not overflow —
             // and it did not, because the shell was hiding it.
-            className="mt-1 hidden w-full max-w-2xl truncate rounded px-1 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink md:block"
+            className="mt-1.5 hidden w-full max-w-2xl truncate rounded px-1.5 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink md:block"
           >
             {description}
           </button>
