@@ -110,6 +110,19 @@
   --color-code: #1a1b1e;
   --color-code-ink: #f7f8f8;
 
+  /*
+   * ── Scrim ─────────────────────────────────────────────────────────────
+   * What sits between an overlay and everything behind it. Its own role, and
+   * always dark in both palettes, because "recede" means the same thing in
+   * both — it is not ink, and it is not a surface.
+   *
+   * It was `bg-ink/40`, which worked only while ink was near-black. The moment
+   * dark mode made ink near-*white*, the scrim painted white at 40% and
+   * *lightened* the page: measured at rgb(104,104,105) over a #08090a canvas,
+   * with the modal then the darkest thing on screen. Depth exactly inverted.
+   */
+  --color-scrim: rgb(0 0 0 / 0.4);
+
   /* ── Status ─────────────────────────────────────────────────────────── */
   --color-danger: #b42318; /* 5.9:1 on surface */
   --color-danger-soft: #fef3f2;
@@ -241,6 +254,11 @@
      reads as a well cut into the surface it sits on. */
   --color-code: #08090a;
   --color-code-ink: #f7f8f8;
+
+  /* Heavier in the dark. The page is already near-black, so it takes more to
+     push it further back — and the modal reads as lifted because it is a
+     lighter surface, not because the scrim is doing the work. */
+  --color-scrim: rgb(0 0 0 / 0.6);
 
   /* Status: the 400 step reads on a dark ground where the 700 step disappears;
      the soft fills go to the 950 step for the same reason in reverse. */

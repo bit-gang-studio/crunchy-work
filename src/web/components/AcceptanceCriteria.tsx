@@ -46,9 +46,23 @@ export function AcceptanceCriteria({
         )}
       </div>
 
+      {/*
+        * Each row is a row: it has its own hover, and the remove control only
+        * appears on it.
+        *
+        * The ✕ used to sit permanently at the right edge, which in a 576px
+        * modal put it some 400px from the words it deletes — a destructive
+        * control, always visible, attached to nothing the eye had grouped it
+        * with. On hover, or on keyboard focus (which is why it is `opacity`
+        * and not `hidden`), it belongs to the line under the pointer, and the
+        * list at rest is just the criteria.
+        */}
       <ul className="mt-1 space-y-1">
         {criteria.map((criterion, index) => (
-          <li key={index} className="group flex items-start gap-2">
+          <li
+            key={index}
+            className="group flex items-start gap-2 rounded-control px-1 py-0.5 hover:bg-hover"
+          >
             <input
               type="checkbox"
               checked={criterion.done}
@@ -63,9 +77,11 @@ export function AcceptanceCriteria({
               type="button"
               onClick={() => remove(index)}
               aria-label={`Remove "${criterion.text}"`}
-              className="shrink-0 px-1 text-xs text-ink-faint hover:text-danger group-hover:text-ink-muted"
+              className="shrink-0 rounded p-0.5 text-ink-faint opacity-0 transition-opacity hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
             >
-              ✕
+              <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+                <path d="M4 4l8 8M12 4l-8 8" />
+              </svg>
             </button>
           </li>
         ))}

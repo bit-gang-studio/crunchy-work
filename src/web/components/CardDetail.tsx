@@ -94,7 +94,7 @@ export function CardDetail({
      * full-screen one.
      */
     <div
-      className="fixed inset-0 z-20 flex items-stretch justify-center bg-ink/40 md:items-start md:p-8 md:pt-16"
+      className="fixed inset-0 z-20 flex items-stretch justify-center bg-scrim md:items-start md:p-8 md:pt-16"
       onClick={onClose}
       role="presentation"
     >
@@ -120,9 +120,11 @@ export function CardDetail({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-control px-2 py-1 text-sm text-ink-muted hover:bg-hover hover:text-ink"
+            className="flex h-7 w-7 items-center justify-center rounded-control text-ink-faint hover:bg-hover hover:text-ink"
           >
-            ✕
+            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
           </button>
         </div>
 
@@ -166,19 +168,40 @@ export function CardDetail({
 
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-ink-muted">Size</span>
-                <select
-                  value={card.size ?? ''}
-                  onChange={(e) => void commit({ size: (e.target.value || null) as Size | null })}
-                  className="w-28 rounded-control border border-line-strong px-2 py-1.5 text-sm focus:border-ink-muted focus:outline-none"
-                >
-                  {/* Unsized is the normal state, so it leads. */}
-                  <option value="">—</option>
-                  {SIZES.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
+                {/*
+                  * `appearance-none` and our own chevron. A native select draws
+                  * the operating system's arrow at the operating system's size,
+                  * which sat next to a date field wearing a different one — two
+                  * controls on the same row, neither of them ours. The chevron
+                  * is the same mark the project switcher uses.
+                  */}
+                <span className="relative inline-flex">
+                  <select
+                    value={card.size ?? ''}
+                    onChange={(e) => void commit({ size: (e.target.value || null) as Size | null })}
+                    className="w-28 appearance-none rounded-control border border-line-strong bg-surface px-2 py-1.5 pr-7 text-sm focus:border-ink-muted focus:outline-none"
+                  >
+                    {/* Unsized is the normal state, so it leads. */}
+                    <option value="">—</option>
+                    {SIZES.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    viewBox="0 0 12 12"
+                    className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-ink-faint"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M3 4.75 6 7.75l3-3" />
+                  </svg>
+                </span>
               </label>
             </div>
 
