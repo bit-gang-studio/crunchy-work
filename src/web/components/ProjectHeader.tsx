@@ -99,7 +99,7 @@ export function ProjectHeader({
         * than the items are to anything else; that difference is the only thing
         * that makes it scan as one address instead of a list.
         */}
-      <div className="flex items-center gap-1 pt-4">
+      <div className="flex flex-wrap items-center gap-x-1 gap-y-2 py-2.5">
         {/*
           * "Projects" and its chevron are one object, not two.
           *
@@ -166,7 +166,52 @@ export function ProjectHeader({
           </h1>
         )}
 
-        <div className="relative ml-auto shrink-0" ref={menuRef}>
+        {/*
+          * The "add" affordance lives on the title row, not on a row of its own.
+          *
+          * A project with no description was spending a whole row on a faint
+          * line that said nothing — the emptiest thing on the screen taking the
+          * same space as the content it stands in for. Here it costs nothing,
+          * stays visible (rather than hiding in the ⋯ menu, which is what made
+          * it look impossible in the first place), and it is mutually exclusive
+          * with the description row below: exactly one of the two ever exists.
+          */}
+        {!description && !editingAbout && (
+          <button
+            type="button"
+            onClick={() => setEditingAbout(true)}
+            className="ml-1 hidden shrink-0 rounded px-1.5 py-0.5 text-sm text-ink-faint hover:bg-hover hover:text-ink md:block"
+          >
+            Add a description
+          </button>
+        )}
+
+        {/*
+          * Everything that acts on this screen, in one cluster at the trailing
+          * edge: which section you are looking at, what is filtered out of it,
+          * and the project's own menu.
+          *
+          * The tabs used to have a row to themselves, which is a third of this
+          * header's height spent on a two-item switch. As a segmented control
+          * they are the same object the theme toggle already is, and they sit
+          * where controls sit.
+          */}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <nav
+            className="flex items-center gap-0.5 rounded-control bg-sunken p-0.5"
+            aria-label="Project sections"
+          >
+            <Tab to={`/projects/${projectId}`} active={!onDocs}>
+              Board
+            </Tab>
+            <Tab to={`/projects/${projectId}/docs`} active={onDocs}>
+              Docs
+            </Tab>
+          </nav>
+
+          {actions}
+
+          <div className="relative shrink-0" ref={menuRef}>
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -223,12 +268,12 @@ export function ProjectHeader({
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
 
-      {/* Costs a row only when there is one to show, or you are writing it —
-          an always-present empty field would tax every board with a prompt
-          nobody asked for. */}
+      {/* Costs a row only when there is one to show, or you are writing it. A
+          project with none says so on the title row instead, where it is free. */}
       {editingAbout ? (
         <AutoGrowTextarea
           autoFocus
@@ -248,27 +293,7 @@ export function ProjectHeader({
           className="mt-1 w-full max-w-2xl resize-none rounded-control border border-line-strong px-2 py-1 text-sm focus:border-ink-muted focus:outline-none"
         />
       ) : (
-        /*
-         * With no description there was no affordance on the page at all — the
-         * only way in was "Add a description" inside the ⋯ menu, which is a
-         * fine place for it to *also* live and a terrible place for it to only
-         * live. It read as "you cannot describe this project", which is what it
-         * was reported as.
-         *
-         * So the empty state is the same control, in the same slot, saying what
-         * it does. Faint, because an unwritten description should not compete
-         * with a written one, and it disappears the moment there is something
-         * to show.
-         */
-        !description ? (
-          <button
-            type="button"
-            onClick={() => setEditingAbout(true)}
-            className="mt-1 hidden rounded px-1 text-left text-sm text-ink-faint hover:bg-hover hover:text-ink md:block"
-          >
-            Add a description
-          </button>
-        ) : (
+        description && (
           <button
             type="button"
             onClick={() => setEditingAbout(true)}
@@ -289,33 +314,26 @@ export function ProjectHeader({
         )
       )}
 
-      {/* `actions` rides the tabs row rather than taking a row of its own —
-          board-scoped controls belong beside the thing that selects the board,
-          and the phone header has no spare vertical space to give away. */}
-      <div className="flex items-end justify-between gap-4">
-        <nav className="-mb-px flex gap-4 pt-3" aria-label="Project sections">
-          <Tab to={`/projects/${projectId}`} active={!onDocs}>
-            Board
-          </Tab>
-          <Tab to={`/projects/${projectId}/docs`} active={onDocs}>
-            Docs
-          </Tab>
-        </nav>
-        {actions && <div className="shrink-0 pb-1.5">{actions}</div>}
-      </div>
     </div>
   )
 }
 
+/**
+ * A segment, not an underlined tab.
+ *
+ * Underlined tabs want a row to themselves — the underline has to sit on the
+ * container's bottom edge to mean anything, which is why they cost a full row
+ * plus its border. Two items do not justify that. As a segmented control they
+ * fit beside the title, and they are the same object the theme toggle already
+ * is, so the app has one way of showing "one of these is selected".
+ */
 function Tab({ to, active, children }: { to: string; active: boolean; children: React.ReactNode }) {
   return (
     <Link
       to={to}
       aria-current={active ? 'page' : undefined}
-      className={`border-b-2 pb-2 text-sm ${
-        active
-          ? 'border-accent font-medium text-ink'
-          : 'border-transparent text-ink-muted hover:text-ink'
+      className={`rounded-control px-2.5 py-1 text-sm transition-colors ${
+        active ? 'bg-surface font-medium text-ink shadow-card' : 'text-ink-muted hover:text-ink'
       }`}
     >
       {children}
