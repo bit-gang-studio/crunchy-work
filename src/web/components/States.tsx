@@ -104,8 +104,15 @@ export function EmptyState({
     <div className="rounded-panel border border-dashed border-line-strong bg-surface p-6">
       <p className="text-sm font-medium">{title}</p>
       {children && <div className="mt-1 text-sm text-ink-muted">{children}</div>}
+      {/*
+        * Wraps rather than scrolls. This is a line to *copy*, so on a phone
+        * half of it disappearing off the right edge is the worst possible
+        * behaviour — and a horizontally scrollable region is unreachable by
+        * keyboard unless it is also focusable, which a block of sample text has
+        * no business being. Wrapping solves both.
+        */}
       {prompt && (
-        <pre className="mt-3 overflow-x-auto rounded-control bg-accent px-3 py-2 text-xs text-accent-ink">
+        <pre className="mt-3 rounded-control bg-accent px-3 py-2 text-xs whitespace-pre-wrap break-words text-accent-ink">
           {prompt}
         </pre>
       )}

@@ -22,7 +22,33 @@ export default defineConfig({
     baseURL: 'http://localhost:4425',
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  /*
+   * Two projects, ordered — not one.
+   *
+   * Every spec shares a single server and a single SQLite file, and one journey
+   * ("from an empty install") legitimately depends on the database being empty.
+   * That worked only because it happened to sort first alphabetically, which is
+   * not a guarantee — adding `a11y.spec.ts` broke it immediately, since the
+   * accessibility scan has to seed a project full of content.
+   *
+   * `dependencies` makes the ordering explicit instead of accidental: the
+   * journeys run first against a clean database, then the accessibility scan
+   * runs against whatever they left behind, which is a more realistic board to
+   * scan anyway.
+   */
+  projects: [
+    {
+      name: 'journeys',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: /a11y\.spec\.ts/,
+    },
+    {
+      name: 'a11y',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /a11y\.spec\.ts/,
+      dependencies: ['journeys'],
+    },
+  ],
   webServer: {
     // `--no-open` matters: booting the real binary is the point of this config,
     // and the real binary opens your browser — so without it every local test

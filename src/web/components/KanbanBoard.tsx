@@ -84,9 +84,15 @@ function KanbanBoardInner({
   return (
     <DndContext {...dndProps}>
       {/* select-none: dragging cards shouldn't smear a text selection across the board. */}
+      {/* `tabIndex` for the same reason the column bodies have one: the board
+          scrolls horizontally, and a scrollable region that cannot be focused
+          is content a keyboard user can see and cannot reach. */}
       <div
         className="flex h-full snap-x select-none items-start gap-4 overflow-x-auto px-4 py-6 md:px-6"
         data-testid="kanban-board"
+        tabIndex={0}
+        role="group"
+        aria-label="Board columns"
       >
         {/* Columns are their own sortable list, horizontal, using dnd-kit's stock
             strategy — the bespoke engine below exists for cards and their problems. */}
@@ -193,8 +199,17 @@ function Column({
         dragHandle={sortable ? { listeners, attributes } : undefined}
       />
       {/* The column caps at the board height (max-h-full); this body scrolls when the cards
-          outgrow it, and add-card flows right after the last card so short columns stay tight. */}
-      <div className="min-h-0 overflow-y-auto">
+          outgrow it, and add-card flows right after the last card so short columns stay tight.
+
+          `tabIndex` because a scrollable region has to be reachable by keyboard —
+          otherwise a column taller than the board is content you can see and
+          cannot get to without a mouse. The name says which column it scrolls. */}
+      <div
+        className="min-h-0 overflow-y-auto"
+        tabIndex={0}
+        role="group"
+        aria-label={`${column.name} cards`}
+      >
         {addingTop && (
           <div className="mb-2">
             <CardComposer onAdd={(title) => onAdd(column.id, title, 'top')} onClose={() => setAddingTop(false)} />
@@ -245,8 +260,27 @@ function SortableCard({
     id: card.id,
     animateLayoutChanges: () => false,
   })
+  /*
+   * The ARIA `attributes` go on the title button inside, not on this wrapper.
+   *
+   * dnd-kit's attributes are `role="button"` + `tabindex` + roledescription.
+   * On this container that makes an interactive element wrapping the complete
+   * toggle, which is itself a button — invalid nested interactives, and a
+   * screen reader reads the whole card as one control. Exactly the bug the
+   * column header had. The pointer `listeners` stay here so the whole card is
+   * still the drag target.
+   */
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners} onClick={() => onOpen(card.id)} data-testid="card" data-card={card.id}>
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      // The whole card opens it, the way Trello's does — the title button below
+      // is the *keyboard* path, not the only one. This div deliberately carries
+      // no role, so the toggle inside it is not a nested interactive.
+      onClick={() => onOpen(card.id)}
+      data-testid="card"
+      data-card={card.id}
+    >
       {/* While dragging, the card floats in the DragOverlay — its slot here is a dashed
           placeholder showing exactly where it will drop. An invisible copy of the card
           reserves the identical height so nothing jumps. */}
@@ -257,7 +291,13 @@ function SortableCard({
           </div>
         </div>
       ) : (
-        <CardView card={card} onToggleComplete={onToggleComplete} changed={changed} />
+        <CardView
+          card={card}
+          onToggleComplete={onToggleComplete}
+          changed={changed}
+          onOpen={() => onOpen(card.id)}
+          dragAttributes={attributes}
+        />
       )}
     </div>
   )
@@ -268,12 +308,18 @@ function CardView({
   dragging = false,
   changed = false,
   onToggleComplete,
+  onOpen,
+  dragAttributes,
 }: {
   card: Card
   dragging?: boolean
   /** Arrived or was ticked off a moment ago — marks itself, then settles. */
   changed?: boolean
   onToggleComplete?: (cardId: string, completed: boolean) => void | Promise<void>
+  /** Absent in the drag overlay and the placeholder, which are display-only. */
+  onOpen?: () => void
+  /** dnd-kit's ARIA, which belongs on a real focusable control — see SortableCard. */
+  dragAttributes?: React.HTMLAttributes<HTMLElement>
 }) {
   return (
     <div
@@ -290,9 +336,33 @@ function CardView({
           onToggle={onToggleComplete ? () => void onToggleComplete(card.id, !card.completed) : undefined}
           className="mt-0.5"
         />
-        <p className={`flex-1 ${card.completed ? 'text-ink-faint line-through' : 'text-ink'}`}>
-          {card.title}
-        </p>
+        {/*
+          * The title is the card's one real control: it opens the card, it is
+          * what a keyboard lands on, and it carries the sortable ARIA. The
+          * wrapper stays a plain div so the toggle beside it is not nested
+          * inside another interactive element.
+          */}
+        {onOpen ? (
+          <button
+            type="button"
+            {...dragAttributes}
+            // Stop propagation or the wrapper's handler fires too and the card
+            // opens twice.
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpen()
+            }}
+            className={`flex-1 cursor-grab text-left active:cursor-grabbing ${
+              card.completed ? 'text-ink-faint line-through' : 'text-ink'
+            }`}
+          >
+            {card.title}
+          </button>
+        ) : (
+          <p className={`flex-1 ${card.completed ? 'text-ink-faint line-through' : 'text-ink'}`}>
+            {card.title}
+          </p>
+        )}
       </div>
       {(card.dueAt || card.size || card.acceptanceCriteria.length > 0) && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
