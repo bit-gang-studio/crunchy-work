@@ -57,6 +57,51 @@ test.describe('drag geometry', () => {
     await page.mouse.up()
   })
 
+  /**
+   * Picking something up must not resize it.
+   *
+   * The lifted column is a separate piece of markup from the real one — it has
+   * to be, it lives in dnd-kit's overlay — so the two can drift apart silently.
+   * They had: the overlay showed only the first four cards under a `max-h-72`
+   * cap, which was invisible while columns ran the full height of the board and
+   * obvious the moment they stopped. Measured, the column was 468px and the
+   * thing in your hand was 342.
+   *
+   * Asserting the sizes match is the only thing that keeps a hand-copied set of
+   * metrics honest, and it is not something a screenshot can check — the two
+   * are never on screen at the same moment.
+   */
+  test('a lifted column is exactly the size of the column it came from', async ({ page }) => {
+    await openHarness(page, '?cols=1')
+    for (const id of ['c1', 'c2']) {
+      const box = (await page.locator(`[data-column="${id}"]`).boundingBox())!
+      await page.mouse.move(box.x + 40, box.y + 12)
+      await page.mouse.down()
+      await page.mouse.move(box.x + 60, box.y + 30, { steps: 5 })
+      await page.waitForTimeout(200)
+
+      // `offsetWidth/Height` rather than the bounding box: the overlay is
+      // deliberately rotated, and a rotated element's bounding box is larger
+      // than the element. The rotation is the one difference that is meant to
+      // be visible.
+      const lifted = await page.evaluate(() => {
+        const n = [...document.querySelectorAll('div')].find((d) =>
+          d.className.includes('rotate-2'),
+        )
+        return n ? { w: (n as HTMLElement).offsetWidth, h: (n as HTMLElement).offsetHeight } : null
+      })
+      expect(lifted, `no overlay while dragging ${id}`).not.toBeNull()
+      expect({ id, ...lifted }).toEqual({
+        id,
+        w: Math.round(box.width),
+        h: Math.round(box.height),
+      })
+
+      await page.mouse.up()
+      await page.waitForTimeout(250)
+    }
+  })
+
   test('releasing changes nothing but the order', async ({ page }) => {
     const box = (await page.locator('[data-card="short"]').boundingBox())!
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)

@@ -87,7 +87,16 @@ export function ProjectHeader({
 
   return (
     <div className="shrink-0 border-b border-line bg-surface px-4 md:px-6">
-      <div className="flex items-center gap-1.5 pt-3">
+      {/*
+        * `gap-1` and a separator with its own tighter margins.
+        *
+        * At `gap-1.5` every element in the path sat the same distance apart —
+        * crumb, slash, name — so the row read as three peers rather than as
+        * "this, inside that". A path wants the separator closer to both sides
+        * than the items are to anything else; that difference is the only thing
+        * that makes it scan as one address instead of a list.
+        */}
+      <div className="flex items-center gap-1 pt-3">
         {/*
           * "Projects" and its chevron are one object, not two.
           *
@@ -108,13 +117,13 @@ export function ProjectHeader({
         <span className="flex shrink-0 items-center rounded-control hover:bg-hover">
           <Link
             to="/"
-            className="rounded-control py-0.5 pl-1.5 pr-1 text-sm text-ink-muted hover:text-ink"
+            className="rounded-control py-0.5 pl-1.5 pr-0.5 text-sm text-ink-muted hover:text-ink"
           >
             Projects
           </Link>
           <ProjectSwitcher currentId={projectId} />
         </span>
-        <span className="shrink-0 text-sm text-ink-faint">/</span>
+        <span className="-mx-0.5 shrink-0 select-none text-sm text-ink-faint">/</span>
 
         {editing ? (
           <form onSubmit={submit} className="min-w-0 flex-1">

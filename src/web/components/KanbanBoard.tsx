@@ -135,21 +135,44 @@ function KanbanBoardInner({
           you picked up should be the thing you see moving. */}
       <DragOverlay>
         {activeCard && <CardView card={activeCard} dragging />}
+        {/*
+          * The lifted column is the column, at the same size.
+          *
+          * It used to show only the first four cards under a `max-h-72` cap and
+          * a "+3 more" line, which was invisible while columns ran the full
+          * height of the board and obvious the moment they stopped: measured,
+          * the real column was 468px tall and the thing in your hand was 342.
+          * Picking something up must not resize it.
+          *
+          * The metrics are copied from the real column deliberately — `w-72`,
+          * `p-2`, the same header row, `space-y-2` cards, the same add-card row
+          * — and it renders every card rather than a preview. A hand-copied set
+          * of metrics drifts, so `geometry.spec.ts` asserts the two match.
+          *
+          * `h-7` on the header is that copying being exact: the real header's
+          * height comes from its 24px `+` and `⋯` buttons plus 4px of padding,
+          * not from its text, so a text-only copy came out four pixels short —
+          * the sort of difference you feel as "it moved" without being able to
+          * name what changed.
+          *
+          * The rotation stays. A lifted thing should look lifted, and it is the
+          * one difference that is meant to be visible.
+          */}
         {activeColumn && (
-          <div className="w-72 rotate-2 rounded-panel bg-sunken/95 p-2 shadow-overlay ring-1 ring-line-strong">
-            <div className="mb-2 flex items-center gap-2 px-1">
+          <div className="flex max-h-full w-72 rotate-2 flex-col rounded-panel bg-sunken/95 p-2 shadow-overlay ring-1 ring-line-strong">
+            <div className="mb-2 flex h-7 shrink-0 items-center gap-2 px-1">
               <span className="truncate text-sm font-semibold text-ink">{activeColumn.name}</span>
-              <span className="text-xs text-ink-faint">{activeColumn.cards.length}</span>
+              <span className="shrink-0 text-xs text-ink-faint">{activeColumn.cards.length}</span>
             </div>
-            <div className="max-h-72 space-y-2 overflow-hidden">
-              {activeColumn.cards.slice(0, 4).map((card) => (
-                <CardView key={card.id} card={card} />
-              ))}
-              {activeColumn.cards.length > 4 && (
-                <p className="px-1 pt-1 text-xs text-ink-faint">
-                  +{activeColumn.cards.length - 4} more
-                </p>
-              )}
+            <div className="min-h-0 shrink overflow-hidden">
+              <div className={activeColumn.cards.length ? 'space-y-2 pb-3' : ''}>
+                {activeColumn.cards.map((card) => (
+                  <CardView key={card.id} card={card} />
+                ))}
+              </div>
+              <p className="w-full rounded-card px-3 py-2 text-left text-sm text-ink-muted">
+                + Add card
+              </p>
             </div>
           </div>
         )}
@@ -423,7 +446,19 @@ function CardView({
         * the one state worth alarming about, and it is far louder for being the
         * only one left.
         */}
-      {(card.dueAt || card.size || card.acceptanceCriteria.length > 0) && (
+      {/*
+        * A done card is one line.
+        *
+        * Hiding them outright was the other option and is worse: `completed` is
+        * a per-card tick that is deliberately independent of the column, so a
+        * card can be ticked in To Do — and hiding on tick would make it vanish
+        * from a column it is still sitting in, with nothing to say where it
+        * went. Collapsing gets nearly all of the quiet with none of the
+        * disappearance: the metadata was context for work still to do, and
+        * "L, due Aug 20, 1 of 3 criteria" is not information about something
+        * finished.
+        */}
+      {!card.completed && (card.dueAt || card.size || card.acceptanceCriteria.length > 0) && (
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-faint">
           {card.dueAt && <DueBadge dueAt={card.dueAt} completed={card.completed} />}
           {card.size && <span className="font-medium">{card.size}</span>}
