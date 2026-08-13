@@ -181,6 +181,13 @@ What each spec pins down, and why it exists:
 | `loop` | React #185 — the measure→re-render→measure cascade that white-screened the board |
 | `touch` | A swipe must scroll; only a 200ms long-press picks a card up |
 | `column` | Dropping a column in the first slot landed it second, 3 runs in 5 |
+| `geometry` | Picking a card up nudged every card below it down by 4px |
+
+**A placeholder is drawn with `outline`, never `border`.** The dragged card's slot wraps an
+invisible copy of the card so it reserves the exact height — and then a 2px dashed *border*
+added 4px to an auto-height box, so the column shifted the moment you picked anything up.
+An outline paints without participating in layout; `-outline-offset-2` puts it where the
+border was. The same trap applies to any hover or drop-target ring drawn on a card.
 
 **Collision is decided by the pointer, never by the dragged element's rect** — on both the
 card path and the column path. The column path used dnd-kit's stock `closestCenter`, which
@@ -251,6 +258,15 @@ width — a bug that needs a scrolling container will not appear on a board that
   **The theme is applied by an inline script in `index.html`, before first paint.** The bundle
   is a module, so it runs after the document paints — React's first effect is a whole frame
   too late, and every load flashes light. Those six duplicated lines are the point of them.
+- **A loading state renders the whole shell, not just the missing part.** The board's
+  skeleton was column-shaped so the columns would not jump — but it rendered *without the
+  project header*, so the entire board dropped by the header's height (~120px) the instant
+  the fetch returned. A few pixels of care nested inside a hundred-pixel jump. The docs
+  screens already had it right: render `<ProjectHeader>` immediately with a placeholder
+  name, because the one thing you know before a fetch returns is that a header will be
+  there. Only visible with the response held open — locally the board reads in single-digit
+  milliseconds, so the wrong layout was on screen for one frame and looked like the page
+  simply appearing. `e2e/board.spec.ts` routes a delay in and measures it.
 - **We are a guest on the user's machine.** `crunchy connect` writes to config files we did
   not create. It once replaced a VS Code `mcp.json` that had a comment in it — valid JSONC,
   which VS Code accepts — with one containing only Crunchy, silently deleting every other MCP

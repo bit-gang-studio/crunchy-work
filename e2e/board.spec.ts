@@ -327,4 +327,56 @@ test.describe('a new user builds a board', () => {
     const todo = page.locator('[data-column]').first()
     await expect(todo.getByTestId('card').filter({ hasText: 'Done but still To Do' })).toBeVisible()
   })
+
+  /**
+   * The board must not jump when it loads.
+   *
+   * The loading state used to render columns with no project header, so the
+   * skeleton sat under the app header and the whole board dropped by the
+   * header's height — about 120px — the instant the fetch returned. A
+   * column-shaped skeleton was carefully avoiding a few pixels of movement
+   * inside a very large one.
+   *
+   * This is only observable with the response held open, which is why it went
+   * unnoticed: locally the board reads in single-digit milliseconds, so the
+   * wrong layout was on screen for one frame and the jump looked like the page
+   * simply appearing.
+   */
+  test('the board does not jump when it finishes loading', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'New project' }).click()
+    await page.getByLabel('Project name').fill('No jump')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'No jump' }).click()
+    await expect(page.locator('[data-column]').first()).toBeVisible()
+
+    // One card, so the loaded board is not showing the empty-board banner —
+    // which sits above the columns and would be measured as a "jump" that is
+    // really just a different, correct layout.
+    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.getByPlaceholder('Card title').fill('Anything')
+    await page.getByPlaceholder('Card title').press('Enter')
+    await expect(page.getByTestId('card').filter({ hasText: 'Anything' })).toBeVisible()
+    const url = page.url()
+
+    // Hold the board read open so the skeleton is on screen long enough to measure.
+    await page.route('**/api/projects/*', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      await route.continue()
+    })
+
+    await page.goto(url)
+    const skeleton = page.locator('[data-testid="column-skeleton"]').first()
+    await expect(skeleton).toBeVisible()
+    const loadingTop = (await skeleton.boundingBox())!.y
+
+    await page.unroute('**/api/projects/*')
+    const column = page.locator('[data-column]').first()
+    await expect(column).toBeVisible()
+    const loadedTop = (await column.boundingBox())!.y
+
+    // A couple of pixels of tolerance for the header's own content settling;
+    // what this rules out is the board arriving in a different place entirely.
+    expect(Math.abs(loadedTop - loadingTop)).toBeLessThanOrEqual(2)
+  })
 })

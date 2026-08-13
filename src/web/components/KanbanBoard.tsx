@@ -290,9 +290,18 @@ function SortableCard({
     >
       {/* While dragging, the card floats in the DragOverlay — its slot here is a dashed
           placeholder showing exactly where it will drop. An invisible copy of the card
-          reserves the identical height so nothing jumps. */}
+          reserves the identical height so nothing jumps.
+
+          `outline`, not `border`, and that is the whole point: the box is
+          auto-height, so a 2px border added 4px to it and every card below the
+          one you picked up slid down by 4px at the moment of pickup. An outline
+          is painted without participating in layout, and a negative offset puts
+          it where the border was drawing. Measured in geometry.spec.ts. */}
       {isDragging ? (
-        <div className="rounded-card border-2 border-dashed border-line-strong bg-hover" aria-hidden>
+        <div
+          className="rounded-card bg-hover outline-2 -outline-offset-2 outline-dashed outline-line-strong"
+          aria-hidden
+        >
           <div className="invisible">
             <CardView card={card} />
           </div>
@@ -331,8 +340,15 @@ function CardView({
   return (
     <div
       data-changed={changed || undefined}
-      className={`cursor-grab rounded-card border bg-surface p-3 text-sm active:cursor-grabbing ${
-        dragging ? 'rotate-3 border-line-strong shadow-overlay' : 'border-line shadow-card'
+      // The hover is the same one the project tiles use — border steps up to
+      // `line-strong`, over a colour transition. A card is the most clickable
+      // thing on the board and it was the only one of the three draggable
+      // surfaces (tiles, docs, cards) answering the pointer with nothing but a
+      // `cursor` change. `transition-colors`, not `transition-all`: the drag
+      // overlay's rotate and shadow must land on the frame they are set, or the
+      // card lags behind the cursor.
+      className={`cursor-grab rounded-card border bg-surface p-3 text-sm transition-colors active:cursor-grabbing ${
+        dragging ? 'rotate-3 border-line-strong shadow-overlay' : 'border-line shadow-card hover:border-line-strong'
       } ${card.completed ? 'opacity-60' : ''} ${changed ? 'card-changed' : ''}`}
     >
       <div className="flex items-start gap-2">

@@ -82,15 +82,38 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   }
 
   if (!board) {
+    /*
+     * The same shell as the loaded board, not a bare skeleton.
+     *
+     * This used to return columns on their own, with no project header — so the
+     * whole board sat under the app header while loading and then dropped by the
+     * header's full height the moment the data landed. A column-shaped skeleton
+     * was carefully avoiding a jump of a few pixels inside a jump of about a
+     * hundred and twenty.
+     *
+     * The docs screens already had this right: render the header immediately
+     * with a placeholder name, because the one thing known before the fetch
+     * returns is that a header is going to be there. Guarded by an e2e
+     * assertion that the first column's top does not move across the load.
+     */
     return (
-      <Screen scroll="document">
-        {/* Column-shaped, so the board does not jump when it lands. */}
-        <div className="flex gap-4 px-4 py-6 md:px-6">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="w-72 shrink-0 rounded-panel bg-sunken/80 p-2">
-              <Loading label="Loading board" rows={2} />
+      <Screen scroll="canvas">
+        <div className="flex h-full flex-col">
+          <ProjectHeader projectId={projectId} name="…" onChanged={() => void load()} />
+          <div className="min-h-0 flex-1">
+            {/* Column-shaped, so the board does not jump when it lands. */}
+            <div className="flex h-full gap-4 px-4 py-4 md:px-6 md:py-6">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  data-testid="column-skeleton"
+                  className="h-full w-72 shrink-0 rounded-panel bg-sunken/80 p-2"
+                >
+                  <Loading label="Loading board" rows={2} />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </Screen>
     )
