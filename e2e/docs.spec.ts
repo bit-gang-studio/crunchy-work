@@ -102,6 +102,86 @@ test.describe('docs', () => {
     await expect(page.getByText('No docs yet.')).toBeVisible()
   })
 
+  test('the / menu inserts blocks and the bubble restyles a selection', async ({ page, request }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+    await page.getByLabel('Project name').fill('Editor project')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'Editor project' }).click()
+    await page.getByRole('link', { name: 'Docs' }).click()
+    await page.getByLabel('New doc title').fill('Formatting')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await expect(page).toHaveURL(/\/docs\/\w+$/)
+
+    const body = page.getByTestId('doc-body')
+    const menu = page.getByTestId('slash-menu')
+    await body.click()
+
+    // "/" opens the menu; typing filters it; Enter runs the highlighted item.
+    await page.keyboard.type('/')
+    await expect(menu).toBeVisible()
+    await page.keyboard.type('head')
+    await expect(menu.getByRole('option')).toHaveCount(3)
+    await page.keyboard.press('Enter')
+    await expect(menu).toBeHidden()
+
+    // The "/head" text is gone — the block replaced it, rather than being
+    // inserted alongside it.
+    await page.keyboard.type('Decisions')
+    await expect(body.locator('h1')).toHaveText('Decisions')
+
+    // Arrow keys move the highlight, and the choice sticks.
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('/todo')
+    await expect(menu).toBeVisible()
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('Ship it')
+    await expect(body.locator('ul[data-type="taskList"] li')).toHaveCount(1)
+
+    // Escape dismisses without inserting anything.
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter') // leave the list
+    await page.keyboard.type('/quo')
+    await expect(menu).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
+    await expect(body.locator('blockquote')).toHaveCount(0)
+
+    // And the dismissal sticks to that slash. Putting the caret back directly
+    // after it is the case that would otherwise spring the menu open again.
+    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowLeft')
+    await expect(menu).toBeHidden()
+    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight')
+
+    // A "/" mid-word is not a command — it is a path or a URL.
+    await page.keyboard.press('Backspace')
+    await page.keyboard.press('Backspace')
+    await page.keyboard.press('Backspace')
+    await page.keyboard.press('Backspace')
+    await page.keyboard.type('src/web')
+    await expect(menu).toBeHidden()
+
+    // The bubble appears on a selection and restyles what is already there.
+    await page.keyboard.down('Shift')
+    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowLeft')
+    await page.keyboard.up('Shift')
+    const bubble = page.getByTestId('bubble-menu')
+    await expect(bubble).toBeVisible()
+    await bubble.getByRole('button', { name: 'Bold' }).click()
+    await expect(body.locator('strong')).toHaveText('web')
+
+    await expect(page.getByTestId('save-state')).toHaveText('Saved', { timeout: 5000 })
+
+    // All of it is markdown on disk — including the checkbox, which is what an
+    // agent reading this doc over MCP will see.
+    const docId = page.url().split('/').pop()!
+    const stored = await request.get(`/api/docs/${docId}`).then((r) => r.json())
+    expect(stored.content).toContain('# Decisions')
+    expect(stored.content).toContain('[ ] Ship it')
+    expect(stored.content).toContain('**web**')
+    expect(stored.content).not.toContain('/head')
+  })
+
   test('docs are dragged into the order the author wants', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()

@@ -13,3 +13,54 @@
   pointer-events: none;
   color: var(--color-neutral-400);
 }
+
+/*
+ * Checklists. TipTap emits `<li><label><input></label><div>…</div></li>`, which
+ * the typography plugin would otherwise render as a bulleted list with the
+ * checkbox sitting on its own line. The markdown behind it is `- [ ]` / `- [x]`,
+ * so a list an agent writes over MCP is the same list you tick here.
+ */
+.tiptap ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.tiptap ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding-left: 0;
+}
+
+.tiptap ul[data-type='taskList'] li::marker {
+  content: '';
+}
+
+.tiptap ul[data-type='taskList'] li > label {
+  flex: 0 0 auto;
+  /* Line the box up with the first line of text, not the top of the block. */
+  margin-top: 0.4em;
+  user-select: none;
+}
+
+.tiptap ul[data-type='taskList'] li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tiptap ul[data-type='taskList'] li > div > p {
+  margin: 0.25em 0;
+}
+
+.tiptap ul[data-type='taskList'] input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-neutral-900);
+  cursor: pointer;
+}
+
+/* A ticked item reads as done at a glance, the way it does on a card. */
+.tiptap ul[data-type='taskList'] li[data-checked='true'] > div {
+  color: var(--color-neutral-400);
+  text-decoration: line-through;
+}
