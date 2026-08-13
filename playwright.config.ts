@@ -24,7 +24,11 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run build && node bin/crunchy.js',
+    // `--no-open` matters: booting the real binary is the point of this config,
+    // and the real binary opens your browser — so without it every local test
+    // run threw a window in your face, and CI tried to on a machine with no
+    // display. Playwright's own browsers were headless all along.
+    command: 'npm run build && node bin/crunchy.js --no-open',
     url: 'http://localhost:4425/api/health',
     // Never reuse: a stale server would be serving an old build and a different database.
     reuseExistingServer: false,
