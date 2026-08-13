@@ -62,10 +62,29 @@ export function ProjectsScreen() {
             glancing, once there are more projects than fit above the fold.
             `baseline`, not `center` — two different type sizes centred against
             each other never look aligned. */}
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-          {!!projects?.length && (
-            <span className="text-sm tabular-nums text-ink-faint">{projects.length}</span>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+            {!!projects?.length && (
+              <span className="text-sm tabular-nums text-ink-faint">{projects.length}</span>
+            )}
+          </div>
+          {/*
+            * The create action belongs in the header, not trailing the grid.
+            * As a dashed tile it was the same size and weight as a project —
+            * so the eye had to read it to discover it was not one — and it
+            * pushed the grid's last row out of alignment. Up here it is
+            * always in the same place whether you have one project or thirty,
+            * and the grid is nothing but projects.
+            */}
+          {!!projects?.length && !creating && (
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="shrink-0 rounded-control bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition-colors hover:bg-accent-hover"
+            >
+              New project
+            </button>
           )}
         </div>
 
@@ -84,18 +103,7 @@ export function ProjectsScreen() {
 
         {(!!projects?.length || creating) && (
           <ProjectGrid projects={projects ?? []} onReorder={reorder}>
-            {creating ? (
-              <NewProjectTile onCreate={create} onCancel={() => setCreating(false)} />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setCreating(true)}
-                className="flex min-h-[7.5rem] flex-col items-center justify-center gap-1 rounded-panel border-2 border-dashed border-line-strong text-sm text-ink-muted hover:border-ink-faint hover:text-ink"
-              >
-                <span className="text-xl leading-none">+</span>
-                New project
-              </button>
-            )}
+            {creating && <NewProjectTile onCreate={create} onCancel={() => setCreating(false)} />}
           </ProjectGrid>
         )}
       </div>

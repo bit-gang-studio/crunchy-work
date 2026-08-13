@@ -347,9 +347,17 @@ function CardView({
       // `cursor` change. `transition-colors`, not `transition-all`: the drag
       // overlay's rotate and shadow must land on the frame they are set, or the
       // card lags behind the cursor.
-      className={`cursor-grab rounded-card border bg-surface p-3 text-sm transition-colors active:cursor-grabbing ${
-        dragging ? 'rotate-3 border-line-strong shadow-overlay' : 'border-line shadow-card hover:border-line-strong'
-      } ${card.completed ? 'opacity-60' : ''} ${changed ? 'card-changed' : ''}`}
+      // A done card recedes rather than just fading. `opacity-60` alone kept it
+      // at full elevation — same border, same shadow — so a column of finished
+      // work still read as a stack of live cards, just dimmer. Dropping it to
+      // the sunken plane with no shadow makes it sit *into* the column, which
+      // is what "handled" looks like; the strike-through on the title does the
+      // rest. Still fully legible, and one click from coming back.
+      className={`cursor-grab rounded-card border p-3 text-sm transition-colors active:cursor-grabbing ${
+        dragging ? 'rotate-3 border-line-strong shadow-overlay' : 'border-line hover:border-line-strong'
+      } ${
+        card.completed ? 'bg-sunken opacity-70' : 'bg-surface shadow-card'
+      } ${changed ? 'card-changed' : ''}`}
     >
       <div className="flex items-start gap-2">
         {/* Always shown — in the drag preview there's no handler, so it renders display-only
@@ -387,14 +395,20 @@ function CardView({
           </p>
         )}
       </div>
+      {/*
+        * One filled thing at most, and only when something is wrong.
+        *
+        * Every badge used to be a filled pill, so a card with a date, a size
+        * and a checklist wore three of them at equal weight and they collected
+        * more attention than the title — which is the only part you actually
+        * read. They are plain text now; `Overdue` keeps its fill, because it is
+        * the one state worth alarming about, and it is far louder for being the
+        * only one left.
+        */}
       {(card.dueAt || card.size || card.acceptanceCriteria.length > 0) && (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-faint">
           {card.dueAt && <DueBadge dueAt={card.dueAt} completed={card.completed} />}
-          {card.size && (
-            <span className="rounded bg-hover px-1.5 py-0.5 font-medium text-ink-muted">
-              {card.size}
-            </span>
-          )}
+          {card.size && <span className="font-medium">{card.size}</span>}
           {/* Only the tally on the face — the lines live in the card detail. */}
           {card.acceptanceCriteria.length > 0 && <CriteriaBadge criteria={card.acceptanceCriteria} />}
         </div>
@@ -403,14 +417,22 @@ function CardView({
   )
 }
 
-/** All criteria met reads as a quiet success; anything else is just a count. */
+/**
+ * All criteria met reads as a quiet success; anything else is just a count.
+ *
+ * Kept as a number rather than becoming a miniature progress bar like the
+ * project tiles. A tile has one bar and room to breathe; a card can carry three
+ * pieces of metadata in a 288px column, and a 40px track next to a date and a
+ * size is a graphic where a glyph would do. `2/3` is already the fraction the
+ * bar would draw, in less space and with no ambiguity about which end is which.
+ */
 function CriteriaBadge({ criteria }: { criteria: { done: boolean }[] }) {
   const met = criteria.filter((c) => c.done).length
   const all = met === criteria.length
   return (
     <span
       title="Acceptance criteria"
-      className={`rounded px-1.5 py-0.5 ${all ? 'bg-success-soft text-success' : 'bg-hover text-ink-muted'}`}
+      className={all ? 'font-medium text-success' : 'tabular-nums'}
     >
       ✓ {met}/{criteria.length}
     </span>
@@ -424,16 +446,23 @@ function DueBadge({ dueAt, completed }: { dueAt: string; completed: boolean }) {
   const today = todayISO()
   const overdue = !completed && dueAt < today
   const soon = !completed && dueAt === today
+  /*
+   * "Due today" lost its amber fill for two reasons. It was competing with
+   * overdue at nearly the same loudness, when the whole point is that overdue
+   * is the exception — and amber is now the *accent*, so a warning pill in the
+   * same family would have the product's identity colour meaning "careful".
+   * Today reads as emphasis instead: the same text, at full ink.
+   */
   return (
     <span
       title={dueAt}
-      className={`rounded px-1.5 py-0.5 ${
+      className={
         overdue
-          ? 'bg-danger-soft text-danger'
+          ? 'rounded bg-danger-soft px-1.5 py-0.5 font-medium text-danger'
           : soon
-            ? 'bg-warning-soft text-warning'
-            : 'bg-hover text-ink-muted'
-      }`}
+            ? 'font-medium text-ink'
+            : ''
+      }
     >
       {overdue ? 'Overdue · ' : ''}
       {formatDueDate(dueAt)}

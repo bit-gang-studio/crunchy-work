@@ -45,8 +45,18 @@ function Shell() {
           onProject ? 'hidden' : 'flex'
         }`}
       >
-        <Link to="/" className="text-sm font-semibold tracking-tight">
-          Crunchy
+        {/* A mark, not just a word. The wordmark alone read as a label rather
+            than as a product — and this is the shape the favicon becomes, so
+            the tab and the app agree. It is the accent's one appearance in the
+            chrome, which is what makes the accent legible as *the* colour. */}
+        <Link to="/" className="flex items-center gap-2" aria-label="Crunchy — all projects">
+          <span
+            aria-hidden
+            className="flex h-6 w-6 items-center justify-center rounded-card bg-accent text-[13px] font-bold leading-none text-accent-ink"
+          >
+            C
+          </span>
+          <span className="text-sm font-semibold tracking-tight">Crunchy</span>
         </Link>
         {/* Pushed to the trailing edge: the theme is app chrome, not part of
             the navigation, and it should not sit between the wordmark and

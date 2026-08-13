@@ -57,15 +57,15 @@
   /*
    * ── Accent ────────────────────────────────────────────────────────────
    * The one colour carrying identity. It was near-black — which is to say the
-   * product had none — and is now a blue, the same hue in both palettes so the
-   * app is recognisably itself either way.
+   * product had none — and is now an amber, the same hue in both palettes so
+   * the app is recognisably itself either way.
    *
    * Provisional, and deliberately not Graphic Realism's final answer: the point
    * of turning it on now is that an accent with no chroma cannot be judged. The
    * theme pass turns this one token and the whole app follows.
    */
-  --color-accent: #3b5bdb;
-  --color-accent-hover: #2f4bc4;
+  --color-accent: #b45309;
+  --color-accent-hover: #92400e;
   --color-accent-ink: #ffffff;
 
   /*
@@ -133,23 +133,26 @@
   color-scheme: dark;
 
   /*
-   * Ground — a ladder, and slightly cool rather than dead neutral.
+   * Ground — a ladder, near-neutral, and darker than it was.
    *
-   * Pure greys are what makes a dark UI look cheap: nothing in the physical
-   * world is a perfect neutral in shadow, and screens full of #262626 read as
-   * flat plastic. A few points of blue in the dark end is what almost every
-   * dark UI you like is doing, and it costs nothing.
-   *
-   * The steps are also further apart than they were. Elevation in the dark
+   * The steps are further apart than the first attempt. Elevation in the dark
    * cannot lean on shadow — there is no ground for a shadow to fall on — so the
    * *only* thing separating a card from the page is that the card is lighter.
    * canvas → sunken → surface has to be legible as three distinct planes.
+   *
+   * Near-neutral, not blue. The first attempt at this was noticeably
+   * blue-shifted and read cold and slightly washed — "dark theme" rather than
+   * dark. The ladder is Linear's, which is the reference for this: #08090a is a
+   * hair off pure black so type does not crunch against it, and the steps stay
+   * neutral so the only colour on screen is colour you put there. Darkness is
+   * the medium; hierarchy comes from white at different opacities, not from
+   * tinting the greys.
    */
-  --color-canvas: #0b0c0f;
-  --color-sunken: #101216;
-  --color-surface: #16181d;
-  --color-hover: #1d2027;
-  --color-hover-strong: #262a33;
+  --color-canvas: #08090a;
+  --color-sunken: #0f1011;
+  --color-surface: #141516;
+  --color-hover: #1c1d1f;
+  --color-hover-strong: #23252a;
 
   /*
    * Borders as low-alpha white, not opaque grey.
@@ -159,8 +162,8 @@
    * edge, and it stays correct over canvas, sunken and surface alike instead of
    * needing a value per ground.
    */
-  --color-line: #ffffff17;
-  --color-line-strong: #ffffff2e;
+  --color-line: #ffffff14;
+  --color-line-strong: #ffffff24;
 
   /*
    * Ink, chosen by computing the ratios rather than by mirroring the light
@@ -183,30 +186,36 @@
    * tell-tale of a palette assembled from two different sets — the ink has to
    * live in the same world as the thing it is printed on.
    */
-  --color-ink: #f2f4f8; /* 15.9:1 on surface */
-  --color-ink-muted: #c3c9d4; /* 10.9:1 */
-  --color-ink-faint: #9ba3b2; /* 7.0:1 on surface, 6.4:1 on a hovered row */
-  --color-ink-inverse: #0b0c0f;
+  --color-ink: #f7f8f8; /* 17.3:1 on surface */
+  --color-ink-muted: #c2c6cc; /* 11.0:1 */
+  --color-ink-faint: #8a8f98; /* 5.6:1 on surface, 5.2:1 on a hovered row */
+  --color-ink-inverse: #08090a;
 
   /*
-   * The same blue as light, lifted so it reads on a dark ground — a mid-tone
-   * blue that is legible on white is muddy on black. Its ink goes dark, because
-   * white on this measures 3.1:1 and black measures 6.3:1.
+   * The same amber as light, lifted so it reads on a dark ground — a mid-tone
+   * warm that is legible on white is muddy on black. Its ink goes dark: black
+   * on this measures 9.3:1 where white manages 2.3:1.
+   *
+   * Amber and not indigo on purpose. Indigo is the default answer for a
+   * developer tool and the reason every one of them looks like the others; a
+   * product called Crunchy has a warm name and can afford a warm mark. It is
+   * also the *only* chroma in the chrome, which is what makes it read as
+   * identity rather than decoration.
    */
-  --color-accent: #6e8bff;
-  --color-accent-hover: #8ba3ff;
-  --color-accent-ink: #0b0c0f;
+  --color-accent: #ff9f45;
+  --color-accent-hover: #ffb066;
+  --color-accent-ink: #0f1011;
 
   /* Code recesses in the dark rather than standing out: the page colour, so it
      reads as a well cut into the surface it sits on. */
-  --color-code: #0b0c0f;
-  --color-code-ink: #f2f4f8;
+  --color-code: #08090a;
+  --color-code-ink: #f7f8f8;
 
   /* Status: the 400 step reads on a dark ground where the 700 step disappears;
      the soft fills go to the 950 step for the same reason in reverse. */
   --color-danger: #f87171;
   --color-danger-soft: #450a0a;
-  --color-danger-ink: #0b0c0f;
+  --color-danger-ink: #0f1011;
   --color-warning: #fbbf24;
   --color-warning-soft: #451a03;
   --color-success: #4ade80;
