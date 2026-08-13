@@ -47,6 +47,44 @@ async function scan(page: Page, context: string) {
   expect(summary, `${context}\n\n${detail}`).toEqual([])
 }
 
+/**
+ * Every colour on screen has to be one axe can actually read.
+ *
+ * axe cannot evaluate `oklch()`. It does not fail on one — it files the node
+ * under *incomplete*, "I could not determine this", which the contrast
+ * assertion above does not look at. Tailwind v4's default palette is entirely
+ * oklch, so while the light tokens were written as `var(--color-neutral-400)`
+ * the gate reported green over a palette it had never measured.
+ *
+ * Proved rather than assumed: setting `ink-faint` to the *same* grey written as
+ * hex turned zero violations into thirty-four across three scans. The colour had
+ * always been 2.6:1 on white; only the notation changed.
+ *
+ * Asserting "no incomplete results" instead would be the obvious fix and is the
+ * wrong one — icon-only buttons and transparent-text checkboxes are legitimately
+ * undecidable, so it fails constantly for reasons nobody can act on. This checks
+ * the thing that actually went wrong: a colour the measuring tool is blind to.
+ */
+async function assertNoUnreadableColours(page: Page, context: string) {
+  const offenders = await page.evaluate(() => {
+    const bad: string[] = []
+    for (const el of document.querySelectorAll<HTMLElement>('body *')) {
+      // The project swatch and its progress bar are deliberately oklch: the hue
+      // comes from a hash, and only a perceptually uniform space keeps one ink
+      // legible across all 360 of them. Their contrast is fixed by construction
+      // — a constant L against a constant ink — and computed by hand rather than
+      // by axe. Nothing else gets that exemption.
+      if (el.closest('.project-swatch, .project-progress')) continue
+      const cs = getComputedStyle(el)
+      for (const prop of ['color', 'backgroundColor', 'borderTopColor'] as const) {
+        if (cs[prop]?.includes('oklch')) bad.push(`${el.tagName.toLowerCase()}.${el.className} → ${prop}`)
+      }
+    }
+    return [...new Set(bad)].slice(0, 10)
+  })
+  expect(offenders, `${context} — colours axe cannot measure`).toEqual([])
+}
+
 /** One project with enough in it that every component is on screen somewhere. */
 async function seed(request: import('@playwright/test').APIRequestContext) {
   const project = await request
@@ -83,6 +121,9 @@ async function walkEveryScreen(
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
   await scan(page, `projects list · ${label}`)
+  // Once per walk is enough: the tokens are global, so a colour axe cannot read
+  // will show up on the first populated screen or not at all.
+  await assertNoUnreadableColours(page, `projects list · ${label}`)
 
   await page.goto(`/projects/${projectId}`)
   await expect(page.getByTestId('card').first()).toBeVisible()

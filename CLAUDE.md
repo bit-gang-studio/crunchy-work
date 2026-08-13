@@ -138,6 +138,18 @@ axe-core runs against WCAG 2.1 AA over every screen, five states and three width
 while they are closed. Plus a hand-walked tab order and a check that Escape does not strand
 focus, neither of which an automated scan can tell you.
 
+**axe cannot read `oklch()`, and it does not tell you so.** It files an
+unreadable colour under *incomplete* — "could not determine" — which is not a
+violation, so a gate asserting on violations reports green over a palette it
+never measured. Tailwind v4's entire default palette is oklch, so while the
+light tokens were `var(--color-neutral-400)` none of them were being checked;
+`ink-faint` was **2.6:1** on white the whole time. Proved, not assumed: writing
+the *same* grey as hex turned 0 violations into 34 across three scans. **Both
+palettes are now written in explicit hex**, and `assertNoUnreadableColours`
+fails the build if an oklch colour reaches a screen. The one exemption is the
+project swatch, whose hue comes from a hash and needs a perceptually uniform
+space; its contrast is fixed by construction and computed by hand.
+
 **And a dark pass**, at one width only: the widths vary *layout*, which is identical between
 palettes, while what a second palette changes is colour. It caught 28 contrast failures the
 first time it ran and has caught every dark regression since — run it from the moment a

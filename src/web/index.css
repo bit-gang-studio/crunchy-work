@@ -27,31 +27,62 @@
  * a re-valuing of this block rather than a tour of every component. The
  * longer-term one is dark mode, which is the same job again.
  *
- * These values are deliberately identical to the greys they replaced, so
- * introducing them changed nothing on screen. That is what makes the migration
- * checkable: if a screenshot moved, the migration was wrong, not the palette.
+ * Both palettes are now designed rather than one derived from the other, and
+ * both are written in the same shape: a ground ladder, ink solved from the
+ * worst background each step lands on, low-alpha lines, one accent.
  */
 @theme {
+  /*
+   * Written as hex, not as `var(--color-neutral-400)`, and that is not a style
+   * preference.
+   *
+   * Tailwind v4's default palette is expressed in `oklch()`. axe-core cannot
+   * evaluate an oklch colour, so every node painted with one lands in its
+   * *incomplete* bucket rather than its violations — and the gate asserts on
+   * violations. Light was therefore running almost entirely unchecked while
+   * reporting green: `ink-faint` was `oklch(0.708 0 0)`, which is **2.6:1** on
+   * white and fails AA outright, on every piece of card metadata.
+   *
+   * Dark never had the problem because it was written by hand in hex. Light is
+   * now too, so both palettes are measurable by the thing that measures them.
+   */
+
   /* ── Ground ─────────────────────────────────────────────────────────── */
-  /** The page behind everything. */
-  --color-canvas: var(--color-neutral-50);
+  /**
+   * Whiteness as the medium, the way dark uses darkness: the page is a shade
+   * off white so a card can be *actually* white and read as lifted, and every
+   * step is near-neutral so the only colour on screen is colour we put there.
+   */
+  --color-canvas: #f7f7f8;
   /** Cards, panels, menus, dialogs — anything you read content off. */
   --color-surface: #ffffff;
   /** Wells that sit *into* the page: column bodies, inset areas. */
-  --color-sunken: var(--color-neutral-100);
+  --color-sunken: #f0f0f2;
   /** A pointer resting on something interactive. */
-  --color-hover: var(--color-neutral-100);
+  --color-hover: #f2f2f4;
   /** The same, over a sunken area, where `hover` would not read. */
-  --color-hover-strong: var(--color-neutral-200);
+  --color-hover-strong: #e7e7ea;
 
   /* ── Lines ──────────────────────────────────────────────────────────── */
-  --color-line: var(--color-neutral-200);
-  --color-line-strong: var(--color-neutral-300);
+  /* Low-alpha black, mirroring dark's low-alpha white: a line is the surface
+     it sits on, shaded — so one value stays correct over canvas, sunken and
+     surface alike instead of needing a grey per ground. */
+  --color-line: #00000014;
+  --color-line-strong: #00000024;
 
   /* ── Ink ────────────────────────────────────────────────────────────── */
-  --color-ink: var(--color-neutral-900);
-  --color-ink-muted: var(--color-neutral-600);
-  --color-ink-faint: var(--color-neutral-400);
+  /*
+   * Near-black rather than black: pure #000 on pure #fff is harsher than
+   * anything printed and is the other half of why the greys were the giveaway.
+   *
+   * `faint` is far darker than the neutral-400 it replaces, because the
+   * binding case is 12px metadata on a *completed* card — sunken, not white —
+   * and it owes the full 4.5:1 there too. Same lesson dark taught: solve the
+   * faint step against the worst ground it lands on, then set muted above it.
+   */
+  --color-ink: #1a1b1e; /* 17.2:1 on surface */
+  --color-ink-muted: #4e5157; /* 8.0:1 */
+  --color-ink-faint: #656971; /* 5.5:1 on surface, 4.8:1 on a sunken card */
   --color-ink-inverse: #ffffff;
 
   /*
@@ -64,8 +95,8 @@
    * of turning it on now is that an accent with no chroma cannot be judged. The
    * theme pass turns this one token and the whole app follows.
    */
-  --color-accent: #b45309;
-  --color-accent-hover: #92400e;
+  --color-accent: #c2410c; /* white on this measures 5.2:1 */
+  --color-accent-hover: #9a3412;
   --color-accent-ink: #ffffff;
 
   /*
@@ -76,20 +107,20 @@
    * A code surface is its own role: high-contrast, neutral, and never the
    * thing carrying identity.
    */
-  --color-code: var(--color-neutral-900);
-  --color-code-ink: var(--color-neutral-50);
+  --color-code: #1a1b1e;
+  --color-code-ink: #f7f8f8;
 
   /* ── Status ─────────────────────────────────────────────────────────── */
-  --color-danger: var(--color-red-700);
-  --color-danger-soft: var(--color-red-50);
+  --color-danger: #b42318; /* 5.9:1 on surface */
+  --color-danger-soft: #fef3f2;
   /* Its own ink. Destructive buttons were printing `accent-ink` on a danger
      fill, which only worked while both palettes happened to agree — the same
      wrong-role trap as painting code blocks with the accent. */
   --color-danger-ink: #ffffff;
-  --color-warning: var(--color-amber-700);
-  --color-warning-soft: var(--color-amber-50);
-  --color-success: var(--color-green-700);
-  --color-success-soft: var(--color-green-50);
+  --color-warning: #b54708;
+  --color-warning-soft: #fffaeb;
+  --color-success: #067647; /* 5.4:1 on surface */
+  --color-success-soft: #ecfdf3;
 
   /* ── Radii ──────────────────────────────────────────────────────────── */
   --radius-control: 0.375rem;
