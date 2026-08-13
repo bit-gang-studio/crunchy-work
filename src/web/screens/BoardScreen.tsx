@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import type { ProjectDetail } from '../../shared/types'
 import { api } from '../lib/api'
 import { Screen } from '../components/Screen'
 import { KanbanBoard } from '../components/KanbanBoard'
 import { CardDetail } from '../components/CardDetail'
 import { ProjectHeader } from '../components/ProjectHeader'
+import { EmptyState, ErrorState, Loading } from '../components/States'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 import { useRecentChanges } from '../lib/useRecentChanges'
 
@@ -73,11 +74,8 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   if (error) {
     return (
       <Screen scroll="document">
-        <div className="mx-auto max-w-2xl px-6 py-12 text-sm">
-          <p className="text-danger">{error}</p>
-          <Link to="/" className="mt-2 inline-block underline">
-            Back to projects
-          </Link>
+        <div className="mx-auto max-w-2xl px-6 py-12">
+          <ErrorState message={error} retry={() => void load()} backTo="/" />
         </div>
       </Screen>
     )
@@ -86,10 +84,19 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   if (!board) {
     return (
       <Screen scroll="document">
-        <p className="px-6 py-12 text-sm text-ink-muted">Loading…</p>
+        {/* Column-shaped, so the board does not jump when it lands. */}
+        <div className="flex gap-4 px-4 py-6 md:px-6">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="w-72 shrink-0 rounded-panel bg-sunken/80 p-2">
+              <Loading label="Loading board" rows={2} />
+            </div>
+          ))}
+        </div>
       </Screen>
     )
   }
+
+  const cardCount = board.columns.reduce((n, column) => n + column.cards.length, 0)
 
   return (
     <Screen scroll="canvas">
@@ -100,6 +107,24 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
           description={board.project.description}
           onChanged={() => void load()}
         />
+        {/*
+          * A project with columns and no cards showed an empty board and said
+          * nothing — on the main surface of the product, at the exact moment a
+          * new user is deciding whether this is worth their time. The projects
+          * and docs screens have taught the pitch since day one; this one, the
+          * one you actually land on, did not.
+          */}
+        {cardCount === 0 && (
+          <div className="mx-auto w-full max-w-2xl px-4 pt-6 md:px-6">
+            <EmptyState
+              title="No cards yet."
+              prompt={`Look at this repo and add cards to ${board.project.name} for what needs doing.`}
+            >
+              Your agent can fill this in. Paste this into Claude Code — or add a card yourself below.
+            </EmptyState>
+          </div>
+        )}
+
         <div className="min-h-0 flex-1">
           <KanbanBoard
             columns={board.columns}

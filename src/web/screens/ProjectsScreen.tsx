@@ -3,6 +3,7 @@ import type { ProjectSummary } from '../../shared/types'
 import { api } from '../lib/api'
 import { Screen } from '../components/Screen'
 import { ProjectGrid } from '../components/ProjectGrid'
+import { EmptyState, ErrorState, Loading } from '../components/States'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 
 /**
@@ -58,10 +59,18 @@ export function ProjectsScreen() {
       <div className="mx-auto max-w-4xl px-4 py-8 md:px-6">
         <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
 
-        {error && <p className="mt-4 text-sm text-danger">{error}</p>}
-        {projects === null && !error && <p className="mt-6 text-sm text-ink-muted">Loading…</p>}
+        {error && (
+          <div className="mt-4">
+            <ErrorState message={error} retry={() => void load()} />
+          </div>
+        )}
+        {projects === null && !error && (
+          <div className="mt-6">
+            <Loading label="Loading projects" rows={3} />
+          </div>
+        )}
 
-        {projects?.length === 0 && !creating && <EmptyState onStart={() => setCreating(true)} />}
+        {projects?.length === 0 && !creating && <NoProjects onStart={() => setCreating(true)} />}
 
         {(!!projects?.length || creating) && (
           <ProjectGrid projects={projects ?? []} onReorder={reorder}>
@@ -137,21 +146,24 @@ function NewProjectTile({
  * nothing. It teaches the pitch rather than saying "no projects" — the point of
  * Crunchy is that you don't have to build the board yourself.
  */
-function EmptyState({ onStart }: { onStart: () => void }) {
+function NoProjects({ onStart }: { onStart: () => void }) {
   return (
-    <div className="mt-6 rounded-panel border border-dashed border-line-strong bg-surface p-6">
-      <p className="text-sm font-medium">No projects yet.</p>
-      <p className="mt-1 text-sm text-ink-muted">Let your agent make one. Paste this into Claude Code:</p>
-      <pre className="mt-3 overflow-x-auto rounded-control bg-accent px-3 py-2 text-xs text-ink-inverse">
-        Make me a Crunchy project for this repo and add cards for the TODOs you find.
-      </pre>
-      <button
-        type="button"
-        onClick={onStart}
-        className="mt-4 rounded-card border border-line-strong px-3 py-1.5 text-sm hover:bg-canvas"
+    <div className="mt-6">
+      <EmptyState
+        title="No projects yet."
+        prompt="Make me a Crunchy project for this repo and add cards for the TODOs you find."
+        action={
+          <button
+            type="button"
+            onClick={onStart}
+            className="rounded-card border border-line-strong px-3 py-1.5 text-sm hover:bg-canvas"
+          >
+            Or create one yourself
+          </button>
+        }
       >
-        Or create one yourself
-      </button>
+        Let your agent make one. Paste this into Claude Code:
+      </EmptyState>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { useDebouncedSave } from '../lib/useDebouncedSave'
 import { Screen } from '../components/Screen'
 import { ProjectHeader } from '../components/ProjectHeader'
 import { ConfirmButton } from '../components/ConfirmButton'
+import { ErrorState, Loading } from '../components/States'
 /**
  * The editor is code-split. TipTap and ProseMirror are by far the heaviest
  * dependency in the app, and most sessions never open a document — making the
@@ -58,11 +59,12 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
   if (error) {
     return (
       <Screen scroll="document">
-        <div className="mx-auto max-w-2xl px-6 py-12 text-sm">
-          <p className="text-danger">{error}</p>
-          <Link to={`/projects/${projectId}/docs`} className="mt-2 inline-block underline">
-            Back to docs
-          </Link>
+        <div className="mx-auto max-w-2xl px-6 py-12">
+          <ErrorState
+            message={error}
+            backTo={`/projects/${projectId}/docs`}
+            backLabel="Back to docs"
+          />
         </div>
       </Screen>
     )
@@ -77,7 +79,7 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
           description={project?.description}
         />
         <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
-          {!doc && <p className="text-sm text-ink-muted">Loading…</p>}
+          {!doc && <Loading label="Loading document" rows={4} />}
           {doc && (
             <>
               <div className="mb-2 flex items-center justify-between gap-4">

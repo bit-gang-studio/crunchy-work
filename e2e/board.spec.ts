@@ -59,6 +59,28 @@ test.describe('a new user builds a board', () => {
     await expect(page.getByPlaceholder('Markdown welcome.')).toHaveValue('Cover the MCP story first.')
   })
 
+  test('an empty board teaches, and stops once there is a card', async ({ page }) => {
+    // The board is the surface you land on, and a project with columns and no
+    // cards used to say nothing at all — at the exact moment a new user decides
+    // whether this is worth their time.
+    await page.goto('/')
+    await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+    await page.getByLabel('Project name').fill('Empty board')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'Empty board' }).click()
+
+    await expect(page.getByText('No cards yet.')).toBeVisible()
+    // The prompt is the point: it names this project, so it can be pasted as-is.
+    await expect(page.getByText(/add cards to Empty board for what needs doing/)).toBeVisible()
+
+    await page.locator('[data-column]').first().getByRole('button', { name: '+ Add card' }).click()
+    await page.getByPlaceholder('Card title').fill('The first one')
+    await page.getByPlaceholder('Card title').press('Enter')
+
+    await expect(page.getByTestId('card')).toHaveCount(1)
+    await expect(page.getByText('No cards yet.')).toHaveCount(0)
+  })
+
   test('a project can be renamed and deleted', async ({ page }) => {
     // Until this existed the REST routes had rename and delete and no front
     // door called them — a project made with a typo was permanent.

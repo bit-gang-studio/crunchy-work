@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import type { ProjectDetail } from '../../shared/types'
 import { api } from '../lib/api'
 import { Screen } from '../components/Screen'
 import { DocList } from '../components/DocList'
 import { ProjectHeader } from '../components/ProjectHeader'
+import { EmptyState, ErrorState, Loading } from '../components/States'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 
 /** A project's documents. The board read already carries them, so this is one call. */
@@ -55,11 +56,8 @@ export function DocsScreen({ projectId }: { projectId: string }) {
   if (error) {
     return (
       <Screen scroll="document">
-        <div className="mx-auto max-w-2xl px-6 py-12 text-sm">
-          <p className="text-danger">{error}</p>
-          <Link to="/" className="mt-2 inline-block underline">
-            Back to projects
-          </Link>
+        <div className="mx-auto max-w-2xl px-6 py-12">
+          <ErrorState message={error} retry={() => void load()} backTo="/" />
         </div>
       </Screen>
     )
@@ -75,19 +73,16 @@ export function DocsScreen({ projectId }: { projectId: string }) {
           onChanged={() => void load()}
         />
         <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
-          {!board && <p className="text-sm text-ink-muted">Loading…</p>}
+          {!board && <Loading label="Loading docs" rows={3} />}
 
           {board?.docs.length === 0 && (
-            <div className="rounded-panel border border-dashed border-line-strong bg-surface p-6">
-              <p className="text-sm font-medium">No docs yet.</p>
-              <p className="mt-1 text-sm text-ink-muted">
-                Docs are for the context that isn&apos;t a task — decisions, notes, a brief. Your
-                agent can write them too:
-              </p>
-              <pre className="mt-3 overflow-x-auto rounded-control bg-accent px-3 py-2 text-xs text-ink-inverse">
-                Write up what we decided today as a doc on {board.project.name}.
-              </pre>
-            </div>
+            <EmptyState
+              title="No docs yet."
+              prompt={`Write up what we decided today as a doc on ${board.project.name}.`}
+            >
+              Docs are for the context that isn&apos;t a task — decisions, notes, a brief. Your agent
+              can write them too:
+            </EmptyState>
           )}
 
           {!!board?.docs.length && (
