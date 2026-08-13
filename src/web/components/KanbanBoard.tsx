@@ -35,6 +35,15 @@ interface KanbanBoardProps {
   onDeleteColumn?: (columnId: string) => void | Promise<void>
   onMoveColumn?: (columnId: string, index: number) => void | Promise<void>
   /**
+   * Every card, including any the caller has filtered out of `columns`.
+   *
+   * A drop resolves its rank against real neighbours, not visible ones: landing
+   * above the first *visible* card must not reuse a key a hidden card already
+   * holds. The rank engine has taken this set since it was written; the
+   * completed-cards filter is the first thing to actually pass it.
+   */
+  allColumns?: BoardColumnType[]
+  /**
    * Cards that changed a moment ago, which mark themselves briefly. This is what
    * makes "watch your agent work" visible: without it a card arriving in a
    * column you are not looking at is a silent redraw.
@@ -63,12 +72,13 @@ function KanbanBoardInner({
   onRenameColumn,
   onDeleteColumn,
   onMoveColumn,
+  allColumns,
   recentlyChanged,
 }: KanbanBoardProps) {
   const { columns: dndColumns, activeCard, activeColumn, dndProps } = useKanbanDnd(
     columns,
     onMove,
-    columns,
+    allColumns ?? columns,
     onMoveColumn,
   )
 

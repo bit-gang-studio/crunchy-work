@@ -26,6 +26,7 @@ export function ProjectHeader({
   name,
   description = '',
   onChanged,
+  actions,
 }: {
   projectId: string
   name: string
@@ -37,6 +38,8 @@ export function ProjectHeader({
   description?: string
   /** Optional: live updates will catch a rename anyway, this just makes it instant. */
   onChanged?: () => void
+  /** Board-scoped controls, rendered at the trailing edge of the tabs row. */
+  actions?: React.ReactNode
 }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -276,14 +279,20 @@ export function ProjectHeader({
         )
       )}
 
-      <nav className="-mb-px flex gap-4 pt-2" aria-label="Project sections">
-        <Tab to={`/projects/${projectId}`} active={!onDocs}>
-          Board
-        </Tab>
-        <Tab to={`/projects/${projectId}/docs`} active={onDocs}>
-          Docs
-        </Tab>
-      </nav>
+      {/* `actions` rides the tabs row rather than taking a row of its own —
+          board-scoped controls belong beside the thing that selects the board,
+          and the phone header has no spare vertical space to give away. */}
+      <div className="flex items-end justify-between gap-4">
+        <nav className="-mb-px flex gap-4 pt-2" aria-label="Project sections">
+          <Tab to={`/projects/${projectId}`} active={!onDocs}>
+            Board
+          </Tab>
+          <Tab to={`/projects/${projectId}/docs`} active={onDocs}>
+            Docs
+          </Tab>
+        </nav>
+        {actions && <div className="shrink-0 pb-1.5">{actions}</div>}
+      </div>
     </div>
   )
 }

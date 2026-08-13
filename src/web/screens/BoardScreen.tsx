@@ -6,10 +6,12 @@ import { Screen } from '../components/Screen'
 import { KanbanBoard } from '../components/KanbanBoard'
 import { CardDetail } from '../components/CardDetail'
 import { ProjectHeader } from '../components/ProjectHeader'
+import { CompletedFilter } from '../components/CompletedFilter'
 import { ErrorState, Loading } from '../components/States'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 import { useRecentChanges } from '../lib/useRecentChanges'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useShowCompleted, withoutCompleted } from '../lib/completedFilter'
 
 export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?: string }) {
   const navigate = useNavigate()
@@ -17,6 +19,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   useDocumentTitle(board?.project.name)
   const [error, setError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [showCompleted, setShowCompleted] = useShowCompleted()
 
   const load = useCallback(async () => {
     try {
@@ -125,6 +128,15 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   }
 
   const cardCount = board.columns.reduce((n, column) => n + column.cards.length, 0)
+  /*
+   * The board renders the filtered set and resolves ranks against the whole
+   * one. Dropping above the first *visible* card must not reuse a key a hidden
+   * card already holds — `useKanbanDnd` has taken both sets since it was
+   * written, and this is the first caller to actually give it two.
+   */
+  const { columns: visibleColumns, hidden } = showCompleted
+    ? { columns: board.columns, hidden: 0 }
+    : withoutCompleted(board.columns)
 
   return (
     <Screen scroll="canvas">
@@ -134,6 +146,15 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
           name={board.project.name}
           description={board.project.description}
           onChanged={() => void load()}
+          actions={
+            cardCount > 0 && (
+              <CompletedFilter
+                showing={showCompleted}
+                hidden={hidden}
+                onChange={setShowCompleted}
+              />
+            )
+          }
         />
         {/*
           * A line and a prompt, not a panel.
@@ -163,7 +184,8 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
 
         <div className="min-h-0 flex-1">
           <KanbanBoard
-            columns={board.columns}
+            columns={visibleColumns}
+            allColumns={board.columns}
             onMove={onMove}
             onAddCard={onAddCard}
             onToggleComplete={onToggleComplete}

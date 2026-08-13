@@ -333,12 +333,61 @@ test.describe('a new user builds a board', () => {
 
     const card = page.getByTestId('card').filter({ hasText: 'Done but still To Do' })
     await card.getByRole('checkbox').click()
+
+    // Completed cards are filtered off the board by default, so reveal them —
+    // this test is about *where the card is*, not about whether it is shown.
+    await page.getByRole('switch', { name: /Show completed/ }).click()
     await expect(card.getByRole('checkbox')).toHaveAttribute('aria-checked', 'true')
 
     // Ticking does not move the card to the Done column.
     await page.reload()
     const todo = page.locator('[data-column]').first()
     await expect(todo.getByTestId('card').filter({ hasText: 'Done but still To Do' })).toBeVisible()
+  })
+
+  /**
+   * Finished work is off the board by default, and says so.
+   *
+   * Hiding content is only safe when the control doing the hiding is visible
+   * and states how much it is holding back — otherwise the board is quietly
+   * showing fewer cards than it has, which is indistinguishable from a bug.
+   */
+  test('completed cards drop off the board, and the filter says how many', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+    await page.getByLabel('Project name').fill('Filtering')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'Filtering' }).click()
+
+    const todo = page.locator('[data-column]').first()
+    for (const title of ['Still to do', 'Already handled']) {
+      await todo.getByRole('button', { name: '+ Add card' }).click()
+      await page.getByPlaceholder('Card title').fill(title)
+      await page.getByPlaceholder('Card title').press('Enter')
+    }
+    await expect(page.getByTestId('card')).toHaveCount(2)
+
+    // No filter offered while there is nothing to filter.
+    await expect(page.getByRole('switch')).toHaveCount(0)
+
+    const done = page.getByTestId('card').filter({ hasText: 'Already handled' })
+    await done.getByRole('checkbox').click()
+
+    // Ticked in To Do — not moved to Done — so this also proves the filter goes
+    // by the tick rather than by the column it happens to be sitting in.
+    await expect(page.getByTestId('card')).toHaveCount(1)
+    const filter = page.getByRole('switch')
+    await expect(filter).toHaveText(/Show completed \(1\)/)
+
+    await filter.click()
+    await expect(page.getByTestId('card')).toHaveCount(2)
+    await expect(filter).toHaveText(/Hide completed/)
+
+    // The choice is a preference, not a per-visit decision.
+    await page.reload()
+    await expect(page.getByTestId('card')).toHaveCount(2)
+    await page.getByRole('switch').click()
+    await expect(page.getByTestId('card')).toHaveCount(1)
   })
 
   /**
