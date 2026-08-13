@@ -122,6 +122,11 @@ export function createRoutes(services: Services): Hono {
     return c.json(await services.docs.update(c.req.param('id'), patch))
   })
 
+  api.post('/docs/:id/move', async (c) => {
+    const { index } = await body<{ index: number }>(c)
+    return c.json(await services.docs.move(c.req.param('id'), index ?? 0))
+  })
+
   api.delete('/docs/:id', async (c) => {
     await services.docs.remove(c.req.param('id'))
     return c.body(null, 204)

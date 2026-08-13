@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Board } from '../../shared/types'
 import { api } from '../lib/api'
-import { formatRelative } from '../../shared/time'
 import { Screen } from '../components/Screen'
+import { DocList } from '../components/DocList'
 import { ProjectHeader } from '../components/ProjectHeader'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 
@@ -27,6 +27,21 @@ export function DocsScreen({ projectId }: { projectId: string }) {
   }, [load])
 
   useLiveUpdates(() => void load())
+
+  /** Optimistic, like the projects grid — a row that snaps back reads as a failed drag. */
+  async function reorder(docId: string, toIndex: number) {
+    setBoard((prev) => {
+      if (!prev) return prev
+      const from = prev.docs.findIndex((d) => d.id === docId)
+      if (from < 0) return prev
+      const docs = [...prev.docs]
+      const [moved] = docs.splice(from, 1)
+      docs.splice(toIndex, 0, moved!)
+      return { ...prev, docs }
+    })
+    await api.moveDoc(docId, toIndex)
+    await load()
+  }
 
   async function create(e: FormEvent) {
     e.preventDefault()
@@ -71,22 +86,7 @@ export function DocsScreen({ projectId }: { projectId: string }) {
           )}
 
           {!!board?.docs.length && (
-            <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white">
-              {board.docs.map((doc) => (
-                <li key={doc.id}>
-                  <Link
-                    to={`/projects/${projectId}/docs/${doc.id}`}
-                    data-testid="doc-row"
-                    className="flex items-baseline justify-between gap-4 px-4 py-3 hover:bg-neutral-50"
-                  >
-                    <span className="font-medium">{doc.title}</span>
-                    <span className="shrink-0 text-xs text-neutral-500">
-                      {formatRelative(doc.updatedAt)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <DocList projectId={projectId} docs={board.docs} onReorder={reorder} />
           )}
 
           <form onSubmit={create} className="mt-4 flex gap-2">

@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm'
 import type { Store } from '../db/index.js'
 import { newId } from '../db/id.js'
-import { rankAfter } from '../shared/rank.js'
+import { rankAfter, rankForIndex } from '../shared/rank.js'
 import { docs, projects, type Doc } from '../db/schema.js'
 import { NotFoundError, ValidationError } from './errors.js'
 
@@ -79,7 +79,25 @@ export function docsService(store: Store) {
     await db.delete(docs).where(eq(docs.id, id))
   }
 
-  return { listForProject, get, create, update, remove }
+  /**
+   * Reorder within the project. Ordering is the author's, not the machine's —
+   * docs come back in rank order everywhere, so a project's docs read as a
+   * deliberate sequence (brief first, notes last) rather than by creation date.
+   *
+   * Deliberately does not `touch` — the list shows "updated 3m ago", and
+   * rearranging a shelf is not editing the books on it.
+   */
+  async function move(id: string, index: number): Promise<Doc> {
+    const doc = await get(id)
+    const others = (await listForProject(doc.projectId)).filter((d) => d.id !== id)
+    await db
+      .update(docs)
+      .set({ rank: rankForIndex(others.map((d) => d.rank), index) })
+      .where(eq(docs.id, id))
+    return get(id)
+  }
+
+  return { listForProject, get, create, update, remove, move }
 }
 
 export type DocsService = ReturnType<typeof docsService>

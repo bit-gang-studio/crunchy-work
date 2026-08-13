@@ -102,5 +102,6 @@ export const api = {
       body: JSON.stringify(patch),
       keepalive: options?.keepalive,
     }),
+  moveDoc: (id: string, index: number) => send('POST', `/docs/${id}/move`, { index }),
   deleteDoc: (id: string) => send('DELETE', `/docs/${id}`),
 }

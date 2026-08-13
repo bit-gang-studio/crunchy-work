@@ -101,4 +101,49 @@ test.describe('docs', () => {
 
     await expect(page.getByText('No docs yet.')).toBeVisible()
   })
+
+  test('docs are dragged into the order the author wants', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
+    await page.getByLabel('Project name').fill('Doc order')
+    await page.getByRole('button', { name: 'Create' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'Doc order' }).click()
+    await page.getByRole('link', { name: 'Docs' }).click()
+
+    // Creating opens the new doc, so come back to the list between each.
+    const list = page.url()
+    for (const title of ['Brief', 'Notes', 'Decisions']) {
+      await page.goto(list)
+      await page.getByLabel('New doc title').fill(title)
+      await page.getByRole('button', { name: 'Create' }).click()
+      await expect(page).toHaveURL(/\/docs\/\w+$/)
+    }
+    await page.goto(list)
+
+    const titles = () =>
+      page
+        .getByTestId('doc-row')
+        .evaluateAll((els) => els.map((el) => el.querySelectorAll('span')[1]?.textContent ?? ''))
+    await expect.poll(titles).toEqual(['Brief', 'Notes', 'Decisions'])
+
+    // Drag Decisions up onto Brief.
+    const row = (name: string) => page.getByTestId('doc-row').filter({ hasText: name })
+    const from = (await row('Decisions').boundingBox())!
+    const to = (await row('Brief').boundingBox())!
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 - 8, { steps: 3 })
+    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 })
+    await page.waitForTimeout(150)
+    await page.mouse.up()
+
+    await expect.poll(titles).toEqual(['Decisions', 'Brief', 'Notes'])
+
+    // A drag must not also open the doc it was released on.
+    await expect(page).not.toHaveURL(/\/docs\/\w+$/)
+
+    // And the order is persisted, not just optimistic local state.
+    await page.reload()
+    await expect.poll(titles).toEqual(['Decisions', 'Brief', 'Notes'])
+  })
 })

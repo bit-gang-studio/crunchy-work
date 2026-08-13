@@ -271,4 +271,37 @@ describe('docs', () => {
     await req('POST', `/projects/${project.id}/docs`, { title: 'Notes' })
     expect((await board(project.id)).docs.map((d) => d.title)).toEqual(['Notes'])
   })
+
+  it('reorders on move, and the board read agrees', async () => {
+    const project = await newProject()
+    for (const title of ['Brief', 'Notes', 'Decisions'])
+      await req('POST', `/projects/${project.id}/docs`, { title })
+
+    const titles = async () => (await board(project.id)).docs.map((d) => d.title)
+    expect(await titles()).toEqual(['Brief', 'Notes', 'Decisions'])
+
+    const [, , decisions] = (await req('GET', `/projects/${project.id}/docs`)).json as {
+      id: string
+    }[]
+    await req('POST', `/docs/${decisions!.id}/move`, { index: 0 })
+    expect(await titles()).toEqual(['Decisions', 'Brief', 'Notes'])
+
+    // To the end — the index is the slot among the *others*, so 2 is last of three.
+    await req('POST', `/docs/${decisions!.id}/move`, { index: 2 })
+    expect(await titles()).toEqual(['Brief', 'Notes', 'Decisions'])
+  })
+
+  it('leaves updatedAt alone when reordering — a move is not an edit', async () => {
+    const project = await newProject()
+    const { json: first } = await req('POST', `/projects/${project.id}/docs`, { title: 'Brief' })
+    await req('POST', `/projects/${project.id}/docs`, { title: 'Notes' })
+
+    const before = (await req('GET', `/docs/${first.id}`)).json.updatedAt
+    await req('POST', `/docs/${first.id}/move`, { index: 1 })
+    expect((await req('GET', `/docs/${first.id}`)).json.updatedAt).toBe(before)
+  })
+
+  it('404s a move on a doc that does not exist', async () => {
+    expect((await req('POST', '/docs/nope/move', { index: 0 })).status).toBe(404)
+  })
 })
