@@ -1,3 +1,4 @@
+import { CopyPrompt } from './CopyPrompt'
 import { Link } from 'react-router-dom'
 
 /**
@@ -127,17 +128,12 @@ export function EmptyState({
     <div className="rounded-panel border border-dashed border-line-strong bg-surface p-6">
       <p className="text-sm font-medium">{title}</p>
       {children && <div className="mt-1 text-sm text-ink-muted">{children}</div>}
-      {/*
-        * Wraps rather than scrolls. This is a line to *copy*, so on a phone
-        * half of it disappearing off the right edge is the worst possible
-        * behaviour — and a horizontally scrollable region is unreachable by
-        * keyboard unless it is also focusable, which a block of sample text has
-        * no business being. Wrapping solves both.
-        */}
+      {/* The same control the empty board uses, for the same reason: a line you
+          are told to paste needs a button that pastes it. */}
       {prompt && (
-        <pre className="mt-3 rounded-control bg-code px-3 py-2 text-xs whitespace-pre-wrap break-words text-code-ink">
-          {prompt}
-        </pre>
+        <div className="mt-3">
+          <CopyPrompt text={prompt} />
+        </div>
       )}
       {action && <div className="mt-4">{action}</div>}
     </div>

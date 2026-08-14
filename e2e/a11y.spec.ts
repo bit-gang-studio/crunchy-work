@@ -182,16 +182,27 @@ async function walkEveryScreen(
   await scan(page, `doc editor · ${label}`)
 }
 
-/** The empty states, which a seeded scan never reaches. */
-async function walkEmptyStates(page: Page, label: string) {
-  await page.goto('/')
-  // A fresh project has no cards and no docs.
-  await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
-  await page.getByLabel('Project name').fill(`Empty ${label}`)
-  await page.getByRole('button', { name: 'Create' }).click()
-  await page.getByTestId('project-tile').filter({ hasText: `Empty ${label}` }).click()
+/**
+ * The empty states, which a seeded scan never reaches.
+ *
+ * Created over the API rather than through the UI on purpose. Creating a project
+ * in the browser seeds it with two cards that teach — see `lib/seedProject.ts` —
+ * so the UI flow no longer produces an empty board at all. The API is the honest
+ * way to reach the state this test is named after, and it is a state a user does
+ * reach: by deleting those cards, or by letting an agent create the project.
+ */
+async function walkEmptyStates(
+  page: Page,
+  request: import('@playwright/test').APIRequestContext,
+  label: string,
+) {
+  const project = await request
+    .post('/api/projects', { data: { name: `Empty ${label}` } })
+    .then((r) => r.json())
 
-  await expect(page.getByText(/your agent can fill it in/)).toBeVisible()
+  await page.goto(`/projects/${project.id}`)
+  await expect(page.getByRole('heading', { name: `Empty ${label}` })).toBeVisible()
+  await expect(page.getByTestId('card')).toHaveCount(0)
   await scan(page, `empty board · ${label}`)
 
   await page.getByRole('link', { name: 'Docs' }).click()
@@ -207,8 +218,8 @@ for (const size of WIDTHS) {
       await walkEveryScreen(page, request, size.name)
     })
 
-    test('the empty states, which a seeded scan never reaches', async ({ page }) => {
-      await walkEmptyStates(page, size.name)
+    test('the empty states, which a seeded scan never reaches', async ({ page, request }) => {
+      await walkEmptyStates(page, request, size.name)
     })
   })
 }
@@ -233,8 +244,8 @@ test.describe('accessibility · dark', () => {
     await walkEveryScreen(page, request, 'dark')
   })
 
-  test('the empty states, in the dark palette', async ({ page }) => {
-    await walkEmptyStates(page, 'dark')
+  test('the empty states, in the dark palette', async ({ page, request }) => {
+    await walkEmptyStates(page, request, 'dark')
   })
 })
 

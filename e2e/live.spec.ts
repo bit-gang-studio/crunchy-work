@@ -44,12 +44,17 @@ function callMcpTool(name: string, args: Record<string, unknown>): Promise<void>
   })
 }
 
-test('a card written by a separate MCP process appears on an open board', async ({ page }) => {
-  await page.goto('/')
-  await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
-  await page.getByLabel('Project name').fill('Live board')
-  await page.getByRole('button', { name: 'Create' }).click()
-  await page.getByTestId('project-tile').filter({ hasText: 'Live board' }).click()
+test('a card written by a separate MCP process appears on an open board', async ({
+  page,
+  request,
+}) => {
+  // Created over the API, not through the browser's create flow, which seeds a
+  // new project with two starter cards. This spec is about a card arriving from
+  // outside, so it wants a board with nothing on it to arrive onto.
+  const project = await request
+    .post('/api/projects', { data: { name: 'Live board' } })
+    .then((r) => r.json())
+  await page.goto(`/projects/${project.id}`)
 
   await expect(page.locator('[data-testid="column"]').first()).toBeVisible()
   await expect(page.getByTestId('card')).toHaveCount(0)

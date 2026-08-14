@@ -22,9 +22,10 @@ test.describe('a new user builds a board', () => {
     // The project appears as a tile, and a new project starts usable.
     const tile = page.getByTestId('project-tile').filter({ hasText: 'Launch plan' })
     await expect(tile).toBeVisible()
-    // A tile leads with progress, not a pile size — so a project with nothing
-    // in it says so, rather than reporting "0 cards".
-    await expect(tile).toContainText('Nothing on the board yet')
+    // A tile leads with progress, not a pile size. A project made in the browser
+    // arrives with the two starter cards, so it has progress to report from the
+    // first second — which is the point of seeding it.
+    await expect(tile).toContainText('0 of 2 done')
     await tile.click()
 
     await expect(page.getByRole('heading', { name: 'Launch plan' })).toBeVisible()
@@ -61,28 +62,44 @@ test.describe('a new user builds a board', () => {
     await expect(page.getByPlaceholder('Markdown welcome.')).toHaveValue('Cover the MCP story first.')
   })
 
-  test('an empty board teaches, and stops once there is a card', async ({ page }) => {
-    // The board is the surface you land on, and a project with columns and no
-    // cards used to say nothing at all — at the exact moment a new user decides
-    // whether this is worth their time.
+  test('a new project arrives with cards that teach, and they are deletable', async ({ page }) => {
+    /*
+     * The board is the surface a new user lands on, and it used to teach with a
+     * block of copy above the columns. That never worked — it assumed an agent
+     * was already connected, so the only instruction on screen was the one that
+     * could not do anything yet.
+     *
+     * Arriving with content is Trello's and Linear's answer, and it suits
+     * Crunchy better than either because the thing being taught *is* a card. The
+     * two seeded cards are in the order the steps happen in, and the second one
+     * says to delete them both — so this asserts they can be.
+     */
     await page.goto('/')
     await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
-    await page.getByLabel('Project name').fill('Empty board')
+    await page.getByLabel('Project name').fill('Seeded board')
     await page.getByRole('button', { name: 'Create' }).click()
-    await page.getByTestId('project-tile').filter({ hasText: 'Empty board' }).click()
+    await page.getByTestId('project-tile').filter({ hasText: 'Seeded board' }).click()
 
-    // A line and a prompt, not a panel: the columns already answer "is there
-    // anything here", so this only has to say what to do about it.
-    await expect(page.getByText(/your agent can fill it in/)).toBeVisible()
-    // The prompt is the point: it names this project, so it can be pasted as-is.
-    await expect(page.getByText(/add cards to Empty board for what needs doing/)).toBeVisible()
+    await expect(page.getByTestId('card')).toHaveCount(2)
+    // Connect first: it is the prerequisite the old copy skipped.
+    await expect(page.getByTestId('card').first()).toContainText('Connect your coding agent')
+    await expect(page.getByTestId('card').nth(1)).toContainText('Ask your agent to fill this board')
 
-    await page.locator('[data-column]').first().getByRole('button', { name: 'Add card', exact: true }).click()
-    await page.getByPlaceholder('Card title').fill('The first one')
-    await page.getByPlaceholder('Card title').press('Enter')
+    // The prompt names this project, so it can be pasted as-is — and the card
+    // carries the acceptance criteria, which is the field doing the teaching.
+    await page.getByTestId('card').nth(1).click()
+    await expect(page.getByText(/add cards to Seeded board for what needs doing/)).toBeVisible()
+    await page.keyboard.press('Escape')
 
-    await expect(page.getByTestId('card')).toHaveCount(1)
-    await expect(page.getByText(/your agent can fill it in/)).toHaveCount(0)
+    // And nothing about them is special: they delete like any other card, which
+    // is the whole reason seeding is safe.
+    for (const remaining of [2, 1]) {
+      await expect(page.getByTestId('card')).toHaveCount(remaining)
+      await page.getByTestId('card').first().click()
+      await page.getByRole('button', { name: 'Delete card' }).click()
+      await page.getByRole('button', { name: 'Really delete' }).click()
+    }
+    await expect(page.getByTestId('card')).toHaveCount(0)
   })
 
   test('a project can be renamed and deleted', async ({ page }) => {
@@ -354,12 +371,17 @@ test.describe('a new user builds a board', () => {
    * and states how much it is holding back — otherwise the board is quietly
    * showing fewer cards than it has, which is indistinguishable from a bug.
    */
-  test('completed cards drop off the board, and the filter says how many', async ({ page }) => {
-    await page.goto('/')
-    await page.getByRole('button', { name: /New project|Or create one yourself/ }).click()
-    await page.getByLabel('Project name').fill('Filtering')
-    await page.getByRole('button', { name: 'Create' }).click()
-    await page.getByTestId('project-tile').filter({ hasText: 'Filtering' }).click()
+  test('completed cards drop off the board, and the filter says how many', async ({
+    page,
+    request,
+  }) => {
+    // Over the API rather than through the create flow, which seeds two starter
+    // cards. The counts below are the subject of this test, so it wants to own
+    // every card on the board.
+    const project = await request
+      .post('/api/projects', { data: { name: 'Filtering' } })
+      .then((r) => r.json())
+    await page.goto(`/projects/${project.id}`)
 
     const todo = page.locator('[data-column]').first()
     for (const title of ['Still to do', 'Already handled']) {

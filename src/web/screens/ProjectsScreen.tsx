@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ProjectSummary } from '../../shared/types'
 import { api } from '../lib/api'
+import { seedProject } from '../lib/seedProject'
 import { Screen } from '../components/Screen'
 import { ProjectGrid } from '../components/ProjectGrid'
 import { EmptyState, ErrorState, Loading } from '../components/States'
@@ -36,7 +37,14 @@ export function ProjectsScreen() {
   useLiveUpdates(() => void load())
 
   async function create(name: string) {
-    await api.createProject({ name })
+    const project = await api.createProject({ name })
+    // Seeding must not be able to lose you the project you just made: if any of
+    // it fails you get a plain empty board, which is the old behaviour.
+    try {
+      await seedProject(project.id, name)
+    } catch {
+      /* the project exists; the tutorial is a nicety */
+    }
     setCreating(false)
     await load()
   }

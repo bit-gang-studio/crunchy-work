@@ -168,30 +168,19 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
           }
         />
         {/*
-          * A line and a prompt, not a panel.
+          * Nothing here for an empty board, deliberately.
           *
-          * This was the full `EmptyState` box — dashed border, heading, body,
-          * code block — sitting above the columns and shoving them down the
-          * page. On the one screen a new user lands on, the first thing they
-          * met was a large empty container announcing emptiness, above three
-          * more empty containers.
+          * This slot held the teaching: first a full `EmptyState` panel, then a
+          * sentence and a `bg-code` block. Both failed the same way. They
+          * assumed an agent was already connected, so the only instruction on
+          * screen was the one that could not work yet; they taught on every
+          * empty board forever, so a tenth project got a tutorial; and wedged
+          * above three empty columns they read as debris.
           *
-          * The columns are already the answer to "is there anything here". So
-          * this says the one thing they do not: what to do about it. Two lines
-          * on the board's own gutter, and the prompt still copyable, because
-          * pasting that at an agent is the entire pitch.
+          * New projects arrive with two cards that teach instead — see
+          * `lib/seedProject.ts`. An empty board now means nothing more than an
+          * empty board, which is the only thing it was ever entitled to say.
           */}
-        {cardCount === 0 && (
-          <div className="w-full max-w-xl px-4 pt-4 md:px-6">
-            <p className="text-sm text-ink-muted">
-              Nothing on this board yet — your agent can fill it in. Paste this into Claude Code,
-              or add a card below.
-            </p>
-            <pre className="mt-2 rounded-control bg-code px-3 py-2 text-xs whitespace-pre-wrap break-words text-code-ink">
-              {`Look at this repo and add cards to ${board.project.name} for what needs doing.`}
-            </pre>
-          </div>
-        )}
 
         {/* `screen-in`: the board fades in when you arrive from Docs. On the
             content only — the header is the one thing that does not change
