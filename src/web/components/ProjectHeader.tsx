@@ -143,26 +143,6 @@ export function ProjectHeader({
         )}
 
         {/*
-          * The "add" affordance lives on the title row, not on a row of its own.
-          *
-          * A project with no description was spending a whole row on a faint
-          * line that said nothing — the emptiest thing on the screen taking the
-          * same space as the content it stands in for. Here it costs nothing,
-          * stays visible (rather than hiding in the ⋯ menu, which is what made
-          * it look impossible in the first place), and it is mutually exclusive
-          * with the description row below: exactly one of the two ever exists.
-          */}
-        {!description && !editingAbout && (
-          <button
-            type="button"
-            onClick={() => setEditingAbout(true)}
-            className="ml-1 hidden shrink-0 rounded px-1.5 py-0.5 text-sm text-ink-faint hover:bg-hover hover:text-ink md:block"
-          >
-            Add a description
-          </button>
-        )}
-
-        {/*
           * Everything that acts on this screen, in one cluster at the trailing
           * edge: which section you are looking at, what is filtered out of it,
           * and the project's own menu.
@@ -239,8 +219,20 @@ export function ProjectHeader({
       </div>
 
       {/*
-        * Costs a row only when there is one to show, or you are writing it. A
-        * project with none says so on the title row instead, where it is free.
+        * One row, one control, whether or not there is a description in it.
+        *
+        * The prompt used to sit on the title row instead, to the right of the
+        * name, on the reasoning that an empty project should not spend a whole
+        * row on a faint line saying nothing. The cost of that was a control
+        * that *moved when you used it*: you clicked "Add a description" beside
+        * the title, and what you wrote appeared somewhere else. Two states of
+        * the same thing in two places is harder to learn than a quiet row is to
+        * ignore, and it is the same rule the drag placeholder follows — what
+        * you see before is where the thing lands.
+        *
+        * It also steadies the header. The row exists either way now, so moving
+        * between a project with a description and one without no longer changes
+        * the header's height and shifts the board underneath it.
         *
         * The vertical padding lives on the block above, not on the title row —
         * it used to be the row's own `py`, which meant the description hung
@@ -248,8 +240,8 @@ export function ProjectHeader({
         * of air above the description and 1px below. That asymmetry is what
         * read as broken; no type size would have fixed it.
         *
-        * `px-1.5` rather than `px-1` so its left edge lands on the crumb's
-        * text, not 2px inside it.
+        * `px-1.5` rather than `px-1` so its left edge lands on the name's text,
+        * not 2px inside it.
         */}
       {editingAbout ? (
         <AutoGrowTextarea
@@ -270,25 +262,25 @@ export function ProjectHeader({
           className="mt-1.5 w-full max-w-2xl resize-none rounded-control border border-line-strong px-2 py-1 text-sm focus:border-ink-muted focus:outline-none"
         />
       ) : (
-        description && (
-          <button
-            type="button"
-            onClick={() => setEditingAbout(true)}
-            title="Edit description"
-            // `w-full` is load-bearing, not decoration. A <button> shrink-to-fits
-            // even at `display: block`, so without a width it sizes to its text
-            // and `truncate` never engages — the description then ran past the
-            // right edge and was cut mid-word by the shell's `overflow-hidden`,
-            // on every project screen below ~700px. The heading button beside it
-            // has always had `w-full`, which is why it truncated correctly and
-            // this did not. Caught by the screenshot matrix at 390; invisible to
-            // the responsive spec, which asserts the *page* does not overflow —
-            // and it did not, because the shell was hiding it.
-            className="mt-1.5 hidden w-full max-w-2xl truncate rounded px-1.5 text-left text-sm text-ink-muted hover:bg-hover hover:text-ink md:block"
-          >
-            {description}
-          </button>
-        )
+        <button
+          type="button"
+          onClick={() => setEditingAbout(true)}
+          title={description ? 'Edit description' : 'Add a description'}
+          // `w-full` is load-bearing, not decoration. A <button> shrink-to-fits
+          // even at `display: block`, so without a width it sizes to its text
+          // and `truncate` never engages — the description then ran past the
+          // right edge and was cut mid-word by the shell's `overflow-hidden`,
+          // on every project screen below ~700px. The heading button beside it
+          // has always had `w-full`, which is why it truncated correctly and
+          // this did not. Caught by the screenshot matrix at 390; invisible to
+          // the responsive spec, which asserts the *page* does not overflow —
+          // and it did not, because the shell was hiding it.
+          className={`mt-1.5 hidden w-full max-w-2xl truncate rounded px-1.5 text-left text-sm hover:bg-hover hover:text-ink md:block ${
+            description ? 'text-ink-muted' : 'text-ink-faint'
+          }`}
+        >
+          {description || 'Add a description'}
+        </button>
       )}
 
     </div>
