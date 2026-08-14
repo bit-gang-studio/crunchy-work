@@ -80,20 +80,37 @@ function Shell() {
   )
 }
 
-/** The URL is the source of truth for what's open — no in-memory "current project". */
+/*
+ * The URL is the source of truth for what's open — no in-memory "current
+ * project".
+ *
+ * `key={projectId}` so a different project is a different mount rather than the
+ * same screen handed a new prop. Without it React reuses the instance, which
+ * quietly kept three things belonging to the project you just left:
+ *
+ * - `useRecentChanges` held the previous project's board as its baseline, so the
+ *   incoming project diffed as entirely new and **every card played the amber
+ *   "just changed" pulse** — a 2.2s glow announcing nothing.
+ * - the previous project's cards stayed on screen under the new project's name
+ *   until the fetch landed.
+ * - the fade never ran, because nothing mounted.
+ *
+ * Keyed on the project alone, not the card: opening a card must not rebuild the
+ * board underneath it.
+ */
 function BoardRoute() {
   const { projectId, cardId } = useParams()
-  return <BoardScreen projectId={projectId!} cardId={cardId} />
+  return <BoardScreen key={projectId} projectId={projectId!} cardId={cardId} />
 }
 
 function DocsRoute() {
   const { projectId } = useParams()
-  return <DocsScreen projectId={projectId!} />
+  return <DocsScreen key={projectId} projectId={projectId!} />
 }
 
 function DocRoute() {
   const { projectId, docId } = useParams()
-  return <DocScreen projectId={projectId!} docId={docId!} />
+  return <DocScreen key={projectId} projectId={projectId!} docId={docId!} />
 }
 
 function NotFound() {
