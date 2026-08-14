@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseChoice, resolveTheme } from '../src/web/lib/theme'
+import { parseChoice, resolveTheme, shouldAnimateShift } from '../src/web/lib/theme'
 
 /**
  * The pure half of dark mode. The browser half — that the attribute lands before
@@ -40,5 +40,38 @@ describe('resolveTheme', () => {
   it('ignores the system when the choice is explicit', () => {
     expect(resolveTheme('light', true)).toBe('light')
     expect(resolveTheme('dark', false)).toBe('dark')
+  })
+})
+
+/**
+ * Whether a theme apply is a *change* the user should see move, or a restatement
+ * of what is already on screen. Only the first earns a cross-fade.
+ */
+describe('shouldAnimateShift', () => {
+  it('animates a real change, in both directions', () => {
+    expect(shouldAnimateShift('light', 'dark')).toBe(true)
+    expect(shouldAnimateShift('dark', 'light')).toBe(true)
+  })
+
+  /*
+   * `useTheme` re-applies on every `prefers-color-scheme` event even when the
+   * choice is explicit, and it applies once on mount agreeing with what the
+   * inline script already stamped. Neither is a change, and fading on either
+   * would mean the app arrives in the wrong palette on ordinary loads.
+   */
+  it('stays still when nothing changed', () => {
+    expect(shouldAnimateShift('dark', 'dark')).toBe(false)
+    expect(shouldAnimateShift('light', 'light')).toBe(false)
+  })
+
+  /*
+   * No previous value means the inline script did not run — storage blocked, or
+   * the attribute stripped. There is no palette to fade *from*, so the honest
+   * thing is to land on the right one immediately.
+   */
+  it('stays still when there was no theme to come from', () => {
+    expect(shouldAnimateShift(undefined, 'dark')).toBe(false)
+    expect(shouldAnimateShift('', 'dark')).toBe(false)
+    expect(shouldAnimateShift('midnight', 'dark')).toBe(false)
   })
 })

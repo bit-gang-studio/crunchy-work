@@ -53,13 +53,86 @@ function writeChoice(choice: ThemeChoice) {
   }
 }
 
+/** How long the cross-fade runs. The value itself lives in `index.css`. */
+export const THEME_SHIFT_MS = 220
+
+/** Silences every component's own colour transition while the cross-fade runs. */
+export const THEME_SHIFT_CLASS = 'theme-shifting'
+
+/**
+ * Only a *change between two known themes* animates.
+ *
+ * Two cases must not: the first apply after boot, where `index.html` has
+ * already stamped the attribute before paint and React is merely agreeing with
+ * it — animating there would fade the whole app in from the wrong palette on
+ * every load, which is worse than the flash the inline script exists to
+ * prevent. And any apply where the value is unchanged, which happens on every
+ * `prefers-color-scheme` event while the choice is explicit.
+ */
+export function shouldAnimateShift(previous: string | undefined, next: Theme): boolean {
+  return previous === 'light' || previous === 'dark' ? previous !== next : false
+}
+
+/** Chrome, Edge and Safari have this; where it is missing the theme just changes. */
+type WithViewTransition = Document & {
+  startViewTransition?: (update: () => void) => { finished: Promise<void> }
+}
+
 /**
  * `data-theme` on the root element is what the CSS keys off. It is set for
  * *both* themes, not just dark, so an explicit "light" still wins over a system
  * that prefers dark — which is the whole point of choosing.
+ *
+ * The transition is switched on for the length of the change and then switched
+ * off again, rather than living permanently on every element. Permanent is the
+ * obvious implementation and it is wrong three ways: it would re-time every
+ * hover in the app on top of the deliberate `transition-colors` those controls
+ * already carry, it would animate colour during a drag — where the harness
+ * measures a lifted card the instant it is picked up — and it would make the
+ * first paint fade rather than simply be correct.
  */
 export function applyTheme(theme: Theme) {
-  document.documentElement.dataset.theme = theme
+  const root = document.documentElement
+  const set = () => {
+    root.dataset.theme = theme
+  }
+
+  // A hidden tab has nobody watching and throttles its frames: change it now and
+  // let it simply be right when the tab comes back.
+  const animate = shouldAnimateShift(root.dataset.theme, theme) && !document.hidden
+  const start = (document as WithViewTransition).startViewTransition
+
+  if (!animate || typeof start !== 'function') {
+    set()
+    return
+  }
+
+  /*
+   * One cross-fade of the whole page, not a transition per element.
+   *
+   * Every colour here resolves through a role token, so a palette swap repaints
+   * the entire document in a single frame — which is the one case view
+   * transitions exist for. The browser snapshots before and after and fades
+   * between the two images, so every surface and every piece of text is at the
+   * same point of the same curve because they are literally the same animation.
+   *
+   * The per-element version of this is in the git history and it did not work:
+   * giving an element a `transition-property` in the same recalculation that
+   * changes its colour makes the browser cancel and restart that transition
+   * every frame, so anything without a `transition-colors` utility of its own
+   * crawled while its neighbours faded.
+   *
+   * The class goes on inside the callback so the new palette is computed with
+   * every component's own colour transition already suppressed — otherwise 65
+   * of them run underneath the cross-fade, finish early, and show through.
+   */
+  const transition = start.call(document, () => {
+    root.classList.add(THEME_SHIFT_CLASS)
+    set()
+  })
+
+  const done = () => root.classList.remove(THEME_SHIFT_CLASS)
+  transition.finished.then(done, done)
 }
 
 export function useTheme() {

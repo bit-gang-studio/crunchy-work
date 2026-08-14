@@ -94,8 +94,10 @@ test.describe('a new user builds a board', () => {
     await page.getByRole('button', { name: 'Create' }).click()
     await page.getByTestId('project-tile').filter({ hasText: 'Untitledd' }).click()
 
-    // The name is click-to-edit, like a column.
-    await page.getByRole('heading', { name: 'Untitledd' }).click()
+    // Rename is the ⋯ menu's. It cannot be a click on the name any more: the
+    // name is the switcher's trigger, and one control cannot mean two things.
+    await page.getByRole('button', { name: 'Project actions for Untitledd', exact: true }).click()
+    await page.getByRole('button', { name: 'Rename project' }).click()
     await page.getByLabel('Rename Untitledd').fill('Untitled')
     await page.getByLabel('Rename Untitledd').press('Enter')
     await expect(page.getByRole('heading', { name: 'Untitled', exact: true })).toBeVisible()
@@ -127,9 +129,9 @@ test.describe('a new user builds a board', () => {
     await page.getByTestId('project-tile').filter({ hasText: 'Hopper A' }).click()
     await expect(page.getByRole('heading', { name: 'Hopper A' })).toBeVisible()
 
-    // The switcher hangs off the "Projects" crumb, not the name — the name is
-    // already click-to-rename and one control cannot mean two things.
-    await page.getByRole('button', { name: 'Switch project' }).click()
+    // The project name is the switcher — there is no crumb before it, so its
+    // accessible name is the project's own name.
+    await page.getByRole('button', { name: 'Hopper A', exact: true }).click()
     await page.getByTestId('project-switcher').getByRole('button', { name: /Hopper B/ }).click()
     await expect(page.getByRole('heading', { name: 'Hopper B' })).toBeVisible()
     await expect(page).toHaveURL(/\/projects\/\w+$/)
@@ -142,8 +144,8 @@ test.describe('a new user builds a board', () => {
     // name alone.
     await page.locator('header ~ * button', { hasText: 'Add a description' }).first().click()
     await page.getByLabel('Project description').fill('The second one.')
-    // Tab out rather than clicking the heading — the heading is click-to-rename,
-    // so using it to dismiss this field would open the other editor.
+    // Tab out rather than clicking the heading — the heading opens the project
+    // switcher, so using it to dismiss this field would open the panel.
     await page.keyboard.press('Tab')
 
     await expect(page.getByRole('button', { name: 'The second one.' })).toBeVisible()

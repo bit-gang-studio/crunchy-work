@@ -58,11 +58,16 @@ test.describe('at 390px', () => {
    * A project screen shows one bar of chrome, not two.
    *
    * The app header is hidden here because everything it carried is either
-   * duplicated by the project header ("Projects" goes home, exactly as the
+   * duplicated by the project header (the switcher reaches the list, as the
    * wordmark did) or moved into the project menu (the theme). That leaves the
    * theme with a single phone-sized route to reach it, so this asserts the
    * route exists — a change that drops the menu row would otherwise strand the
    * control at this width with nothing failing.
+   *
+   * Home costs two taps at this width, and that is the deliberate trade for the
+   * project name being the switcher rather than a crumb sitting in front of it.
+   * Both taps are asserted, because the wordmark is hidden here and "All
+   * projects" inside the panel is the only way back.
    */
   test('a project screen spends one bar on chrome, and the theme is still reachable', async ({
     page,
@@ -72,7 +77,7 @@ test.describe('at 390px', () => {
     // The wordmark's bar is gone here...
     await expect(page.getByRole('link', { name: 'Crunchy' })).toBeHidden()
     // ...and the thing it duplicated is what remains.
-    await expect(page.getByRole('link', { name: 'Projects' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Phone chrome', exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: /Project actions for Phone chrome/ }).click()
     const dark = page.getByRole('button', { name: 'Dark' })
@@ -82,7 +87,8 @@ test.describe('at 390px', () => {
 
     // The projects list keeps its header — there is no project chrome there to
     // carry the name, so hiding it would leave the app anonymous.
-    await page.getByRole('link', { name: 'Projects' }).click()
+    await page.getByRole('button', { name: 'Phone chrome', exact: true }).click()
+    await page.getByRole('link', { name: 'All projects' }).click()
     await expect(page.getByRole('link', { name: 'Crunchy' })).toBeVisible()
   })
 

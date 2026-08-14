@@ -42,15 +42,41 @@ const CHOICES: { value: ThemeChoice; label: string; icon: React.ReactNode }[] = 
   },
 ]
 
+/**
+ * A 24px button plus the 2px gap after it — how far the indicator travels to
+ * reach the next choice. Kept next to the classes that set both, because it is
+ * the one number here that is a consequence of them rather than a choice.
+ */
+const STEP_PX = 26
+
 export function ThemeToggle() {
   const { choice, choose } = useTheme()
+  const index = Math.max(
+    0,
+    CHOICES.findIndex((option) => option.value === choice),
+  )
 
   return (
     <div
       role="group"
       aria-label="Theme"
-      className="flex items-center gap-0.5 rounded-control bg-sunken p-0.5"
+      className="relative flex items-center gap-0.5 rounded-control bg-sunken p-0.5"
     >
+      {/*
+        * The selection is one object that moves between the three, not three
+        * that take turns being lit.
+        *
+        * Plain CSS, and this one always worked: the toggle lives in the app
+        * shell, so it is never unmounted and the transition always has a
+        * previous position to move from. The `theme-shifting` suppression that
+        * runs during a palette change deliberately spares `transform`, so this
+        * keeps sliding while the colours cross-fade around it.
+        */}
+      <span
+        aria-hidden
+        className="absolute left-0.5 top-0.5 h-6 w-6 rounded-control bg-surface shadow-card transition-transform duration-200 ease-out motion-reduce:transition-none"
+        style={{ transform: `translateX(${index * STEP_PX}px)` }}
+      />
       {CHOICES.map((option) => (
         <button
           key={option.value}
@@ -59,10 +85,8 @@ export function ThemeToggle() {
           aria-label={option.label}
           title={option.label}
           onClick={() => choose(option.value)}
-          className={`flex h-6 w-6 items-center justify-center rounded-control transition-colors ${
-            choice === option.value
-              ? 'bg-surface text-ink shadow-card'
-              : 'text-ink-faint hover:text-ink'
+          className={`relative z-10 flex h-6 w-6 items-center justify-center rounded-control transition-colors ${
+            choice === option.value ? 'text-ink' : 'text-ink-faint hover:text-ink'
           }`}
         >
           <svg

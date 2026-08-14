@@ -14,6 +14,14 @@ import type { ReactNode } from 'react'
  */
 export function Screen({ scroll, children }: { scroll: 'document' | 'canvas'; children: ReactNode }) {
   return (
+    /*
+     * No `scrollbar-gutter` here, and that was tried: reserving the gutter on
+     * this element keeps the header from jumping when a scrollbar appears, but
+     * the header is *inside* it, so its background and bottom rule then stop
+     * 15px short of the window and the app grows a bare strip down its right
+     * edge. A screen that scrolls keeps the scrollbar below its header instead
+     * — see DocsScreen — which fixes the jump without costing the edge.
+     */
     <div className={scroll === 'document' ? 'h-full overflow-y-auto' : 'h-full overflow-hidden'}>
       {children}
     </div>

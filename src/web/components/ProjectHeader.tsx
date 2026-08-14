@@ -5,6 +5,7 @@ import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { ConfirmButton } from './ConfirmButton'
 import { ProjectSwitcher } from './ProjectSwitcher'
 import { ThemeToggle } from './ThemeToggle'
+import { forgetProject } from '../lib/projectCache'
 
 /**
  * The project chrome: the project's name, what you can do to it, and the
@@ -85,6 +86,9 @@ export function ProjectHeader({
 
   async function remove() {
     await api.deleteProject(projectId)
+    // Or the next visit to this id would render a board that no longer exists
+    // for a frame before the fetch fails.
+    forgetProject(projectId)
     navigate('/')
   }
 
@@ -101,39 +105,22 @@ export function ProjectHeader({
         */}
       <div className="flex min-h-8 flex-wrap items-center gap-x-1 gap-y-2">
         {/*
-          * "Projects" and its chevron are one object, not two.
+          * The project name *is* the switcher, and there is no crumb before it.
           *
-          * They are still a link and a button — going to the list and opening
-          * the switcher are different actions, and the switcher belongs to the
-          * crumb rather than to the name, because the name is already
-          * click-to-rename and one control cannot mean two things. That
-          * decision was right; the rendering was not. With a gap between them
-          * the chevron sat orphaned mid-row, attached to nothing, at a third
-          * type size — it read as a stray mark rather than as "…or jump
-          * somewhere else". Joined, with no gap and one hover, they read as the
-          * single control they behave as.
+          * It was `Projects ⌄ / Crunchy` — a quiet grey crumb and a loud
+          * headline sharing one row at one type size. That is the thing no
+          * amount of spacing ever fixed: a breadcrumb wants to be small and
+          * recessive, a page title wants to be dominant, and every adjustment
+          * that helped one hurt the other. Crunchy has no sidebar and exactly
+          * one board per project, so there is no hierarchy for a crumb to
+          * express — "Projects /" was 94px spent saying something the reader
+          * already knew, and its only real jobs (reach the list, switch
+          * project) are precisely what the panel does.
           *
-          * The whole path is one type size, and that is the rule: a
-          * breadcrumb is a single object, so its segments do not change size
-          * partway through. The current item earns its emphasis from weight and
-          * colour instead — which is what GitHub does with `owner / repo`.
-          *
-          * This was 14px crumb against a 20px name for a while, after the name
-          * was enlarged to give the page a title it did not have. That fixed
-          * the hierarchy and broke the path: two sizes inside four words is the
-          * thing that reads as assembled rather than designed.
+          * Rename is the ⋯ menu's now, not a click on the title. The title
+          * cannot be both a menu trigger and a text field, and the menu has
+          * carried "Rename project" the whole time.
           */}
-        <span className="flex shrink-0 items-center rounded-control hover:bg-hover">
-          <Link
-            to="/"
-            className="rounded-control py-0.5 pl-1.5 pr-0.5 text-xl text-ink-muted hover:text-ink"
-          >
-            Projects
-          </Link>
-          <ProjectSwitcher currentId={projectId} />
-        </span>
-        <span className="-mx-0.5 shrink-0 select-none text-xl text-ink-faint">/</span>
-
         {editing ? (
           <form onSubmit={submit} className="min-w-0 flex-1">
             <input
@@ -152,18 +139,7 @@ export function ProjectHeader({
             />
           </form>
         ) : (
-          // Still a real heading: the name is what the page is about, and making
-          // it click-to-rename must not cost the document its h1.
-          <h1 className="min-w-0">
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              title="Rename project"
-              className="w-full truncate rounded px-1 text-left text-xl font-semibold tracking-tight hover:bg-hover"
-            >
-              {name}
-            </button>
-          </h1>
+          <ProjectSwitcher currentId={projectId} name={name} />
         )}
 
         {/*
@@ -197,17 +173,7 @@ export function ProjectHeader({
           * where controls sit.
           */}
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <nav
-            className="flex items-center gap-0.5 rounded-control bg-sunken p-0.5"
-            aria-label="Project sections"
-          >
-            <Tab to={`/projects/${projectId}`} active={!onDocs}>
-              Board
-            </Tab>
-            <Tab to={`/projects/${projectId}/docs`} active={onDocs}>
-              Docs
-            </Tab>
-          </nav>
+          <SectionSwitch projectId={projectId} onDocs={onDocs} />
 
           {actions}
 
@@ -338,13 +304,98 @@ export function ProjectHeader({
  * fit beside the title, and they are the same object the theme toggle already
  * is, so the app has one way of showing "one of these is selected".
  */
+type Section = 'board' | 'docs'
+
+/**
+ * Where the indicator was before this header existed.
+ *
+ * Module scope, and it has to be: Board and Docs are separate screens that each
+ * render their own `<ProjectHeader>`, so switching section unmounts the whole
+ * header and builds a new one. Component state cannot survive that, and a CSS
+ * transition on a brand-new element has nothing to animate *from* — which is
+ * why the indicator snapped while the theme toggle, which lives in the app
+ * shell and is never rebuilt, slid perfectly. This remembers across the gap.
+ */
+let lastSection: Section | null = null
+
+/**
+ * Board / Docs, with one indicator that slides between them.
+ *
+ * `grid-cols-2` so the two segments are equal — "Board" and "Docs" are 57px and
+ * 50px of text, so left to size themselves the thing being moved would have to
+ * change width mid-slide.
+ *
+ * This was built on view transitions first, letting the browser morph a named
+ * element between two positions. It animated on every browser I could drive and
+ * on none that anyone was actually looking at, so it is plain CSS now: render
+ * where the indicator *was* for one frame, then move it, and the transition has
+ * a start and an end like any other.
+ */
+function SectionSwitch({ projectId, onDocs }: { projectId: string; onDocs: boolean }) {
+  const target: Section = onDocs ? 'docs' : 'board'
+  const [from, setFrom] = useState<Section | null>(() =>
+    lastSection && lastSection !== target ? lastSection : null,
+  )
+
+  useEffect(() => {
+    lastSection = target
+    if (!from) return
+    // Next frame, not this one: the browser has to paint the old position once
+    // for there to be anything to transition away from.
+    const frame = requestAnimationFrame(() => setFrom(null))
+    return () => cancelAnimationFrame(frame)
+  }, [target, from])
+
+  // Where it is drawn, which lags where it belongs by exactly one frame.
+  const at = from ?? target
+
+  return (
+    <nav
+      className="relative grid shrink-0 grid-cols-2 gap-0.5 rounded-control bg-sunken p-0.5"
+      aria-label="Project sections"
+    >
+      {/*
+        * One object that moves, rather than two taking turns being lit. The
+        * width is a segment: the rail's 2px padding on both sides plus the 2px
+        * gap leaves `calc(50% - 3px)` each, and moving by its own width plus
+        * the gap lands it exactly on the other one.
+        */}
+      <span
+        aria-hidden
+        className={`absolute inset-y-0.5 left-0.5 w-[calc(50%-3px)] rounded-control bg-surface shadow-card transition-transform duration-200 ease-out motion-reduce:transition-none ${
+          at === 'docs' ? 'translate-x-[calc(100%+2px)]' : 'translate-x-0'
+        }`}
+      />
+      {/* `aria-current` follows the real route, never the animation — the
+          indicator may be a frame behind, and a screen reader must not be. */}
+      <Tab to={`/projects/${projectId}`} active={!onDocs}>
+        Board
+      </Tab>
+      <Tab to={`/projects/${projectId}/docs`} active={onDocs}>
+        Docs
+      </Tab>
+    </nav>
+  )
+}
+
+/** A segment, not an underlined tab. */
 function Tab({ to, active, children }: { to: string; active: boolean; children: React.ReactNode }) {
   return (
     <Link
       to={to}
       aria-current={active ? 'page' : undefined}
-      className={`rounded-control px-2.5 py-1 text-sm transition-colors ${
-        active ? 'bg-surface font-medium text-ink shadow-card' : 'text-ink-muted hover:text-ink'
+      /*
+       * No background and no weight change of its own.
+       *
+       * The background belongs to the indicator behind it — two things drawing
+       * the selection would fight during the slide. The weight had to go for a
+       * duller reason: `font-medium` on whichever tab was active made that
+       * segment's text wider, so the rail itself changed size when you switched,
+       * and the indicator's travel did not match the gap between the tabs. It
+       * measured 60.4px of slide against a 59.4px pitch.
+       */
+      className={`relative z-10 rounded-control px-2.5 py-1 text-center text-sm transition-colors ${
+        active ? 'text-ink' : 'text-ink-muted hover:text-ink'
       }`}
     >
       {children}

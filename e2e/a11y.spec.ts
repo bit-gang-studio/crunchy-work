@@ -25,7 +25,25 @@ const WIDTHS = [
   { name: 'desktop', width: 1440, height: 900 },
 ]
 
+/**
+ * Scan settled UI, never mid-animation.
+ *
+ * Screens fade in when you switch section, so for 200ms every colour on them is
+ * being composited at partial opacity — and axe, measuring what is painted,
+ * quite correctly reports the lot as failing contrast. It flagged eight nodes
+ * on the board including plain ink on plain surface, which is the tell that the
+ * measurement rather than the palette was wrong.
+ *
+ * Waiting for animations to finish is not softening the gate: a contrast ratio
+ * is a property of the resting screen, and a fade that is still running has not
+ * shown the user anything to have an opinion about yet.
+ */
+async function settle(page: Page) {
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
+}
+
 async function scan(page: Page, context: string) {
+  await settle(page)
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze()
 
   /*
@@ -131,7 +149,8 @@ async function walkEveryScreen(
 
   // Menus and popovers are markup that only exists while open, so scanning
   // the closed page says nothing about them.
-  await page.getByRole('button', { name: 'Switch project' }).click()
+  // The project name is the switcher's trigger, so that is what opens it.
+  await page.getByRole('button', { name: 'A11y', exact: true }).click()
   await expect(page.getByTestId('project-switcher')).toBeVisible()
   await scan(page, `project switcher open · ${label}`)
   await page.keyboard.press('Escape')

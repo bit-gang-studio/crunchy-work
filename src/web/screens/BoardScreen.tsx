@@ -12,10 +12,13 @@ import { useLiveUpdates } from '../lib/useLiveUpdates'
 import { useRecentChanges } from '../lib/useRecentChanges'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { useShowCompleted, withoutCompleted } from '../lib/completedFilter'
+import { cacheProject, readCachedProject } from '../lib/projectCache'
 
 export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?: string }) {
   const navigate = useNavigate()
-  const [board, setBoard] = useState<ProjectDetail | null>(null)
+  // Start from the last read of this project if there is one, so switching
+  // section does not empty the screen for the length of a round trip.
+  const [board, setBoard] = useState<ProjectDetail | null>(() => readCachedProject(projectId))
   useDocumentTitle(board?.project.name)
   const [error, setError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -23,7 +26,9 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
 
   const load = useCallback(async () => {
     try {
-      setBoard(await api.getProject(projectId))
+      const next = await api.getProject(projectId)
+      cacheProject(next)
+      setBoard(next)
     } catch (e) {
       setError((e as Error).message)
     }
@@ -105,7 +110,13 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
       <Screen scroll="canvas">
         <div className="flex h-full flex-col">
           <ProjectHeader projectId={projectId} name="…" onChanged={() => void load()} />
-          <div className="min-h-0 flex-1">
+          {/* `screen-in` here too, and it matters more than it looks.
+              Arriving from Docs, this skeleton mounts for about 30ms before the
+              board lands — long enough to read as a bright flash between the
+              docs fading out and the board fading in. Fading it on the same
+              curve means it only ever reaches about 15% opacity before it is
+              replaced, so the flash never happens. */}
+          <div className="screen-in min-h-0 flex-1">
             {/* Column-shaped, so the board does not jump when it lands — which
                 now means content-height and top-aligned, matching the real
                 columns. A full-height skeleton would have been a shape the
@@ -115,7 +126,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
                 <div
                   key={i}
                   data-testid="column-skeleton"
-                  className="w-72 shrink-0 rounded-panel bg-sunken/80 p-2"
+                  className="w-72 shrink-0 rounded-panel bg-sunken p-2"
                 >
                   <Loading label="Loading board" rows={2} />
                 </div>
@@ -182,7 +193,10 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
           </div>
         )}
 
-        <div className="min-h-0 flex-1">
+        {/* `screen-in`: the board fades in when you arrive from Docs. On the
+            content only — the header is the one thing that does not change
+            between the two sections, so fading it would be a flicker. */}
+        <div className="screen-in min-h-0 flex-1">
           <KanbanBoard
             columns={visibleColumns}
             allColumns={board.columns}

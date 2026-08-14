@@ -8,18 +8,23 @@ import { ProjectHeader } from '../components/ProjectHeader'
 import { EmptyState, ErrorState, Loading } from '../components/States'
 import { useLiveUpdates } from '../lib/useLiveUpdates'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { cacheProject, readCachedProject } from '../lib/projectCache'
 
 /** A project's documents. The board read already carries them, so this is one call. */
 export function DocsScreen({ projectId }: { projectId: string }) {
   const navigate = useNavigate()
-  const [board, setBoard] = useState<ProjectDetail | null>(null)
+  // Start from the last read of this project if there is one, so switching
+  // section does not empty the screen for the length of a round trip.
+  const [board, setBoard] = useState<ProjectDetail | null>(() => readCachedProject(projectId))
   useDocumentTitle('Docs', board?.project.name)
   const [error, setError] = useState<string | null>(null)
   const [title, setTitle] = useState('')
 
   const load = useCallback(async () => {
     try {
-      setBoard(await api.getProject(projectId))
+      const next = await api.getProject(projectId)
+      cacheProject(next)
+      setBoard(next)
     } catch (e) {
       setError((e as Error).message)
     }
@@ -66,16 +71,31 @@ export function DocsScreen({ projectId }: { projectId: string }) {
   }
 
   return (
-    <Screen scroll="document">
-      <div className="flex min-h-full flex-col">
+    /*
+     * `canvas`, not `document`, so the scrollbar lives *below* the header
+     * instead of beside it.
+     *
+     * As a scrolling document this screen grew a page scrollbar the board did
+     * not have, so every right-aligned control in the project header — the
+     * section switch, the ⋯ menu — moved 15px left the moment you switched to
+     * Docs, and 15px back when you left. Always true; animating the section
+     * indicator is what finally made it visible, as a backwards jerk at the
+     * start of the slide. Scrolling the content and not the page fixes it at
+     * the cause, and the header now behaves the same way on both sections.
+     */
+    <Screen scroll="canvas">
+      <div className="flex h-full flex-col">
         <ProjectHeader
           projectId={projectId}
           name={board?.project.name ?? '…'}
           description={board?.project.description}
           onChanged={() => void load()}
         />
-        <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
-          {!board && <Loading label="Loading docs" rows={3} />}
+        {/* The scroller, and the thing that fades in on arrival. Content only,
+            not the header — that is identical either side of the switch. */}
+        <div className="screen-in min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
+            {!board && <Loading label="Loading docs" rows={3} />}
 
           {board?.docs.length === 0 && (
             <EmptyState
@@ -102,7 +122,8 @@ export function DocsScreen({ projectId }: { projectId: string }) {
             <button type="submit" className="rounded-card bg-accent px-4 py-2 text-sm font-medium text-accent-ink">
               Create
             </button>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
     </Screen>

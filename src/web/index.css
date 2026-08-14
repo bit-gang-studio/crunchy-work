@@ -53,15 +53,28 @@
    * off white so a card can be *actually* white and read as lifted, and every
    * step is near-neutral so the only colour on screen is colour we put there.
    */
-  --color-canvas: #f7f7f8;
+  /*
+   * The ladder was too tight to read as separate planes: measured, a card on a
+   * column body was **1.138:1** and each neighbouring step about 1.06. The
+   * borders were carrying the structure and the grounds were barely helping —
+   * an edge gave 1.19 against the column where the fill gave 1.06, so objects
+   * were delimited rather than *stacked*. Widened so each step is ~1.10 and a
+   * card clears its column at **1.21**.
+   *
+   * Nothing here is measurable by the axe gate. WCAG's non-text rule is about
+   * component boundaries, not about whether two adjacent surfaces read as
+   * different planes, so this stayed green through every scan while being
+   * wrong. Same class of problem as the oklch one: the gate cannot see it.
+   */
+  --color-canvas: #f4f4f6;
   /** Cards, panels, menus, dialogs — anything you read content off. */
   --color-surface: #ffffff;
   /** Wells that sit *into* the page: column bodies, inset areas. */
-  --color-sunken: #f0f0f2;
+  --color-sunken: #e9e9ec;
   /** A pointer resting on something interactive. */
   --color-hover: #f2f2f4;
   /** The same, over a sunken area, where `hover` would not read. */
-  --color-hover-strong: #e7e7ea;
+  --color-hover-strong: #dcdce0;
 
   /* ── Lines ──────────────────────────────────────────────────────────── */
   /* Low-alpha black, mirroring dark's low-alpha white: a line is the surface
@@ -82,7 +95,7 @@
    */
   --color-ink: #1a1b1e; /* 17.2:1 on surface */
   --color-ink-muted: #4e5157; /* 8.0:1 */
-  --color-ink-faint: #656971; /* 5.5:1 on surface, 4.8:1 on a sunken card */
+  --color-ink-faint: #5d616a; /* 6.2:1 on surface, 4.5:1 on a hovered sunken row */
   --color-ink-inverse: #ffffff;
 
   /*
@@ -192,11 +205,22 @@
    * the medium; hierarchy comes from white at different opacities, not from
    * tinting the greys.
    */
+  /*
+   * Dark was the worse of the two: a card on a column body measured **1.042:1**
+   * — functionally no separation at all, the card visible only because it has a
+   * hairline. Canvas cannot move down (it is already a hair off black, on
+   * purpose), so the whole ladder above it lifts instead. A card now clears its
+   * column at ~1.16 and every step is ~1.09.
+   *
+   * Lifting the grounds spends contrast the ink was living on, so `ink-faint`
+   * moves with them — that is the binding constraint in this palette and always
+   * has been. Solve faint against the worst ground it lands on, then the rest.
+   */
   --color-canvas: #08090a;
-  --color-sunken: #0f1011;
-  --color-surface: #141516;
-  --color-hover: #1c1d1f;
-  --color-hover-strong: #23252a;
+  --color-sunken: #131415;
+  --color-surface: #202226;
+  --color-hover: #272a2e;
+  --color-hover-strong: #2f3339;
 
   /*
    * Borders as low-alpha white, not opaque grey.
@@ -232,7 +256,7 @@
    */
   --color-ink: #f7f8f8; /* 17.3:1 on surface */
   --color-ink-muted: #c2c6cc; /* 11.0:1 */
-  --color-ink-faint: #8a8f98; /* 5.6:1 on surface, 5.2:1 on a hovered row */
+  --color-ink-faint: #9aa0a8; /* 6.0:1 on surface, 4.8:1 on a hovered sunken row */
   --color-ink-inverse: #08090a;
 
   /*
@@ -334,6 +358,145 @@
 
 :root[data-theme='dark'] .project-progress {
   background-color: oklch(0.74 0.15 var(--project-hue));
+}
+
+/*
+ * Changing theme cross-fades. Nothing else does.
+ *
+ * Every colour in the app already resolves through a role token, so switching
+ * palettes repaints the entire page in one frame — a hard cut from near-white
+ * to near-black across every surface at once, which reads as a glitch rather
+ * than as a setting taking effect.
+ *
+ * The class is added by `applyTheme` for exactly the length of the change and
+ * then removed, which is why this can afford `!important` and the universal
+ * selector: for 220ms it deliberately outranks the per-component
+ * `transition-colors` durations, so the whole page moves as one thing instead
+ * of arriving in waves at 75ms, 120ms and 150ms. Outside that window the
+ * selector matches nothing at all.
+ *
+ * Only paint properties are listed. Transitioning `all` here would also animate
+ * geometry — and a lifted card's transform is measured the instant you pick it
+ * up.
+ */
+/*
+ * The theme change cross-fades the whole page as one image, via a view
+ * transition — not by putting a CSS transition on every element.
+ *
+ * The per-element approach was tried and measured, and it cannot deliver what
+ * this needs. Handing an element a `transition-property` in the same style
+ * recalculation that changes its colour makes the browser cancel and re-create
+ * the transition every frame: 110 `transitioncancel` events across one 220ms
+ * fade on the board, 160 on the projects list. Elements that happened to carry
+ * a `transition-colors` utility of their own were fine, because their property
+ * list was already stable, and elements that did not crawled a tenth of the way
+ * and then jumped — side by side, which is what "the description is out of sync
+ * with the title" and "the New Project button lags" both were.
+ *
+ * A view transition sidesteps the whole problem by not being a per-element
+ * animation at all. The browser snapshots the page before and after and
+ * cross-fades the two, so every colour on screen is at the same point of the
+ * same curve by construction, whatever any element's own transition says.
+ *
+ * Where it is unsupported the theme simply changes, which is what it did before
+ * any of this existed.
+ */
+/*
+ * Every group, not just `root`, and the group alongside old and new.
+ *
+ * `root` is only one of the names in play — the segmented controls each hand
+ * their indicator its own `view-transition-name` so the browser morphs it
+ * between two positions instead of cross-fading it, which is what makes the
+ * selection *slide*. The wildcard means anything named later joins the same
+ * clock rather than quietly running at the browser's default.
+ *
+ * And the group matters: it carries the browser's own default of 250ms, so
+ * omitting it builds the fade out of two clocks that disagree by 30ms — the
+ * exact class of thing this whole mechanism exists to remove.
+ */
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+ * And nothing else animates while it runs.
+ *
+ * Components carry their own `transition-colors` for hover, at Tailwind's
+ * 150ms — 65 of them started on the board the moment the palette changed. They
+ * are invisible under the cross-fade but they finish 70ms before it does and
+ * then the live page shows through, so the fade ended with a small pop. Killing
+ * them for the duration leaves exactly one animation on screen: the one that
+ * fades everything together.
+ *
+ * Setting `transition: none` has none of the arming problem that setting a
+ * transition *on* had — there is no animation to cancel and restart.
+ */
+.theme-shifting *,
+.theme-shifting *::before,
+.theme-shifting *::after {
+  /*
+   * Colour transitions only. `transform` survives because it is not what fights
+   * the cross-fade — a segmented control's indicator sliding to the choice you
+   * just clicked is the *same* gesture, and killing it here made the theme
+   * button snap while its palette faded.
+   */
+  transition-property: transform !important;
+}
+
+/*
+ * The board and the docs fade in when you switch section.
+ *
+ * A plain animation on mount, not a view transition. The view-transition
+ * version worked in every browser I could drive and in none that anyone was
+ * actually looking at, which is a good enough reason on its own; it also left
+ * no fallback at all where the API is missing. Screens already remount on a
+ * section change, so mounting is the trigger and there is nothing to
+ * coordinate.
+ *
+ * It is a fade *in* rather than a true cross-fade: holding both screens mounted
+ * to dissolve between them costs a second board's worth of layout, for two
+ * frames nobody sees.
+ */
+@keyframes screen-in {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * From 0.55, not from 0.
+ *
+ * The outgoing screen is gone the instant the new one mounts — there is no
+ * second tree still on screen to dissolve against — so a fade that starts at
+ * zero spends its first frames showing the page's own background through the
+ * content. That reads as a blink, which is the same complaint as the flash it
+ * replaced, one shade paler. Starting past halfway means the new screen is
+ * legible from the first frame and the movement is a settle rather than an
+ * arrival.
+ */
+.screen-in {
+  animation: screen-in 180ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-in {
+    animation: none;
+  }
+}
+
+/* A cross-fade is a nicety; someone who has asked for less motion gets the cut. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 /*

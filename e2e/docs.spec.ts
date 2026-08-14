@@ -207,6 +207,13 @@ test.describe('docs', () => {
     await page.getByTestId('project-tile').filter({ hasText: 'Doc order' }).click()
     await page.getByRole('link', { name: 'Docs' }).click()
 
+    // Wait for the URL before reading it. Switching section runs inside a view
+    // transition so the board and the docs cross-fade, and the navigation
+    // happens in that transition's callback — a frame after the click, not
+    // during it. Reading `page.url()` straight after the click returned the
+    // board, and every doc below was then created against the wrong page.
+    await expect(page).toHaveURL(/\/docs$/)
+
     // Creating opens the new doc, so come back to the list between each.
     const list = page.url()
     for (const title of ['Brief', 'Notes', 'Decisions']) {

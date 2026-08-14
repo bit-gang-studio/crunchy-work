@@ -238,7 +238,21 @@ function Column({
       // always exactly as tall as its contents until it runs out of room —
       // which is also the size it takes in the drag overlay, so picking one up
       // no longer changes its shape.
-      className={`flex max-h-full w-72 shrink-0 snap-start flex-col rounded-panel bg-sunken/80 p-2 ${
+      // Flat `bg-sunken`, not `bg-sunken/80`, and the opacity mattered for two
+      // reasons that have nothing to do with how it looked.
+      //
+      // Tailwind v4 compiles an opacity modifier to `color-mix(in oklab, …)`,
+      // and a transition between two `color-mix` values interpolates in oklab
+      // while a transition between two plain colours interpolates in sRGB. The
+      // theme cross-fade therefore ran the columns along a different curve from
+      // the header above them — same start, same end, but up to **4.4
+      // percentage points** ahead through the middle, which is visible as the
+      // largest surface on screen sliding out of step with everything else.
+      //
+      // It also made the token lie: the ground actually painted here was sunken
+      // blended 80% over canvas, so the palette's canvas→sunken step was never
+      // the value the tokens said it was.
+      className={`flex max-h-full w-72 shrink-0 snap-start flex-col rounded-panel bg-sunken p-2 ${
         isDragging ? 'opacity-25' : ''
       }`}
       data-testid="column"
