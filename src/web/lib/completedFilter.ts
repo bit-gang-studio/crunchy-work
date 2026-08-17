@@ -32,7 +32,7 @@ export function withoutCompleted(columns: ColumnWithCards[]): {
  * being able to hide them at all.
  *
  * A *view* filter only. It never touches what the API returns or what an agent
- * sees over MCP, so `get_board` still reports the whole board and a card hidden
+ * sees over MCP, so `get_project` still reports the whole board and a card hidden
  * here is not a card anyone else has lost.
  */
 export function useShowCompleted(): [boolean, (next: boolean) => void] {

@@ -73,9 +73,22 @@ export function shouldAnimateShift(previous: string | undefined, next: Theme): b
   return previous === 'light' || previous === 'dark' ? previous !== next : false
 }
 
-/** Chrome, Edge and Safari have this; where it is missing the theme just changes. */
+/**
+ * Chrome, Edge and Safari have this; where it is missing the theme just changes.
+ *
+ * `ready` is declared even though nothing here awaits it, because it is a
+ * promise the browser *rejects*: skip a transition — toggle twice before the
+ * first finishes, or change theme on a hidden tab — and it rejects with
+ * `AbortError: Transition was skipped`. Handling only `finished` leaves that
+ * rejection unhandled, which surfaces as a console error on an ordinary click
+ * and would page anyone who later wires up error reporting. Typing it is what
+ * makes it possible to attach a handler at all.
+ */
 type WithViewTransition = Document & {
-  startViewTransition?: (update: () => void) => { finished: Promise<void> }
+  startViewTransition?: (update: () => void) => {
+    finished: Promise<void>
+    ready: Promise<void>
+  }
 }
 
 /**
@@ -133,6 +146,15 @@ export function applyTheme(theme: Theme) {
 
   const done = () => root.classList.remove(THEME_SHIFT_CLASS)
   transition.finished.then(done, done)
+
+  /*
+   * A skipped transition rejects `ready`, and a rejection nobody catches is a
+   * console error on a button press. Skipping is normal, not exceptional — a
+   * second toggle before the first settles is the obvious way to reach it — so
+   * this is swallowed rather than reported. `finished` above still resolves and
+   * still takes the class off, which is the part that matters.
+   */
+  transition.ready.catch(() => {})
 }
 
 export function useTheme() {
