@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { THEME_SHIFT_MS } from '../src/web/lib/theme'
 
 /**
  * Dark mode's mechanism, in the only place the facts are observable.
@@ -61,11 +62,11 @@ test.describe('theme', () => {
    * recalculation that changes its colour makes the browser cancel and restart
    * that transition every frame, so anything without a `transition-colors`
    * utility of its own crawled while its neighbours faded. The second because
-   * the components' own 150ms hover transitions finish before a 220ms
+   * the components' own 150ms hover transitions finish before a 250ms
    * cross-fade does, and the live page showing through at the end is a pop.
    *
    * Sampled inside one evaluate rather than asserted across awaits: the window
-   * being measured is 220ms wide, which is not something to race a poller on.
+   * being measured is 250ms wide, which is not something to race a poller on.
    */
   test('the whole page cross-fades as one animation, and alone', async ({ browser }) => {
     const context = await browser.newContext({ colorScheme: 'light' })
@@ -116,7 +117,11 @@ test.describe('theme', () => {
     expect(shift.colourTransitions).toBe(0)
     expect(shift.cancelled).toBe(0)
     expect(shift.suppressing).toBe(true)
-    expect(shift.durations).toEqual([220])
+    // Read from the source rather than pinned to a number here: the
+    // duration lives in two places that have to agree (this animation and
+    // `THEME_SHIFT_MS`), and hard-coding a third copy in the test means a
+    // change to the timing fails the gate for the wrong reason.
+    expect(shift.durations).toEqual([THEME_SHIFT_MS])
 
     // ...and the suppression lifts, so hovers animate normally again after.
     await expect(html).not.toHaveClass(/theme-shifting/)

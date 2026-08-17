@@ -74,7 +74,7 @@ export function ThemeToggle() {
         */}
       <span
         aria-hidden
-        className="absolute left-0.5 top-0.5 h-6 w-6 rounded-control bg-surface shadow-card transition-transform duration-200 ease-out motion-reduce:transition-none"
+        className="absolute left-0.5 top-0.5 h-6 w-6 rounded-control bg-surface shadow-card transition-transform duration-[250ms] ease-out motion-reduce:transition-none"
         style={{ transform: `translateX(${index * STEP_PX}px)` }}
       />
       {CHOICES.map((option) => (

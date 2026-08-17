@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 
 /**
  * How long the control takes to grow in or fade out. Kept beside the class that
- * sets it — `duration-200` below — because the two have to agree: unmount early
+ * sets it — the `filter-out` keyframes — because the two have to agree: unmount early
  * and the exit is cut off, unmount late and the slot sits empty for a beat.
  */
-const EXIT_MS = 200
+const EXIT_MS = 250
 
 /**
  * What the last render of this control left on screen, and whether there has
@@ -203,8 +203,21 @@ export function CompletedFilter({
           >
             ✓
           </span>
-          {/* Tabular figures, so 1 → 2 digits does not nudge the word beside it. */}
-          <span className="tabular-nums">{label} done</span>
+          {/*
+            * Tabular figures, so 1 → 2 digits does not nudge the word beside
+            * it — and a shade under a pixel up, because `items-center` centres
+            * the line box rather than the letters.
+            *
+            * Measured: the box spans 72–86 and the ink of "1 done" spans 75–84,
+            * so there is 3px of box above the letters and 2px below and the
+            * label reads low. That is not a mistake in the flexbox — the line
+            * box is symmetric, the *ink* inside it is not, because 12px text
+            * with no descenders leaves the space under the baseline unused.
+            * Anything that centres a fixed-size box against a text label has
+            * this; it is only visible here because the box is small enough for
+            * half a pixel to be a fifteenth of it.
+            */}
+          <span className="relative -top-[0.8px] tabular-nums">{label} done</span>
         </button>
       )}
     </div>

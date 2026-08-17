@@ -10,7 +10,7 @@ import { countCompleted, useShowCompleted } from '../lib/completedFilter'
 import { cacheProject, readCachedProject } from '../lib/projectCache'
 
 /** Matches `.screen-veil` in index.css. The two have to agree. */
-const VEIL_MS = 180
+const VEIL_MS = 250
 
 export interface ProjectContext {
   board: ProjectDetail | null

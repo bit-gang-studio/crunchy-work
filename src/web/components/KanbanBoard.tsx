@@ -427,10 +427,16 @@ function CardView({
       <div className="flex items-start gap-2">
         {/* Always shown — in the drag preview there's no handler, so it renders display-only
             (visible but not clickable) rather than vanishing mid-drag. */}
+        {/* Placed by hand: `items-start` puts both at the top of the row, so
+            the tick has to be pushed down to the title's optical centre. Half
+            the leading — (20 − 16)/2 = 2px — centres the *line box*, which sits
+            higher than the letters and read low. Measured, the midpoint between
+            the title's cap-height and x-height bands wants 3.25px; by eye that
+            sat a shade high, and 2.75px is where it settled. */}
         <CompleteToggle
           completed={card.completed}
           onToggle={onToggleComplete ? () => void onToggleComplete(card.id, !card.completed) : undefined}
-          className="mt-0.5"
+          className="mt-[2.75px]"
         />
         {/*
           * The title is the card's one real control: it opens the card, it is

@@ -134,10 +134,15 @@ export function CardDetail({
         {card && (
           <div className="flex flex-1 flex-col gap-5 p-4">
             <div className="flex items-start gap-3">
+              {/* `mt-[12px]`. Two things stack here: the title is a textarea
+                  with 4px of its own padding, and the target is the 18px
+                  title's optical centre rather than its line box. Half the
+                  leading — (28 − 16)/2 = 6px — was the whole calculation
+                  before, and left the tick well high of the words. */}
               <CompleteToggle
                 completed={card.completed}
                 onToggle={() => void commit({ completed: !card.completed })}
-                className="mt-1.5"
+                className="mt-[12px]"
               />
               <AutoGrowTextarea
                 value={card.title}

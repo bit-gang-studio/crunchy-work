@@ -54,7 +54,7 @@ function writeChoice(choice: ThemeChoice) {
 }
 
 /** How long the cross-fade runs. The value itself lives in `index.css`. */
-export const THEME_SHIFT_MS = 220
+export const THEME_SHIFT_MS = 250
 
 /** Silences every component's own colour transition while the cross-fade runs. */
 export const THEME_SHIFT_CLASS = 'theme-shifting'

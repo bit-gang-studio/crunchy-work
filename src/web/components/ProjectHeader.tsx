@@ -395,7 +395,7 @@ function SectionSwitch({ projectId, onDocs }: { projectId: string; onDocs: boole
         */}
       <span
         aria-hidden
-        className={`absolute inset-y-0.5 left-0.5 w-[calc(50%-3px)] rounded-control bg-surface shadow-card transition-transform duration-200 ease-out motion-reduce:transition-none ${
+        className={`absolute inset-y-0.5 left-0.5 w-[calc(50%-3px)] rounded-control bg-surface shadow-card transition-transform duration-[250ms] ease-out motion-reduce:transition-none ${
           at === 'docs' ? 'translate-x-[calc(100%+2px)]' : 'translate-x-0'
         }`}
       />
