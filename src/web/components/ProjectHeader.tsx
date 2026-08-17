@@ -31,6 +31,7 @@ export function ProjectHeader({
   completedCount = 0,
   showCompleted = false,
   onShowCompleted,
+  animateFilterEntrance = true,
 }: {
   projectId: string
   name: string
@@ -56,6 +57,8 @@ export function ProjectHeader({
   completedCount?: number
   showCompleted?: boolean
   onShowCompleted?: (next: boolean) => void
+  /** False while the board is arriving for the first time — see `ProjectLayout`. */
+  animateFilterEntrance?: boolean
 }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -194,6 +197,7 @@ export function ProjectHeader({
             showing={showCompleted}
             count={completedCount}
             onChange={onShowCompleted}
+            animateEntrance={animateFilterEntrance}
           />
 
           <SectionSwitch projectId={projectId} onDocs={onDocs} />

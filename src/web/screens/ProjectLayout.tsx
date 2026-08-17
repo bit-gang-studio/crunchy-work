@@ -92,6 +92,22 @@ export function ProjectLayout() {
 
   const [recentlyChanged, markLocalChange] = useRecentChanges(board)
 
+  /*
+   * Whether there was a board *before* this render.
+   *
+   * The completed filter appears when the count goes from nothing to something,
+   * and that happens for two very different reasons: the board arriving on a
+   * cold load, and you ticking the first card. The first should simply be
+   * there — you did nothing, so nothing should announce itself — and the second
+   * should fade. Only this component can tell them apart, and only by
+   * remembering the previous render.
+   */
+  const hadBoard = useRef(false)
+  const animateEntrance = hadBoard.current
+  useEffect(() => {
+    if (board) hadBoard.current = true
+  }, [board])
+
   if (error) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-12">
@@ -112,6 +128,7 @@ export function ProjectLayout() {
         completedCount={onDocs ? 0 : countCompleted(board?.columns ?? [])}
         showCompleted={showCompleted}
         onShowCompleted={setShowCompleted}
+        animateFilterEntrance={animateEntrance}
       />
       <ContentFade transitionKey={onDocs ? 'docs' : 'board'}>
         <Outlet

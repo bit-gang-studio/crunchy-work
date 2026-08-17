@@ -112,12 +112,20 @@ export function CompletedFilter({
   showing,
   count,
   onChange,
+  animateEntrance = true,
 }: {
   showing: boolean
   /** How many cards are ticked — the same number whether or not they show. */
   count: number
   /** Absent on a screen that has no board to filter, which is how Docs renders. */
   onChange?: (next: boolean) => void
+  /**
+   * Whether this appearance is a change or simply the first sight of it.
+   *
+   * False while the board is arriving for the first time, so a load is correct
+   * rather than performed; true once there is a board to have changed.
+   */
+  animateEntrance?: boolean
 }) {
   /*
    * The number on the face, which lags on the way out so the control does not
@@ -147,6 +155,42 @@ export function CompletedFilter({
   if (label === 0) return null
 
   return (
+    <FilterPill
+      showing={showing}
+      label={label}
+      leaving={leaving}
+      onChange={onChange}
+      animateEntrance={animateEntrance}
+    />
+  )
+}
+
+/**
+ * The visible control, split out for one reason: it mounts and unmounts with
+ * each appearance, and `CompletedFilter` does not.
+ *
+ * That matters because the entrance has to be decided *once*, when the control
+ * appears, and then left alone — `useState`'s initialiser only runs at mount,
+ * so it has to be a component whose mount coincides with the thing being
+ * decided. Put it a level up, where the parent stays mounted and merely returns
+ * `null`, and the first decision would stick for the life of the page.
+ */
+function FilterPill({
+  showing,
+  label,
+  leaving,
+  onChange,
+  animateEntrance,
+}: {
+  showing: boolean
+  label: number
+  leaving: boolean
+  onChange?: (next: boolean) => void
+  animateEntrance: boolean
+}) {
+  const [entrance] = useState(() => (animateEntrance ? 'filter-in' : ''))
+
+  return (
     <div
       /*
        * **Opacity only. The width is not animated.**
@@ -161,7 +205,22 @@ export function CompletedFilter({
        * a slide is just a slide — and next to a header that now stays perfectly
        * still, it read as the one thing fidgeting. So it fades in place.
        */
-      className={`shrink-0 ${leaving ? 'filter-out pointer-events-none' : 'filter-in'}`}
+      /*
+       * **The entrance is decided once, at mount, and never re-evaluated.**
+       *
+       * Opening a board that already has ticked cards must show the control
+       * rather than perform it arriving — you did not do anything, so nothing
+       * announced itself. But ticking the first card *is* something you did,
+       * and that should fade.
+       *
+       * The two are indistinguishable from inside this component: both are the
+       * count going from nothing to something. `entrance` therefore comes from
+       * the layout, which knows whether it had a board before this render, and
+       * is frozen in a `useState` initialiser — recomputing it on a later
+       * render would restart the animation while the control was already on
+       * screen, which is worse than either behaviour.
+       */
+      className={`shrink-0 ${leaving ? 'filter-out pointer-events-none' : entrance}`}
     >
       {/* `aria-hidden` while leaving: for those 200ms it is a switch on its way
           out, and on Docs it is a board control on a screen with no board. It
