@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
+import { CompletedFilter } from './CompletedFilter'
 import { ConfirmButton } from './ConfirmButton'
 import { ProjectSwitcher } from './ProjectSwitcher'
 import { ThemeToggle } from './ThemeToggle'
@@ -27,7 +28,9 @@ export function ProjectHeader({
   name,
   description = '',
   onChanged,
-  actions,
+  completedCount = 0,
+  showCompleted = false,
+  onShowCompleted,
 }: {
   projectId: string
   name: string
@@ -39,8 +42,20 @@ export function ProjectHeader({
   description?: string
   /** Optional: live updates will catch a rename anyway, this just makes it instant. */
   onChanged?: () => void
-  /** Board-scoped controls, rendered at the trailing edge of the tabs row. */
-  actions?: React.ReactNode
+  /**
+   * The completed filter's state, from the screen that has a board.
+   *
+   * These were a generic `actions?: React.ReactNode` slot, filled by
+   * `BoardScreen`. That could not work: Docs passed nothing, so on Docs the
+   * control did not exist to *leave*, and it vanished on the first frame of the
+   * section switch. A control cannot animate out of a screen that never rendered
+   * it. The header owns it now, and a screen without a board simply omits the
+   * props — the header still renders the control, at zero, which is what gives
+   * it something to fade.
+   */
+  completedCount?: number
+  showCompleted?: boolean
+  onShowCompleted?: (next: boolean) => void
 }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -144,18 +159,44 @@ export function ProjectHeader({
 
         {/*
           * Everything that acts on this screen, in one cluster at the trailing
-          * edge: which section you are looking at, what is filtered out of it,
-          * and the project's own menu.
+          * edge: what is filtered out of this screen, which section you are
+          * looking at, and the project's own menu.
           *
           * The tabs used to have a row to themselves, which is a third of this
           * header's height spent on a two-item switch. As a segmented control
           * they are the same object the theme toggle already is, and they sit
           * where controls sit.
+          *
+          * **The filter comes first, and that ordering is load-bearing.** The
+          * cluster is `ml-auto`, so its right edge is pinned and its left edge
+          * is the one that moves. Anything in here that changes width therefore
+          * has to be the leading member: it grows into empty slack and
+          * everything to its right keeps its position. Put the variable thing
+          * in the middle and it shoves its neighbours instead.
+          *
+          * Measured, because it was wrong. With the completed filter between
+          * the tabs and the menu, the tabs sat at x=1257 on an empty board and
+          * x=1165 with one card ticked — and at 1257 again on Docs, which does
+          * not render the filter at all. So they jumped 92px every time you
+          * ticked a card *and* 92px every time you switched section. The
+          * section switch was the worse of the two: it is the thing you do
+          * constantly, and the header is rebuilt per screen (see `lastSection`)
+          * so that jump had nothing to animate it and simply snapped.
+          *
+          * The rule generalises to whatever goes into `actions` next, and
+          * `board.spec.ts` asserts the tabs' x rather than trusting this
+          * comment — the ordering is a one-line thing to undo while tidying.
           */}
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <SectionSwitch projectId={projectId} onDocs={onDocs} />
+          {/* Rendered on every screen, including the ones with no board — see
+              the prop docs. At zero it is a collapsed, empty wrapper. */}
+          <CompletedFilter
+            showing={showCompleted}
+            count={completedCount}
+            onChange={onShowCompleted}
+          />
 
-          {actions}
+          <SectionSwitch projectId={projectId} onDocs={onDocs} />
 
           <div className="relative shrink-0" ref={menuRef}>
           <button

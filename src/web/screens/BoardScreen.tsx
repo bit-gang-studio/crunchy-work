@@ -1,48 +1,33 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import type { ProjectDetail } from '../../shared/types'
 import { api } from '../lib/api'
-import { Screen } from '../components/Screen'
 import { KanbanBoard } from '../components/KanbanBoard'
 import { CardDetail } from '../components/CardDetail'
-import { ProjectHeader } from '../components/ProjectHeader'
-import { CompletedFilter } from '../components/CompletedFilter'
-import { ErrorState, Loading } from '../components/States'
-import { useLiveUpdates } from '../lib/useLiveUpdates'
-import { useRecentChanges } from '../lib/useRecentChanges'
+import { Loading } from '../components/States'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
-import { useShowCompleted, withoutCompleted } from '../lib/completedFilter'
-import { cacheProject, readCachedProject } from '../lib/projectCache'
+import { withoutCompleted } from '../lib/completedFilter'
+import { useProject } from './ProjectLayout'
 
-export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?: string }) {
+/**
+ * The board, and nothing else.
+ *
+ * The project read, the live-update subscription, the header and the completed
+ * filter all used to live here and are now `ProjectLayout`'s — see the note
+ * there. What is left is the one thing only this screen does.
+ */
+export function BoardScreen() {
   const navigate = useNavigate()
-  // Start from the last read of this project if there is one, so switching
-  // section does not empty the screen for the length of a round trip.
-  const [board, setBoard] = useState<ProjectDetail | null>(() => readCachedProject(projectId))
+  const { projectId, cardId } = useParams() as { projectId: string; cardId?: string }
+  const {
+    board,
+    reload: load,
+    recentlyChanged,
+    markLocalChange,
+    showCompleted,
+    setDragging,
+    patchBoard,
+  } = useProject()
   useDocumentTitle(board?.project.name)
-  const [error, setError] = useState<string | null>(null)
-  const [dragging, setDragging] = useState(false)
-  const [showCompleted, setShowCompleted] = useShowCompleted()
-
-  const load = useCallback(async () => {
-    try {
-      const next = await api.getProject(projectId)
-      cacheProject(next)
-      setBoard(next)
-    } catch (e) {
-      setError((e as Error).message)
-    }
-  }, [projectId])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  // Cards appear as the agent writes them; held while a drag is in flight.
-  useLiveUpdates(() => void load(), { paused: dragging })
-
-  // …and the ones that just arrived say so, briefly.
-  const recentlyChanged = useRecentChanges(board)
 
   /**
    * Moves are applied optimistically: the drag engine already resolved the exact
@@ -51,7 +36,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
    * snap back to its old position for the length of a round trip.
    */
   async function onMove(cardId: string, toColumnId: string, rank: string) {
-    setBoard((prev) => (prev ? applyMove(prev, cardId, toColumnId, rank) : prev))
+    patchBoard((prev) => applyMove(prev, cardId, toColumnId, rank))
     try {
       await api.moveCard(cardId, { columnId: toColumnId, rank })
     } finally {
@@ -66,107 +51,60 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
   }
 
   async function onToggleComplete(cardId: string, completed: boolean) {
-    setBoard((prev) =>
-      prev
-        ? {
-            ...prev,
-            columns: prev.columns.map((c) => ({
-              ...c,
-              cards: c.cards.map((k) => (k.id === cardId ? { ...k, completed } : k)),
-            })),
-          }
-        : prev,
-    )
+    // Before the optimistic update, or the diff it causes marks the card as a
+    // change you did not make. You just clicked it.
+    markLocalChange(cardId)
+    patchBoard((prev) => ({
+      ...prev,
+      columns: prev.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((k) => (k.id === cardId ? { ...k, completed } : k)),
+      })),
+    }))
     await api.updateCard(cardId, { completed })
     await load()
   }
 
-  if (error) {
-    return (
-      <Screen scroll="document">
-        <div className="mx-auto max-w-2xl px-6 py-12">
-          <ErrorState message={error} retry={() => void load()} backTo="/" />
-        </div>
-      </Screen>
-    )
-  }
-
   if (!board) {
     /*
-     * The same shell as the loaded board, not a bare skeleton.
+     * Column-shaped, so the board does not jump when it lands.
      *
-     * This used to return columns on their own, with no project header — so the
-     * whole board sat under the app header while loading and then dropped by the
-     * header's full height the moment the data landed. A column-shaped skeleton
-     * was carefully avoiding a jump of a few pixels inside a jump of about a
-     * hundred and twenty.
-     *
-     * The docs screens already had this right: render the header immediately
-     * with a placeholder name, because the one thing known before the fetch
-     * returns is that a header is going to be there. Guarded by an e2e
-     * assertion that the first column's top does not move across the load.
+     * The header is the layout's now and is already on screen, which is what
+     * this used to be careful about: the skeleton once rendered without one, so
+     * the whole board dropped by the header's height the instant data arrived —
+     * a few pixels of care nested inside a hundred-pixel jump. It cannot happen
+     * any more, because the header is not this screen's to omit.
      */
     return (
-      <Screen scroll="canvas">
-        <div className="flex h-full flex-col">
-          <ProjectHeader projectId={projectId} name="…" onChanged={() => void load()} />
-          {/* `screen-in` here too, and it matters more than it looks.
-              Arriving from Docs, this skeleton mounts for about 30ms before the
-              board lands — long enough to read as a bright flash between the
-              docs fading out and the board fading in. Fading it on the same
-              curve means it only ever reaches about 15% opacity before it is
-              replaced, so the flash never happens. */}
-          <div className="screen-in min-h-0 flex-1">
-            {/* Column-shaped, so the board does not jump when it lands — which
-                now means content-height and top-aligned, matching the real
-                columns. A full-height skeleton would have been a shape the
-                loaded board no longer takes. */}
-            <div className="flex h-full items-start gap-4 px-4 py-4 md:px-6 md:py-6">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  data-testid="column-skeleton"
-                  className="w-72 shrink-0 rounded-panel bg-sunken p-2"
-                >
-                  <Loading label="Loading board" rows={2} />
-                </div>
-              ))}
+      <div className="absolute inset-0">
+        <div className="flex h-full items-start gap-4 px-4 py-4 md:px-6 md:py-6">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              data-testid="column-skeleton"
+              className="w-72 shrink-0 rounded-panel bg-sunken p-2"
+            >
+              <Loading label="Loading board" rows={2} />
             </div>
-          </div>
+          ))}
         </div>
-      </Screen>
+      </div>
     )
   }
 
-  const cardCount = board.columns.reduce((n, column) => n + column.cards.length, 0)
   /*
    * The board renders the filtered set and resolves ranks against the whole
    * one. Dropping above the first *visible* card must not reuse a key a hidden
    * card already holds — `useKanbanDnd` has taken both sets since it was
    * written, and this is the first caller to actually give it two.
    */
-  const { columns: visibleColumns, hidden } = showCompleted
-    ? { columns: board.columns, hidden: 0 }
+  const { columns: visibleColumns } = showCompleted
+    ? { columns: board.columns }
     : withoutCompleted(board.columns)
 
   return (
-    <Screen scroll="canvas">
-      <div className="flex h-full flex-col">
-        <ProjectHeader
-          projectId={projectId}
-          name={board.project.name}
-          description={board.project.description}
-          onChanged={() => void load()}
-          actions={
-            cardCount > 0 && (
-              <CompletedFilter
-                showing={showCompleted}
-                hidden={hidden}
-                onChange={setShowCompleted}
-              />
-            )
-          }
-        />
+    <>
+      <div className="absolute inset-0 flex flex-col">
         {/*
           * Nothing here for an empty board, deliberately.
           *
@@ -182,10 +120,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
           * empty board, which is the only thing it was ever entitled to say.
           */}
 
-        {/* `screen-in`: the board fades in when you arrive from Docs. On the
-            content only — the header is the one thing that does not change
-            between the two sections, so fading it would be a flicker. */}
-        <div className="screen-in min-h-0 flex-1">
+        <div className="min-h-0 flex-1">
           <KanbanBoard
             columns={visibleColumns}
             allColumns={board.columns}
@@ -210,8 +145,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
             onMoveColumn={async (columnId, index) => {
               // Optimistic, like a card move: a column that snaps back for a
               // round trip reads as a failed drag.
-              setBoard((prev) => {
-                if (!prev) return prev
+              patchBoard((prev) => {
                 const from = prev.columns.findIndex((c) => c.id === columnId)
                 if (from < 0) return prev
                 const next = [...prev.columns]
@@ -233,7 +167,7 @@ export function BoardScreen({ projectId, cardId }: { projectId: string; cardId?:
           onChanged={() => void load()}
         />
       )}
-    </Screen>
+    </>
   )
 }
 

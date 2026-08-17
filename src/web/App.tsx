@@ -1,8 +1,16 @@
-import { BrowserRouter, Link, Route, Routes, useMatch, useParams } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Link,
+  Route,
+  Routes,
+  useMatch,
+  useParams,
+} from 'react-router-dom'
 import { ProjectsScreen } from './screens/ProjectsScreen'
 import { BoardScreen } from './screens/BoardScreen'
 import { DocsScreen } from './screens/DocsScreen'
 import { DocScreen } from './screens/DocScreen'
+import { ProjectLayout } from './screens/ProjectLayout'
 import { ThemeToggle } from './components/ThemeToggle'
 
 /**
@@ -65,14 +73,22 @@ function Shell() {
           <ThemeToggle />
         </div>
       </header>
-      <main className="min-h-0 flex-1">
+      <main className="flex min-h-0 flex-1 flex-col">
         <Routes>
           <Route path="/" element={<ProjectsScreen />} />
-          <Route path="/projects/:projectId" element={<BoardRoute />} />
-          {/* A card is a route, not component state — so it deep-links and Back closes it. */}
-          <Route path="/projects/:projectId/cards/:cardId" element={<BoardRoute />} />
-          <Route path="/projects/:projectId/docs" element={<DocsRoute />} />
-          <Route path="/projects/:projectId/docs/:docId" element={<DocRoute />} />
+          {/*
+            * A layout route, so the project header is rendered once and stays
+            * put while you move between Board and Docs — see `ProjectLayout`.
+            * It is keyed by project, because a different project is a different
+            * screen rather than the same one handed new data.
+            */}
+          <Route path="/projects/:projectId" element={<ProjectRoute />}>
+            <Route index element={<BoardScreen />} />
+            {/* A card is a route, not component state — so it deep-links and Back closes it. */}
+            <Route path="cards/:cardId" element={<BoardScreen />} />
+            <Route path="docs" element={<DocsScreen />} />
+            <Route path="docs/:docId" element={<DocScreen />} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
@@ -85,32 +101,19 @@ function Shell() {
  * project".
  *
  * `key={projectId}` so a different project is a different mount rather than the
- * same screen handed a new prop. Without it React reuses the instance, which
+ * same layout handed a new prop. Without it React reuses the instance, which
  * quietly kept three things belonging to the project you just left:
  *
- * - `useRecentChanges` held the previous project's board as its baseline, so the
- *   incoming project diffed as entirely new and **every card played the amber
- *   "just changed" pulse** — a 2.2s glow announcing nothing.
+ * - `useRecentChanges` held the previous project's board as its baseline, so
+ *   the incoming project diffed as entirely new and **every card played the
+ *   amber "just changed" pulse** — a 2.2s glow announcing nothing.
  * - the previous project's cards stayed on screen under the new project's name
  *   until the fetch landed.
  * - the fade never ran, because nothing mounted.
- *
- * Keyed on the project alone, not the card: opening a card must not rebuild the
- * board underneath it.
  */
-function BoardRoute() {
-  const { projectId, cardId } = useParams()
-  return <BoardScreen key={projectId} projectId={projectId!} cardId={cardId} />
-}
-
-function DocsRoute() {
+function ProjectRoute() {
   const { projectId } = useParams()
-  return <DocsScreen key={projectId} projectId={projectId!} />
-}
-
-function DocRoute() {
-  const { projectId, docId } = useParams()
-  return <DocScreen key={projectId} projectId={projectId!} docId={docId!} />
+  return <ProjectLayout key={projectId} />
 }
 
 function NotFound() {

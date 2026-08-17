@@ -401,17 +401,78 @@ test.describe('a new user builds a board', () => {
     // by the tick rather than by the column it happens to be sitting in.
     await expect(page.getByTestId('card')).toHaveCount(1)
     const filter = page.getByRole('switch')
-    await expect(filter).toHaveText(/Show completed \(1\)/)
+    await expect(filter).toHaveText(/1 done/)
+    await expect(filter).toHaveAttribute('aria-checked', 'false')
 
+    /*
+     * The label is the same in both states and only `aria-checked` moves. It
+     * used to read "Show completed (1)" then "Hide completed", which changed
+     * the control's width on every click and shoved the tabs beside it
+     * sideways. The count is a fact about the board, so it does not change
+     * when you look at it.
+     */
+    const before = await filter.boundingBox()
     await filter.click()
     await expect(page.getByTestId('card')).toHaveCount(2)
-    await expect(filter).toHaveText(/Hide completed/)
+    await expect(filter).toHaveText(/1 done/)
+    await expect(filter).toHaveAttribute('aria-checked', 'true')
+    expect((await filter.boundingBox())?.width).toBe(before?.width)
 
     // The choice is a preference, not a per-visit decision.
     await page.reload()
     await expect(page.getByTestId('card')).toHaveCount(2)
     await page.getByRole('switch').click()
     await expect(page.getByTestId('card')).toHaveCount(1)
+  })
+
+  /**
+   * Nothing else in the header moves when the filter comes and goes.
+   *
+   * The filter is board-scoped, so it has two ways of not being there: no card
+   * is ticked yet, and you are on Docs. Both were shifting the tabs by **92px**
+   * — measured at x=1257 with no filter and x=1165 with one — because the
+   * filter sat between the tabs and the project menu, in a cluster whose right
+   * edge is pinned by `ml-auto`. The section switch was the worse of the two:
+   * it is the thing you do constantly, and the header is rebuilt per screen, so
+   * that jump had nothing to animate it and simply snapped.
+   *
+   * The fix is ordering, not sizing — the variable member goes at the leading
+   * edge of a trailing cluster, where it grows into slack. That is easy to undo
+   * by accident while tidying JSX, and impossible to notice by reading it,
+   * which is why the position is asserted rather than described.
+   */
+  test('the tabs do not move when the completed filter appears or leaves', async ({
+    page,
+    request,
+  }) => {
+    const project = await request
+      .post('/api/projects', { data: { name: 'Steady header' } })
+      .then((r) => r.json())
+    await page.goto(`/projects/${project.id}`)
+
+    const tabs = page.getByRole('navigation', { name: 'Project sections' })
+    const at = async () => (await tabs.boundingBox())?.x
+
+    const todo = page.locator('[data-column]').first()
+    await todo.getByRole('button', { name: 'Add card', exact: true }).click()
+    await page.getByPlaceholder('Card title').fill('Something to tick')
+    await page.getByPlaceholder('Card title').press('Enter')
+    await expect(page.getByTestId('card')).toHaveCount(1)
+
+    const withoutFilter = await at()
+
+    await page.getByTestId('card').getByRole('checkbox').click()
+    await expect(page.getByRole('switch')).toBeVisible()
+    expect(await at()).toBe(withoutFilter)
+
+    // ...and on Docs, which does not render the filter at all.
+    await page.getByRole('link', { name: 'Docs' }).click()
+    await expect(page.getByRole('switch')).toHaveCount(0)
+    expect(await at()).toBe(withoutFilter)
+
+    await page.getByRole('link', { name: 'Board' }).click()
+    await expect(page.getByRole('switch')).toBeVisible()
+    expect(await at()).toBe(withoutFilter)
   })
 
   /**
@@ -464,5 +525,148 @@ test.describe('a new user builds a board', () => {
     // A couple of pixels of tolerance for the header's own content settling;
     // what this rules out is the board arriving in a different place entirely.
     expect(Math.abs(loadedTop - loadingTop)).toBeLessThanOrEqual(2)
+  })
+
+  /**
+   * The "just changed" mark is for changes you did *not* make.
+   *
+   * Reported as "ticking cards shows this weird shadow flash that is orange".
+   * It was `.card-changed` — the live-update pulse, `--color-accent` at
+   * `#c2410c`, running 2.2 seconds. `useRecentChanges` derives its set by
+   * diffing two board reads, which is exactly what makes it work for a `crunchy
+   * mcp` process the server only knows about because a file changed — and also
+   * what makes a local optimistic update indistinguishable from a remote one.
+   * So your own click was announced back to you, on a card that was in the same
+   * moment being filtered off the board.
+   *
+   * The rule already existed for drags — "a move is not marked: dragging a card
+   * is something you did" — and simply had not been applied to the tick.
+   *
+   * Both halves are asserted, because suppressing the local case is one line
+   * away from suppressing all of them, and the remote pulse *is* the product's
+   * demo.
+   *
+   * **Sampled every frame, not asserted with `toHaveCount(0)`.** The first
+   * version of this used the web-first assertion and passed with the fix
+   * removed: `toHaveCount` retries until it succeeds, and the pulse ends after
+   * 2.2s, so "no card is pulsing" was always true *eventually*. A guard that
+   * cannot fail is worse than none — the point here is that it never pulses at
+   * all, which is a statement about a window of time rather than a moment.
+   */
+  test('ticking a card does not pulse it, but a change from elsewhere does', async ({
+    page,
+    request,
+  }) => {
+    const project = await request
+      .post('/api/projects', { data: { name: 'Pulse' } })
+      .then((r) => r.json())
+    const detail = await request.get(`/api/projects/${project.id}`).then((r) => r.json())
+    const columnId = detail.columns[0].id
+    // Two cards, and that is not incidental. `projectDiff` counts a completion
+    // only on a false → true transition, so the card used to reveal the filter
+    // cannot also be the card under test — clicking it a second time is an
+    // *un*tick, which never pulses whatever the fix does. The first version of
+    // this test did exactly that and could not fail.
+    await request.post(`/api/columns/${columnId}/cards`, { data: { title: 'Opens the filter' } })
+    await request.post(`/api/columns/${columnId}/cards`, { data: { title: 'Mine to tick' } })
+
+    await page.goto(`/projects/${project.id}`)
+    await expect(page.getByTestId('card')).toHaveCount(2)
+
+    // Reveal completed cards up front, so ticking does not also remove the card
+    // from the DOM — which would make "nothing is pulsing" true for the wrong
+    // reason.
+    await page.getByTestId('card').first().getByRole('checkbox').click()
+    await expect(page.getByRole('switch')).toBeVisible()
+    await page.getByRole('switch').click()
+    await expect(page.getByTestId('card')).toHaveCount(2)
+
+    // Let any pulse from the load or that first tick settle before measuring.
+    await page.waitForTimeout(2600)
+
+    const everPulsed = await page.evaluate(async () => {
+      // The one still unticked — a genuine false → true transition.
+      const tick = document.querySelector(
+        '[role="checkbox"][aria-label="Mark as done"]',
+      ) as HTMLElement
+      if (!tick) return 'NO UNTICKED CARD'
+      tick.click()
+      let seen = false
+      for (let i = 0; i < 60; i++) {
+        if (document.querySelector('.card-changed')) seen = true
+        await new Promise((r) => requestAnimationFrame(r))
+      }
+      return seen
+    })
+    expect(everPulsed).toBe(false)
+
+    // ...and a card written from outside this tab still announces itself.
+    await request.post(`/api/columns/${columnId}/cards`, {
+      data: { title: 'Written by an agent' },
+    })
+    await expect(page.locator('.card-changed')).toHaveCount(1, { timeout: 5000 })
+    await expect(page.locator('.card-changed')).toContainText('Written by an agent')
+  })
+
+  /**
+   * A card lighting up must not put a scrollbar on its column.
+   *
+   * The keyframes carried `transform: scale(1.015)` next to the box-shadow. A
+   * transformed element still contributes its *transformed* bounds to its
+   * scroll container's overflow area, so 1.5% of a 288px card pushed past the
+   * edge and the column grew a horizontal scrollbar for the length of the
+   * animation. Measured before the fix: `H 273/272` at rest, `H 274/272` while
+   * pulsing.
+   *
+   * The comment above those keyframes already said the ring uses `box-shadow`
+   * rather than `outline` or `border` so that nothing reflows. It was right,
+   * and the transform walked it back in through a door the comment did not
+   * cover — the third time this shape of bug has been found in this codebase.
+   */
+  test('the changed pulse does not make a column scroll', async ({ page, request }) => {
+    const project = await request
+      .post('/api/projects', { data: { name: 'No scrollbars' } })
+      .then((r) => r.json())
+    await page.goto(`/projects/${project.id}`)
+
+    const detail = await request.get(`/api/projects/${project.id}`).then((r) => r.json())
+    const columnId = detail.columns[0].id
+    for (const title of ['One', 'Two', 'Three']) {
+      await request.post(`/api/columns/${columnId}/cards`, { data: { title } })
+    }
+    await expect(page.getByTestId('card')).toHaveCount(3, { timeout: 5000 })
+    await page.waitForTimeout(2600) // let the arrival pulses settle
+
+    /*
+     * Start sampling *before* the change lands, so the first frames of the
+     * pulse — which is where the scale was widest — are inside the window.
+     * Polling after the fact would miss exactly the frames that mattered.
+     */
+    const sampling = page.evaluate(async () => {
+      const scrollerOf = (el: Element | null) => {
+        for (let p = el; p; p = p.parentElement) {
+          const o = getComputedStyle(p).overflowY
+          if (o === 'auto' || o === 'scroll') return p as HTMLElement
+        }
+        return null
+      }
+      const scroller = scrollerOf(document.querySelector('[data-testid="card"]'))
+      if (!scroller) return { overflow: -1, sawPulse: false }
+      let overflow = 0
+      let sawPulse = false
+      for (let i = 0; i < 260; i++) {
+        if (document.querySelector('.card-changed')) sawPulse = true
+        overflow = Math.max(overflow, scroller.scrollWidth - scroller.clientWidth)
+        await new Promise((r) => requestAnimationFrame(r))
+      }
+      return { overflow, sawPulse }
+    })
+
+    await request.post(`/api/columns/${columnId}/cards`, { data: { title: 'Four' } })
+    const worst = await sampling
+
+    // Only meaningful if a pulse actually ran inside the window.
+    expect(worst.sawPulse).toBe(true)
+    expect(worst.overflow).toBe(0)
   })
 })

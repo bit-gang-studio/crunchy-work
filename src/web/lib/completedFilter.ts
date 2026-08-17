@@ -23,6 +23,20 @@ export function withoutCompleted(columns: ColumnWithCards[]): {
 }
 
 /**
+ * How many cards are ticked, whether or not they are currently hidden.
+ *
+ * Separate from `withoutCompleted`'s `hidden` on purpose. That number is how
+ * many the filter is *holding back*, so it is zero the moment you reveal them —
+ * which is why the control could only ever say "(1)" in one of its two states,
+ * and had to change its label to have anything to say in the other. The count
+ * is a fact about the board, not about the filter, so it is computed from the
+ * board.
+ */
+export function countCompleted(columns: ColumnWithCards[]): number {
+  return columns.reduce((n, column) => n + column.cards.filter((c) => c.completed).length, 0)
+}
+
+/**
  * Whether finished work is on screen. Off by default: a board is for what is
  * left to do, and a Done column that only ever grows buries the two cards you
  * are actually working on.

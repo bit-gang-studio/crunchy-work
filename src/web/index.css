@@ -460,92 +460,116 @@
  * to dissolve between them costs a second board's worth of layout, for two
  * frames nobody sees.
  */
-@keyframes screen-in {
+/*
+ * The screen you are leaving, fading out on top of the one you are going to.
+ *
+ * This replaced a fade *in* that ran 0.55 → 1 on the incoming screen. That was
+ * the best available while only one tree existed at a time, and it was still
+ * wrong: traced frame by frame it read `1.00 1.00 0.55 0.56 0.60 …`, a 45%
+ * drop on a single frame and then a brightening. A step, not a fade — and
+ * reported as exactly that.
+ *
+ * `ScreenFade` now keeps the outgoing tree for one duration, so there is
+ * something to dissolve *from*. Fading the top layer out means the incoming
+ * screen sits at full opacity underneath the whole time: it is revealed rather
+ * than animated, so there is no step on the way in and no mid-fade dip.
+ */
+/*
+ * The completed filter arriving and leaving.
+ *
+ * **Animations, not a transition, and that distinction cost two attempts.** A
+ * `transition-opacity` works only on an element that is already on screen: this
+ * one mounts when the first card is ticked and when you come back from Docs, so
+ * it commits and reaches its final class in the same style recalculation and
+ * the browser has nothing to interpolate. Measured both times — it appeared at
+ * `1.00` on the first frame, with a single rAF to defer the class and again
+ * with a double one. Fading *out* worked throughout, because there the element
+ * already existed.
+ *
+ * It is the same lesson this codebase already paid for once, in `theme.ts`:
+ * handing an element a transition in the recalculation that changes it does not
+ * animate. A keyframe animation needs no previous value, which is exactly why
+ * the veil and the card pulse are written that way too.
+ */
+@keyframes filter-in {
   from {
-    opacity: 0.55;
+    opacity: 0;
   }
   to {
     opacity: 1;
   }
 }
 
-/*
- * From 0.55, not from 0.
- *
- * The outgoing screen is gone the instant the new one mounts — there is no
- * second tree still on screen to dissolve against — so a fade that starts at
- * zero spends its first frames showing the page's own background through the
- * content. That reads as a blink, which is the same complaint as the flash it
- * replaced, one shade paler. Starting past halfway means the new screen is
- * legible from the first frame and the movement is a settle rather than an
- * arrival.
- */
-.screen-in {
-  animation: screen-in 180ms cubic-bezier(0.4, 0, 0.2, 1) both;
+@keyframes filter-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.filter-in {
+  animation: filter-in 200ms ease-out both;
+}
+
+.filter-out {
+  animation: filter-out 200ms ease-in both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .screen-in {
+  .filter-in,
+  .filter-out {
     animation: none;
   }
-}
-
-/* A cross-fade is a nicety; someone who has asked for less motion gets the cut. */
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
+  .filter-out {
+    opacity: 0;
   }
 }
 
 /*
- * One focus ring, everywhere, and it is never removed.
+ * The veil: how one project screen becomes another.
  *
- * Keyboard access had never been audited: most controls relied on the browser
- * default, and several removed it with `focus:outline-none` while only styling
- * a border — so tabbing through the app lost the caret entirely in places.
- * `:focus-visible` means a mouse click still does not draw one.
+ * Three attempts, and the first two are worth recording because both looked
+ * reasonable and neither was.
+ *
+ * **A fade-in on the incoming screen** (0.55 → 1). With only one tree on screen
+ * at a time there was nothing to dissolve from, so traced frame by frame it read
+ * `1.00 1.00 0.55 0.56 0.60 …` — a 45% drop on a single frame, then a
+ * brightening. A step, not a fade.
+ *
+ * **A cross-fade against the outgoing tree.** `opacity` fades a layer including
+ * its background, so an "opaque" outgoing layer did not hide the incoming one:
+ * the board's columns rendered straight through the doc list. Sequencing the two
+ * halves fixed the ghosting and left the cost the original note had warned
+ * about — a whole second board built and thrown away on every switch, which is
+ * a stutter.
+ *
+ * **A veil.** One empty div the colour of the page, over the content region
+ * only. It is opaque at the moment the screen changes, so the outgoing content
+ * is covered rather than seen to vanish, and then it lifts to reveal the
+ * incoming screen that has been sitting underneath at full opacity all along.
+ * No second tree, nothing that can ghost, and — because the header now lives in
+ * the layout above it — no chrome fading in and out for no reason.
  */
-@layer base {
-  /*
-   * Buttons point.
-   *
-   * Tailwind v4's preflight sets `cursor: default` on buttons — a deliberate
-   * change from v3, on the reasoning that a native button is not a link. The
-   * effect in an app that is almost entirely buttons is that nothing on screen
-   * ever tells your hand it is over a control, which reads as the whole page
-   * being inert. Restored globally rather than a `cursor-pointer` per button,
-   * which is how it would otherwise be fixed forty times and forgotten on the
-   * forty-first.
-   *
-   * `:disabled` keeps the default arrow, which is the one case v4 is right
-   * about.
-   */
-  button:not(:disabled),
-  [role='button']:not(:disabled),
-  summary {
-    cursor: pointer;
+@keyframes screen-veil {
+  from {
+    opacity: 1;
   }
-
-  :focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
-    border-radius: var(--radius-control);
+  to {
+    opacity: 0;
   }
 }
 
-/*
- * TipTap's placeholder. Without it a new document is a featureless white area
- * with no cue that you can type, and no hint that markdown shortcuts work —
- * which is a poor first impression for half the product's pitch.
- */
-.tiptap p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
-  color: var(--color-ink-faint);
+.screen-veil {
+  animation: screen-veil 180ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-veil {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /*
@@ -558,19 +582,30 @@
  *
  * The ring is drawn with `box-shadow`, not `outline` or a border, so nothing
  * reflows — a card lighting up must not nudge the column it sits in.
+ *
+ * **And no `transform`, for the same reason, through a different door.** This
+ * carried a `scale(1.015)` alongside the shadow, and it put a horizontal
+ * scrollbar on the column for the length of the animation. Measured on a column
+ * that was not overflowing beforehand: `H 273/272` before the tick, `H 274/272`
+ * during it. A transformed element still contributes its *transformed* bounds
+ * to its scroll container's overflow area, so 1.5% of a 288px card is enough to
+ * push past the edge — the shadow was correctly kept out of layout and then the
+ * scale walked it back in.
+ *
+ * This is the third time this shape of bug has been found here: `outline` not
+ * `border` on the drag placeholder, `box-shadow` not `outline` for this ring,
+ * and now no `transform` either. If a card has to react in place, the property
+ * has to be one that neither reflows nor grows the scrollable area.
  */
 @keyframes card-changed {
   0% {
     box-shadow: 0 0 0 0 var(--color-accent);
-    transform: scale(1);
   }
   12% {
     box-shadow: 0 0 0 3px var(--color-accent);
-    transform: scale(1.015);
   }
   100% {
     box-shadow: 0 0 0 0 rgb(0 0 0 / 0);
-    transform: scale(1);
   }
 }
 

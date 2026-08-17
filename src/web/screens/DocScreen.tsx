@@ -1,10 +1,8 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { Doc } from '../../shared/types'
 import { api } from '../lib/api'
 import { useDebouncedSave } from '../lib/useDebouncedSave'
-import { Screen } from '../components/Screen'
-import { ProjectHeader } from '../components/ProjectHeader'
 import { ConfirmButton } from '../components/ConfirmButton'
 import { ErrorState, Loading } from '../components/States'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
@@ -17,11 +15,11 @@ import { useDocumentTitle } from '../lib/useDocumentTitle'
 const DocEditor = lazy(() => import('../components/DocEditor').then((m) => ({ default: m.DocEditor })))
 
 /** One document. Autosaves; the markdown on disk is the source of truth. */
-export function DocScreen({ projectId, docId }: { projectId: string; docId: string }) {
+export function DocScreen() {
   const navigate = useNavigate()
+  const { projectId, docId } = useParams() as { projectId: string; docId: string }
   const [doc, setDoc] = useState<Doc | null>(null)
   useDocumentTitle(doc?.title, 'Docs')
-  const [project, setProject] = useState<{ name: string; description: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle')
 
@@ -35,11 +33,12 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
 
   useEffect(() => {
     let live = true
-    Promise.all([api.getDoc(docId), api.getProject(projectId)])
-      .then(([d, board]) => {
+    // Only the doc: the project is the layout's, already fetched and on screen.
+    api
+      .getDoc(docId)
+      .then((d) => {
         if (!live) return
         setDoc(d)
-        setProject(board.project)
       })
       .catch((e: Error) => live && setError(e.message))
     return () => {
@@ -75,7 +74,7 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
 
   if (error) {
     return (
-      <Screen scroll="document">
+      <div className="absolute inset-0 overflow-y-auto">
         <div className="mx-auto max-w-2xl px-6 py-12">
           <ErrorState
             message={error}
@@ -83,19 +82,13 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
             backLabel="Back to docs"
           />
         </div>
-      </Screen>
+      </div>
     )
   }
 
   return (
-    <Screen scroll="document">
-      <div className="flex min-h-full flex-col">
-        <ProjectHeader
-          projectId={projectId}
-          name={project?.name ?? '…'}
-          description={project?.description}
-        />
-        <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
+    <div className="absolute inset-0 overflow-y-auto">
+      <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
           {!doc && <Loading label="Loading document" rows={4} />}
           {doc && (
             <>
@@ -134,9 +127,8 @@ export function DocScreen({ projectId, docId }: { projectId: string; docId: stri
                 <ConfirmButton onConfirm={remove}>Delete doc</ConfirmButton>
               </div>
             </>
-          )}
-        </div>
+        )}
       </div>
-    </Screen>
+    </div>
   )
 }
