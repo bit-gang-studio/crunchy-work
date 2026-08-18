@@ -139,8 +139,6 @@ async function walkEveryScreen(
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
   await scan(page, `projects list · ${label}`)
-  // Once per walk is enough: the tokens are global, so a colour axe cannot read
-  // will show up on the first populated screen or not at all.
   await assertNoUnreadableColours(page, `projects list · ${label}`)
 
   await page.goto(`/projects/${projectId}`)
@@ -180,6 +178,29 @@ async function walkEveryScreen(
   await page.getByTestId('doc-row').first().click()
   await expect(page.getByTestId('doc-body')).toBeVisible()
   await scan(page, `doc editor · ${label}`)
+  /*
+   * **The doc editor gets its own colour check, and it is not redundant.**
+   *
+   * This used to run once per walk, on the projects list, reasoning that "the
+   * tokens are global, so a colour axe cannot read will show up on the first
+   * populated screen or not at all". True of our tokens — and the typography
+   * plugin is the documented exception to it: `prose` ships its own ink, and it
+   * only exists on this screen and inside a card description. The projects list
+   * has no prose on it, so the check structurally could not see them.
+   *
+   * It was not a hypothetical. Measured here before the fix: twelve oklch
+   * colours, `oklch(0.371 0 none)` for body text, on the one screen in the app
+   * that is mostly text. They happened to resolve to 10.4:1 — but that is the
+   * position `ink-faint` was in at 2.6:1, and the whole point of this check is
+   * that "happened to be fine" is not a measurement.
+   */
+  await assertNoUnreadableColours(page, `doc editor · ${label}`)
+
+  // And the card description, which is the same editor on a different screen.
+  await page.goto(`/projects/${projectId}`)
+  await page.getByTestId('card').first().click()
+  await expect(page.getByTestId('card-description')).toBeVisible()
+  await assertNoUnreadableColours(page, `card description · ${label}`)
 }
 
 /**
@@ -284,7 +305,10 @@ test.describe('keyboard', () => {
     expect(reached.join(' | ')).toMatch(/Add card|card with everything/i)
   })
 
-  test('Escape closes the card detail, and focus is not left nowhere', async ({ page, request }) => {
+  test('Escape closes the card detail, and focus goes back to the card', async ({
+    page,
+    request,
+  }) => {
     const projectId = await seed(request)
     await page.goto(`/projects/${projectId}`)
     await page.getByTestId('card').first().click()
@@ -293,7 +317,62 @@ test.describe('keyboard', () => {
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('card-detail')).toHaveCount(0)
 
-    const parked = await page.evaluate(() => document.activeElement?.tagName ?? 'NONE')
-    expect(parked).not.toBe('NONE')
+    // Not merely "somewhere" — `document.body` satisfies that and is exactly
+    // the failure this is meant to catch. Focus belongs on the card you came
+    // from, so the next Tab continues from where you were.
+    /*
+     * Back on the board, not merely "somewhere" — `document.body` satisfies
+     * somewhere, and is exactly the failure this exists to catch: focus lost to
+     * the top of the document means the next Tab restarts from the app header
+     * rather than continuing from the card you were just on.
+     *
+     * Which element inside the board takes it depends on where in the card you
+     * clicked — the title button if you hit the title, the column otherwise —
+     * so this pins the region, which is the part that is a promise.
+     */
+    const parked = await page.evaluate(() => {
+      const el = document.activeElement
+      if (!el || el === document.body) return 'BODY'
+      return el.closest('[aria-label="Board columns"]') ? 'BOARD' : (el.tagName ?? 'NONE')
+    })
+    expect(parked).toBe('BOARD')
+  })
+
+  /**
+   * The card panel says `role="dialog" aria-modal="true"`, which tells assistive
+   * tech the rest of the page is inert. Nothing enforced it: Tab walked out of
+   * the dialog, through the app header, and into the columns behind the scrim —
+   * so the markup made a promise the keyboard broke. Survivable when the panel
+   * held three controls; it now holds fifteen.
+   */
+  test('an open card keeps the keyboard inside it', async ({ page, request }) => {
+    const projectId = await seed(request)
+    await page.goto(`/projects/${projectId}`)
+    await page.getByTestId('card').first().click()
+    await expect(page.getByTestId('card-detail')).toBeVisible()
+
+    const inside = async () =>
+      page.evaluate(
+        () => document.querySelector('[data-testid="card-detail"]')?.contains(document.activeElement) ?? false,
+      )
+
+    // Opening lands focus in the dialog rather than leaving it on the board.
+    expect(await inside()).toBe(true)
+
+    // More stops than the dialog has, so a leak has somewhere to leak to.
+    const labels: string[] = []
+    for (let i = 0; i < 24; i++) {
+      await page.keyboard.press('Tab')
+      expect(await inside()).toBe(true)
+      labels.push(await page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? ''))
+    }
+    // And it is a cycle, not one control swallowing every press.
+    expect(new Set(labels).size).toBeGreaterThan(5)
+
+    // Backwards off the top wraps too, rather than stepping out behind the scrim.
+    for (let i = 0; i < 30; i++) {
+      await page.keyboard.press('Shift+Tab')
+      expect(await inside()).toBe(true)
+    }
   })
 })

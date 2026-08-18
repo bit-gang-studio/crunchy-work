@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { ProjectDetail } from '../../shared/types'
 import { api } from '../lib/api'
@@ -15,6 +16,9 @@ import { useProject } from './ProjectLayout'
  * filter all used to live here and are now `ProjectLayout`'s — see the note
  * there. What is left is the one thing only this screen does.
  */
+/** Matches the modal animations in index.css. The two have to agree. */
+const MODAL_MS = 250
+
 export function BoardScreen() {
   const navigate = useNavigate()
   const { projectId, cardId } = useParams() as { projectId: string; cardId?: string }
@@ -28,6 +32,26 @@ export function BoardScreen() {
     patchBoard,
   } = useProject()
   useDocumentTitle(board?.project.name)
+
+  /*
+   * The card id, held for one animation after the route clears.
+   *
+   * Closing a card removes it from the URL, which unmounts the modal in the same
+   * frame — so there was nothing left to fade and the panel simply blinked out.
+   * `held` keeps the last id alive for `MODAL_MS`, and `closing` tells the modal
+   * it is leaving. Same shape as the completed filter's exit, and for the same
+   * reason.
+   */
+  const [held, setHeld] = useState(cardId)
+  const closing = !cardId && held !== undefined
+  useEffect(() => {
+    if (cardId) {
+      setHeld(cardId)
+      return
+    }
+    const timer = setTimeout(() => setHeld(undefined), MODAL_MS)
+    return () => clearTimeout(timer)
+  }, [cardId])
 
   /**
    * Moves are applied optimistically: the drag engine already resolved the exact
@@ -46,6 +70,25 @@ export function BoardScreen() {
 
   async function onAddCard(columnId: string, title: string, position?: 'top' | 'bottom') {
     const card = await api.addCard(columnId, { title })
+    /*
+     * A card you just typed is not news.
+     *
+     * The pulse means "this changed while you were not looking", and adding a
+     * card fires it on the one card on the board you are certainly looking at —
+     * you are still holding the composer open above it. Same bug the tick had,
+     * arriving through the same door: the diff is derived from two reads, so a
+     * local write and an agent's write are indistinguishable unless the local
+     * one says so.
+     *
+     * It can only be marked *after* the request, because the id is the server's
+     * to assign — unlike the tick, which marks before it writes. The window
+     * that opens is the 80ms the file watcher coalesces on (`watchForChanges`):
+     * a nudge landing between the insert and this line would refetch and
+     * diff the card as remote. The response is back in single-digit
+     * milliseconds, so that is a race the fix loses only if the server has
+     * already lost a much bigger one.
+     */
+    markLocalChange(card.id)
     if (position === 'top') await api.moveCard(card.id, { index: 0 })
     await load()
   }
@@ -159,10 +202,13 @@ export function BoardScreen() {
           />
         </div>
       </div>
-      {cardId && (
+      {held && (
         <CardDetail
-          cardId={cardId}
-          columnName={board.columns.find((c) => c.cards.some((k) => k.id === cardId))?.name}
+          cardId={held}
+          closing={closing}
+          columnId={board.columns.find((c) => c.cards.some((k) => k.id === held))?.id}
+          columns={board.columns.map((c) => ({ id: c.id, name: c.name }))}
+          onMoveColumn={(columnId) => void api.moveCard(held, { columnId }).then(load)}
           onClose={() => navigate(`/projects/${projectId}`)}
           onChanged={() => void load()}
         />

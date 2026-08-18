@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { DocList } from '../components/DocList'
@@ -19,6 +19,11 @@ export function DocsScreen() {
   const { board, reload: load, patchBoard } = useProject()
   useDocumentTitle('Docs', board?.project.name)
   const [title, setTitle] = useState('')
+  const [adding, setAdding] = useState(false)
+  const field = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (adding) field.current?.focus()
+  }, [adding])
 
   /** Optimistic, like the projects grid — a row that snaps back reads as a failed drag. */
   async function reorder(docId: string, toIndex: number) {
@@ -68,18 +73,73 @@ export function DocsScreen() {
             <DocList projectId={projectId} docs={board.docs} onReorder={reorder} />
           )}
 
-          <form onSubmit={create} className="mt-4 flex gap-2">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="New doc title"
-              aria-label="New doc title"
-              className="flex-1 rounded-card border border-line-strong px-3 py-2 text-sm focus:border-ink-muted focus:outline-none"
-            />
-            <button type="submit" className="rounded-card bg-accent px-4 py-2 text-sm font-medium text-accent-ink">
-              Create
+          {/*
+            * **Creating is quiet until you mean it.**
+            *
+            * This was a permanent 639px field with a solid accent button beside
+            * it, which made "Create" the loudest object on a screen whose
+            * subject is the documents above it — the same mistake the card's
+            * acceptance criteria made, and it is fixed the same way, so the two
+            * composers now behave alike.
+            *
+            * The empty state is the exception and keeps its own prompt: with no
+            * docs to be louder than, the thing to do next *is* the page.
+            *
+            * **Neither renders until the board has loaded.** With `board` still
+            * null, `board?.docs.length === 0` is false, so the quiet button
+            * appeared for one frame and was then replaced by the form once the
+            * empty list arrived — long enough for a test to see it, click it,
+            * and find it gone. A control that exists only during a fetch is a
+            * control that flickers.
+            */}
+          {!board ? null : adding || board.docs.length === 0 ? (
+            <form onSubmit={create} className="mt-4 flex gap-2">
+              <input
+                ref={field}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setTitle('')
+                    setAdding(false)
+                  }
+                }}
+                // Closing on an empty blur is what makes the quiet state the
+                // resting state: click away without typing and it was never there.
+                onBlur={() => {
+                  if (!title.trim()) setAdding(false)
+                }}
+                placeholder="New doc title"
+                aria-label="New doc title"
+                className="flex-1 rounded-card border border-line-strong px-3 py-2 text-sm focus:border-ink-muted focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="rounded-card bg-accent px-4 py-2 text-sm font-medium text-accent-ink"
+              >
+                Create
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="mt-3 flex items-center gap-1.5 rounded-control py-1 pl-1 pr-2 text-sm text-ink-faint transition-colors hover:text-ink"
+            >
+              <svg
+                viewBox="0 0 14 14"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                aria-hidden
+              >
+                <path d="M7 2.5v9M2.5 7h9" />
+              </svg>
+              New doc
             </button>
-          </form>
+          )}
         </div>
     </div>
   )

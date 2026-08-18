@@ -46,7 +46,15 @@ test.describe('a new user builds a board', () => {
 
     // Edits autosave — there is no Save button.
     await page.getByLabel('Card title').fill('Write the launch announcement')
-    await page.getByPlaceholder('Markdown welcome.').fill('Cover the MCP story first.')
+    /*
+     * The description is the docs editor now, not a textarea, so it is typed
+     * into rather than filled. It stores markdown for the same reason a doc
+     * does: what an agent writes over MCP and what is typed here have to be the
+     * same thing.
+     */
+    const description = page.getByTestId('card-description')
+    await description.click()
+    await page.keyboard.type('Cover the MCP story first.')
     await page.getByRole('button', { name: 'Close' }).click()
     await expect(page.getByTestId('card-detail')).toHaveCount(0)
 
@@ -59,7 +67,7 @@ test.describe('a new user builds a board', () => {
     const url = page.url()
     await page.goto(url)
     await expect(page.getByTestId('card-detail')).toBeVisible()
-    await expect(page.getByPlaceholder('Markdown welcome.')).toHaveValue('Cover the MCP story first.')
+    await expect(page.getByTestId('card-description')).toContainText('Cover the MCP story first.')
   })
 
   test('a new project arrives with cards that teach, and they are deletable', async ({ page }) => {
@@ -96,6 +104,10 @@ test.describe('a new user builds a board', () => {
     for (const remaining of [2, 1]) {
       await expect(page.getByTestId('card')).toHaveCount(remaining)
       await page.getByTestId('card').first().click()
+      // Delete is behind the card's ⋯ now, not a red link in the panel: a
+      // permanently visible destructive action made the foot of every card read
+      // as a warning.
+      await page.getByRole('button', { name: 'Card actions' }).click()
       await page.getByRole('button', { name: 'Delete card' }).click()
       await page.getByRole('button', { name: 'Really delete' }).click()
     }
@@ -266,11 +278,23 @@ test.describe('a new user builds a board', () => {
     await page.getByLabel('Size').selectOption('M')
 
     const criteria = page.getByTestId('acceptance-criteria')
+    /*
+     * Adding is behind a quiet "+ Add a criterion" until you mean it — the
+     * permanent full-width input was the loudest thing on an empty card. The
+     * field then *stays* open between adds, because criteria are written in a
+     * run of three or four rather than one at a time, so the button is only
+     * pressed once.
+     */
+    await criteria.getByRole('button', { name: 'Add a criterion' }).click()
+    const field = page.getByLabel('Add a criterion')
     for (const line of ['Tests pass', 'Docs updated']) {
-      await page.getByLabel('Add a criterion').fill(line)
-      await page.getByLabel('Add a criterion').press('Enter')
+      await field.fill(line)
+      await field.press('Enter')
       await expect(criteria).toContainText(line)
     }
+    // Escape puts the quiet state back, so the tick below is not competing
+    // with an open field for the click.
+    await field.press('Escape')
     await criteria.getByRole('checkbox', { name: 'Tests pass' }).check()
     await expect(criteria).toContainText('1/2')
 
@@ -668,5 +692,97 @@ test.describe('a new user builds a board', () => {
     // Only meaningful if a pulse actually ran inside the window.
     expect(worst.sawPulse).toBe(true)
     expect(worst.overflow).toBe(0)
+  })
+
+  /**
+   * A card you add yourself is not news.
+   *
+   * The pulse means "this changed while you were not looking", and `onAddCard`
+   * did not mark its own write — so the card you had just typed announced
+   * itself, with the composer still open above it. This is the second path to
+   * ship without marking (ticking was the first), which is why it is pinned
+   * here next to that one rather than trusted to the comment in `BoardScreen`.
+   */
+  test('a card you add yourself does not pulse, but one from elsewhere still does', async ({
+    page,
+    request,
+  }) => {
+    const project = await request
+      .post('/api/projects', { data: { name: 'Own writes' } })
+      .then((r) => r.json())
+    const detail = await request.get(`/api/projects/${project.id}`).then((r) => r.json())
+    const columnId = detail.columns[0].id
+
+    await page.goto(`/projects/${project.id}`)
+    await page.getByRole('button', { name: 'Add card' }).first().click()
+    await page.keyboard.type('Typed by me')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('card')).toHaveCount(1)
+
+    // Watch for a full pulse window rather than sampling once: the class is
+    // applied for 2.2s, so a single check could miss it either way.
+    const pulsed = await page.evaluate(async () => {
+      let seen = false
+      for (let i = 0; i < 90; i++) {
+        if (document.querySelector('.card-changed')) seen = true
+        await new Promise((r) => requestAnimationFrame(r))
+      }
+      return seen
+    })
+    expect(pulsed).toBe(false)
+
+    // The signal itself still has to work, or the fix is just a mute button.
+    await request.post(`/api/columns/${columnId}/cards`, { data: { title: 'Typed by an agent' } })
+    await expect(page.locator('.card-changed')).toHaveCount(1, { timeout: 5000 })
+    await expect(page.locator('.card-changed')).toContainText('Typed by an agent')
+  })
+
+  /**
+   * Two controls that only look focused because something else is.
+   *
+   * The due date's real input is `sr-only`, which clips it to 1×1 — a focus
+   * ring on it is invisible, so the chip beside it wears the focus through
+   * `peer-focus-visible`. And the description's toolbar reports the format at
+   * the cursor, which outlives the cursor: opening a card whose text ends in a
+   * task list drew "to-do list" in full accent with nothing focused, and told a
+   * screen reader the same thing through `aria-pressed`.
+   *
+   * Neither is visible to axe — the input *has* a ring, and a wrong
+   * `aria-pressed` is still a valid one — so they are asserted here.
+   */
+  test('the due date shows its focus, and the toolbar only reports a live cursor', async ({
+    page,
+    request,
+  }) => {
+    const project = await request
+      .post('/api/projects', { data: { name: 'Focus' } })
+      .then((r) => r.json())
+    const detail = await request.get(`/api/projects/${project.id}`).then((r) => r.json())
+    await request.post(`/api/columns/${detail.columns[0].id}/cards`, {
+      data: { title: 'Has a description', description: '- [ ] ends in a task list' },
+    })
+
+    await page.goto(`/projects/${project.id}`)
+    await page.getByTestId('card').first().click()
+    await expect(page.getByTestId('card-description')).toBeVisible()
+
+    // Nothing is pressed while the editor does not have the cursor...
+    const pressed = () =>
+      page.locator('[data-testid="editor-toolbar"] button[aria-pressed="true"]')
+    await expect(pressed()).toHaveCount(0)
+
+    // ...and the block under the cursor is, once there is one.
+    await page.getByTestId('card-description').click()
+    await expect(pressed()).toHaveCount(1)
+    await expect(pressed()).toHaveAttribute('aria-label', 'Turn into to-do list')
+
+    // The chip carries the hidden input's focus, since the input cannot show it.
+    await page.locator('input[type="date"]').focus()
+    const chip = await page.evaluate(() => {
+      const el = document.querySelector('input[type="date"]')?.nextElementSibling
+      return el ? getComputedStyle(el).boxShadow : 'NO CHIP'
+    })
+    expect(chip).not.toBe('none')
+    expect(chip).not.toBe('NO CHIP')
   })
 })

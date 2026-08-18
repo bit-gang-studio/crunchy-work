@@ -2,17 +2,24 @@
 @plugin "@tailwindcss/typography";
 
 /*
- * Point Tailwind's `dark:` variant at our attribute instead of the media query,
- * so it agrees with the toggle rather than with the OS.
+ * **There is no `dark:` variant, on purpose.**
  *
- * **This is not an invitation to write `dark:bg-…` in components.** Every colour
- * a screen uses still goes through a role token, and a component that needs a
- * `dark:` variant has hard-coded a value it should not have had. The variant
- * exists for third-party styles we do not own — specifically the typography
- * plugin, whose `prose` classes set their own ink and would otherwise print dark
- * grey text on a dark surface.
+ * There used to be one, pointed at our attribute rather than the media query so
+ * it agreed with the toggle — and it existed for exactly one reason, stated in
+ * the comment that lived here: the typography plugin's `prose` classes set their
+ * own ink, so `dark:prose-invert` was needed to stop a document rendering dark
+ * grey on a dark surface.
+ *
+ * That reason is gone. The plugin's colour variables are mapped onto our tokens
+ * further down this file, and our tokens already flip with the theme, so one set
+ * of values is right in both palettes and nothing needs a dark variant any more.
+ *
+ * Leaving the variant defined would leave a working escape hatch for a rule the
+ * rest of this file depends on — every colour goes through a role token, and a
+ * component reaching for `dark:bg-…` has hard-coded a value it should not have
+ * had. Removing it makes that rule enforce itself: `dark:` now simply does not
+ * compile.
  */
-@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /*
  * The design tokens — the whole visual system, in one place.
@@ -625,6 +632,340 @@
 }
 
 /*
+ * The card modal arriving and leaving.
+ *
+ * It appeared and vanished, which on a panel this size is a flash — the scrim
+ * and 600px of content switching on in one frame. The scrim fades and the panel
+ * comes up two pixels with it, which is the whole gesture: it is enough to say
+ * "this is over the board" without becoming a performance you wait through.
+ *
+ * The exit needs the panel to outlive the route, so `BoardScreen` holds the
+ * card id for one duration after it clears — the same trick the completed
+ * filter uses, for the same reason: React cannot animate what it has unmounted.
+ *
+ * No movement below `md`, where the panel is a full-screen sheet: sliding a
+ * sheet up two pixels is nothing, and fading a whole phone screen reads as a
+ * flicker rather than a transition.
+ */
+@keyframes modal-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-scrim-in {
+  animation: modal-scrim-in 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.modal-scrim-out {
+  animation: modal-scrim-in 250ms cubic-bezier(0.4, 0, 0.2, 1) reverse both;
+}
+
+.modal-panel-in {
+  animation: modal-panel-in 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.modal-panel-out {
+  animation: modal-panel-in 250ms cubic-bezier(0.4, 0, 0.2, 1) reverse both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-scrim-in,
+  .modal-scrim-out,
+  .modal-panel-in,
+  .modal-panel-out {
+    animation: none;
+  }
+}
+
+/*
+ * A description inside a card is not an article.
+ *
+ * The typography plugin's scale is built for a page of prose, and measured in
+ * the card modal it showed: `h1` at **30px** against a card title of 18px, `h2`
+ * with a 32px space above it, body at 14/24 (1.71 leading), 16px above and
+ * below every list plus 4px around every item, and a 601px description for
+ * eleven short blocks. Airy on a document, and inside a 576px panel it read as
+ * a magazine article that had wandered into a form.
+ *
+ * These are panel metrics rather than page metrics, which is the same set of
+ * decisions Linear and Height make for a task description: body leading around
+ * 1.55, headings only just above body size and carried by weight rather than
+ * scale, list items close enough to scan as one object, and the first and last
+ * blocks flush so the field's own padding is the only padding.
+ *
+ * Plain class selectors, because the plugin writes its rules inside `:where()`
+ * and so has no specificity to fight.
+ */
+.prose-card {
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.prose-card > :first-child {
+  margin-top: 0;
+}
+
+.prose-card > :last-child {
+  margin-bottom: 0;
+}
+
+.prose-card p {
+  margin: 0 0 0.625rem;
+}
+
+/*
+ * Headings sit *close* to what they introduce and far from what they follow —
+ * a heading equidistant from both belongs to neither.
+ */
+.prose-card h1,
+.prose-card h2,
+.prose-card h3 {
+  margin: 1.125rem 0 0.25rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.prose-card h1 {
+  font-size: 1.0625rem; /* 17px — under the card's own 18px title, deliberately */
+}
+
+.prose-card h2 {
+  font-size: 0.9375rem; /* 15px */
+}
+
+.prose-card h3 {
+  font-size: 0.875rem; /* 14px — weight is what separates it from body */
+  color: var(--color-ink-muted);
+}
+
+.prose-card ul,
+.prose-card ol {
+  margin: 0 0 0.625rem;
+  padding-left: 1.125rem;
+}
+
+.prose-card li {
+  margin: 0.125rem 0;
+  padding-left: 0.25rem;
+}
+
+/* A list item's paragraph is the item, and must not add a paragraph's spacing. */
+.prose-card li > p {
+  margin: 0;
+}
+
+.prose-card li::marker {
+  color: var(--color-ink-faint);
+}
+
+.prose-card blockquote {
+  margin: 0.75rem 0;
+  padding-left: 0.625rem;
+  border-left: 2px solid var(--color-line-strong);
+  font-style: normal;
+  color: var(--color-ink-muted);
+}
+
+/* The plugin adds typographic quotes around quoted text; a task note is not a pull quote. */
+.prose-card blockquote p::before,
+.prose-card blockquote p::after {
+  content: none;
+}
+
+/*
+ * A quieter block than the doc page's.
+ *
+ * Documents paint code on `--color-code`, a near-black slab, and at
+ * page width with air around it that reads as a considered object. Dropped into
+ * a 576px modal it was the heaviest thing on screen by a wide margin — a
+ * two-line snippet outweighing the card's title. A sunken well with a hairline
+ * says "code" just as clearly at this size and stays inside the card's own
+ * range.
+ */
+.prose-card pre {
+  margin: 0.625rem 0;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-line);
+  background: var(--color-sunken);
+  color: var(--color-ink);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+/*
+ * **The backticks were the plugin's, not the document's.**
+ *
+ * `` `inline code` `` was rendering with visible backticks around it, which
+ * looked like the markdown parser had failed to convert it. It had converted it
+ * perfectly — `prose` adds `content: "`"` to `code::before` and `code::after`,
+ * because in an article a reader benefits from seeing that a word is code even
+ * in print. In an editor the mark is already visible as a mark, and the
+ * characters read as a bug.
+ *
+ * Given its own quiet surface at the same time: a monospace run at 13px with no
+ * ground of its own is just a font change.
+ */
+.prose-card code::before,
+.prose-card code::after {
+  content: none;
+}
+
+.prose-card code {
+  font-size: 0.8125rem;
+  padding: 0.0625rem 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--color-sunken);
+  color: var(--color-ink);
+  font-weight: 400;
+}
+
+/* A code *block* keeps its own surface, so the inline treatment must not stack. */
+.prose-card pre code {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+}
+
+.prose-card hr {
+  margin: 0.875rem 0;
+}
+
+/*
+ * The editor's placeholder, which was configured and never drawn.
+ *
+ * `@tiptap/extension-placeholder` does not render anything itself — it puts the
+ * text in a `data-placeholder` attribute and marks the empty node, and the CSS
+ * to show it is the caller's. That CSS did not exist, so every empty document
+ * has been silently blank since the editor was built: the string "Start
+ * writing. Markdown works…" is in the source and has never been on screen.
+ * Noticed only because a card description needed a different one.
+ *
+ * `first-child` so it is the *first* empty paragraph that prompts, not every
+ * blank line in the middle of a document.
+ */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-ink-faint);
+}
+
+/*
+ * **The typography plugin's ink, brought into our palette.**
+ *
+ * This was the one place the "never hard-code a palette value" rule was known
+ * to leak and was left leaking: `prose` ships its own colours, so a document's
+ * body text was Tailwind neutral rather than `--color-ink`, and `dark:prose-invert`
+ * was carried solely to stop dark documents rendering dark-on-dark.
+ *
+ * Two things made that worth closing. The ink was **not ours** — a document was
+ * the only screen in the app whose text colour no token controlled. And it was
+ * **oklch**, which axe files under "could not determine" rather than reporting,
+ * so `assertNoUnreadableColours` exists precisely to catch it — except that
+ * check ran only on the projects list, which has no prose on it, on the stated
+ * grounds that "the tokens are global". Prose was the exception to exactly that
+ * premise. Measured on the doc page before this: twelve oklch colours,
+ * `oklch(0.371 0 none)` for body text, which resolves to #404040 at 10.4:1 —
+ * readable, but by luck rather than by measurement, which is the same position
+ * `ink-faint` was in at 2.6:1.
+ *
+ * Mapping the plugin's variables to our tokens fixes both at once, and drops
+ * the need for `prose-invert` with it: our tokens already flip with the theme,
+ * so one set of values is correct in both. The `dark:` variant in the config is
+ * now unused by anything — which is the outcome the rule wanted all along.
+ *
+ * If the plugin adds a variable we have not mapped, it will arrive as an oklch
+ * default and the gate on the doc screen will say so.
+ */
+.prose {
+  /* `ink`, not `ink-muted`: prose's own scale runs body lighter than headings,
+     which is a magazine convention. A document here is the app's body text and
+     should be the same ink as every other screen; size and weight separate the
+     headings. */
+  --tw-prose-body: var(--color-ink);
+  --tw-prose-headings: var(--color-ink);
+  --tw-prose-lead: var(--color-ink-muted);
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-bold: var(--color-ink);
+  --tw-prose-counters: var(--color-ink-faint);
+  --tw-prose-bullets: var(--color-ink-faint);
+  --tw-prose-hr: var(--color-line-strong);
+  --tw-prose-quotes: var(--color-ink);
+  --tw-prose-quote-borders: var(--color-line-strong);
+  --tw-prose-captions: var(--color-ink-faint);
+  --tw-prose-kbd: var(--color-ink);
+  --tw-prose-kbd-shadows: var(--color-line-strong);
+  --tw-prose-code: var(--color-ink);
+  --tw-prose-pre-code: var(--color-code-ink);
+  --tw-prose-pre-bg: var(--color-code);
+  --tw-prose-th-borders: var(--color-line-strong);
+  --tw-prose-td-borders: var(--color-line);
+}
+
+/*
+ * **A list is one object, not a stack of paragraphs.**
+ *
+ * TipTap wraps every list item's content in a `<p>`, and `prose` gives a
+ * paragraph 20px of bottom margin — so a three-bullet list rendered with the
+ * same air between its items as between two paragraphs of prose, and read as
+ * three separate thoughts. Measured at 20px per gap on the doc page.
+ *
+ * The same trap was already fixed for `prose-card`; the doc page never got it,
+ * because the card is where it was noticed. Items keep a little more room than
+ * the card's — this is a page, and page metrics are the deliberate difference —
+ * but they are now closer to each other than to the prose around them, which is
+ * the whole job of the spacing.
+ */
+/*
+ * The plugin's backticks, again.
+ *
+ * `prose` draws `content: "`"` on `code::before`/`::after` — useful in print,
+ * and in an editor it reads as a markdown parser that failed to convert
+ * anything. Removed for the card description when the editor landed there; the
+ * doc page had been showing them since it was built. Given the same quiet
+ * ground for the same reason: a monospace run with no surface of its own is
+ * just a font change.
+ */
+.prose code::before,
+.prose code::after {
+  content: none;
+}
+
+.prose :not(pre) > code {
+  padding: 0.0625rem 0.3125rem;
+  border-radius: 0.25rem;
+  background: var(--color-sunken);
+  font-size: 0.875em;
+  font-weight: 400;
+}
+
+.prose li > p {
+  margin: 0;
+}
+
+.prose li {
+  margin: 0.375em 0;
+}
+
+/*
  * Checklists. TipTap emits `<li><label><input></label><div>…</div></li>`, which
  * the typography plugin would otherwise render as a bulleted list with the
  * checkbox sitting on its own line. The markdown behind it is `- [ ]` / `- [x]`,
@@ -662,11 +1003,46 @@
   margin: 0.25em 0;
 }
 
+/*
+ * One tick, drawn by us, wherever a tick appears.
+ *
+ * A card modal was showing three of them: the completion toggle on the title
+ * (ours — a 14px rounded box that fills with the accent), the criteria rows (a
+ * native checkbox with `accent-color`), and task lists inside the editor
+ * (another native one, sized differently again). Three shapes for one idea, in
+ * one panel, and only the first was in our own vocabulary.
+ *
+ * `appearance: none` and draw it, which is the only way to control a checkbox's
+ * shape. The mark is a mask rather than a glyph so it scales with the box and
+ * needs no font.
+ */
+.tick,
 .tiptap ul[data-type='taskList'] input[type='checkbox'] {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--color-accent);
+  appearance: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 0.25rem;
+  background: var(--color-surface);
   cursor: pointer;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.tick:hover,
+.tiptap ul[data-type='taskList'] input[type='checkbox']:hover {
+  border-color: var(--color-ink-muted);
+}
+
+.tick:checked,
+.tiptap ul[data-type='taskList'] input[type='checkbox']:checked {
+  border-color: var(--color-accent-hover);
+  background-color: var(--color-accent-hover);
+  /* The tick itself: a two-stroke check, masked so it inherits the box's size. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
 }
 
 /* A ticked item reads as done at a glance, the way it does on a card. */

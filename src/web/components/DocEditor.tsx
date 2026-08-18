@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react'
 import { useSlashMenu, type KeyInterceptor } from '../lib/useSlashMenu'
 import { SlashMenu } from './SlashMenu'
 import { EditorBubbleMenu } from './EditorBubbleMenu'
+import { EditorToolbar } from './EditorToolbar'
 
 /**
  * `tiptap-markdown` adds this at runtime but does not declare it, so without the
@@ -45,11 +46,39 @@ export function DocEditor({
   docId,
   initialMarkdown,
   onChange,
+  placeholder = 'Start writing. Markdown works, or press "/" for blocks.',
+  className,
+  bodyClassName = 'min-h-[60vh]',
+  ariaLabel = 'Document body',
+  testId = 'doc-body',
+  toolbar = false,
 }: {
   /** Changing this replaces the content; edits within one doc must not reset the cursor. */
   docId: string
   initialMarkdown: string
   onChange: (markdown: string) => void
+  /** A card description is not a document, and should not invite one. */
+  placeholder?: string
+  /** The card modal frames its editor as a field; a doc page does not. */
+  className?: string
+  /**
+   * The height the empty editor holds open.
+   *
+   * `min-h-[60vh]` was baked in, which is a document's height and was measured
+   * at 558px inside a card modal — a bare card had a description field taller
+   * than everything above it put together.
+   */
+  bodyClassName?: string
+  /** A card description is not a document body, and must not announce itself as one. */
+  ariaLabel?: string
+  testId?: string
+  /**
+   * Show a permanent formatting strip above the text.
+   *
+   * Off for documents, on purpose — see `EditorToolbar` for why that decision
+   * stands and why a card description is the exception.
+   */
+  toolbar?: boolean
 }) {
   /*
    * The slash menu's arrow/Enter handling has to run before ProseMirror sees the
@@ -66,22 +95,33 @@ export function DocEditor({
       TaskList,
       TaskItem.configure({ nested: true }),
       Markdown.configure({ html: false, breaks: true }),
-      Placeholder.configure({
-        placeholder: 'Start writing. Markdown works, or press "/" for blocks.',
-      }),
+      Placeholder.configure({ placeholder }),
     ],
     content: initialMarkdown,
     editorProps: {
       handleKeyDown: (_view, event) => keys.current(event),
       attributes: {
         // `dark:prose-invert` is the typography plugin's own switch. The prose
-        // classes carry their own ink — they are not written in our tokens — so
-        // without it a document is dark grey text on a dark surface. This is the
-        // one place a `dark:` variant belongs: styles we do not own.
-        class:
-          'prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[60vh] prose-headings:font-semibold prose-pre:bg-code prose-pre:text-code-ink',
-        'aria-label': 'Document body',
-        'data-testid': 'doc-body',
+        // classes used to carry their own ink, so without `dark:prose-invert` a
+        // document was dark grey text on a dark surface. `index.css` now maps
+        // the plugin's variables onto our tokens, which already flip with the
+        // theme — so one set of values is right in both, and the invert (and
+        // the `dark:` variant that existed only to power it) is gone.
+        class: `prose prose-neutral max-w-none focus:outline-none prose-headings:font-semibold prose-pre:bg-code prose-pre:text-code-ink ${bodyClassName}`,
+        /*
+         * `role` and `aria-multiline`, not just a label.
+         *
+         * `contenteditable` gives an element no implicit ARIA role, so an
+         * `aria-label` on it is naming a generic div — which axe reports as
+         * `aria-prohibited-attr`. It had been true since the editor was built
+         * and went unseen because the scan never opened a document; putting the
+         * editor in the card modal walked it straight into a screen the gate
+         * does visit.
+         */
+        role: 'textbox',
+        'aria-multiline': 'true',
+        'aria-label': ariaLabel,
+        'data-testid': testId,
       },
     },
     onUpdate: ({ editor }) => onChange(editor.storage.markdown.getMarkdown()),
@@ -105,10 +145,11 @@ export function DocEditor({
   }, [docId, editor])
 
   return (
-    <>
+    <div className={className}>
+      {toolbar && editor && <EditorToolbar editor={editor} />}
       <EditorContent editor={editor} />
       {editor && <EditorBubbleMenu editor={editor} />}
       <SlashMenu state={slash} />
-    </>
+    </div>
   )
 }

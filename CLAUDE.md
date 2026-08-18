@@ -262,10 +262,21 @@ width — a bug that needs a scrolling container will not appear on a board that
   a colour *computed* in TypeScript (`projectColor` returned a finished `hsl(h 62% 97%)` for
   project tiles, which stayed near-white while the ink on it inverted — it now returns the hue
   and CSS owns the lightness), and a colour owned by *someone else's* CSS (the typography
-  plugin's `prose` classes carry their own ink). Tailwind's `dark:` variant is pointed at our
-  attribute — `@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *))` —
-  **only** so `dark:prose-invert` works. A component that needs a `dark:` utility has
-  hard-coded a value it should not have had.
+  plugin's `prose` classes carried their own ink).
+
+  **Both leaks are now closed, and with them the `dark:` variant.** The plugin's colour
+  variables — `--tw-prose-body` and the seventeen beside it — are mapped onto our tokens in
+  `index.css`, so a document's ink is `--color-ink` like every other screen's. Our tokens
+  already flip with the theme, so one set of values is right in both palettes and
+  `dark:prose-invert` is no longer needed. `@custom-variant dark` was defined *only* to power
+  that one utility, so it has been **removed**: the rule that every colour goes through a role
+  token now enforces itself, because `dark:` does not compile. Two things followed from
+  closing it that are worth knowing. The doc page's ink had been Tailwind neutral in
+  **oklch** — the one colour space axe silently cannot measure — on the app's most text-heavy
+  screen. And `assertNoUnreadableColours` could never have caught it: it ran once per walk on
+  the projects list, reasoning that "the tokens are global", which is true of *our* tokens and
+  was exactly what prose was the exception to. It now also runs on the doc editor and the card
+  description, the two screens where prose exists.
 
   **Dark ink is not light ink mirrored.** Inverting the light scale gives a faint step of
   `#737373`, which measures **3.19:1** on the dark surface — ten failures on the switcher's
@@ -303,6 +314,70 @@ width — a bug that needs a scrolling container will not appear on a board that
   server the user had, while printing "Connected". Never write a file you could not first
   read and understand; absent ≠ unreadable. Back up before touching someone else's file. If
   in doubt, refuse and print the JSON to paste.
+- **A card description is the doc editor, and a card is not a document.** Both store
+  markdown, so a `## heading` written by an agent over MCP and one typed in the browser have
+  to be the same object — the description was a textarea that stored markdown and rendered
+  none of it. What differs is everything around the text. The doc page deliberately has **no
+  permanent toolbar** (Notion and Linear both dropped theirs; markdown-as-you-type, `/`, and
+  the selection bubble cover it) and a card **has one**, because a description is short, it
+  is entered in a modal by someone who came to change one thing, and nothing else on it
+  announces that it is a rich editor. Both surfaces draw from one `BLOCKS` list and one pair
+  of button primitives so they cannot drift. The typography differs too: `prose-card` is
+  **panel metrics, not page metrics** — measured in the modal, the plugin's scale gave a 30px
+  `h1` over an 18px card title and 601px of height for eleven short blocks. Headings sit only
+  just above body size and are carried by weight; the card's `h1` is 17px, deliberately under
+  the title it lives beneath.
+- **A document screen is measured, not just styled.** Line length is the one metric that
+  only matters here — a board is scanned, a document is read — and the doc column was putting
+  **87 characters** on a line at 1440. `max-w-2xl` brings it to about 75, the top of the
+  comfortable 45–75 range. Two more things were artifacts rather than decisions: TipTap wraps
+  every list item's content in a `<p>`, and `prose` gives a paragraph 20px of bottom margin,
+  so a three-bullet list rendered with paragraph air between its items and read as three
+  separate thoughts (`.prose li > p { margin: 0 }` — the same fix `prose-card` already had);
+  and the plugin draws literal backticks around inline `code`, which in an *editor* reads as a
+  markdown parser that failed.
+- **A document is one sheet.** The title had its own bordered box above the body's bordered
+  box, so a doc read as two stacked form fields — and with `min-h-[60vh]` under it, a short
+  document was a 558px empty panel with two lines at the top, which looks like something you
+  failed to fill in rather than something you are writing. Title and body now share one
+  panel, separated by a rule, which is what a title *is*. The title is `text-3xl` because it
+  has to outrank the `h2`s inside the document, and at `text-2xl` the two were both 24px.
+- **Destructive actions live behind the ⋯ on every surface.** Cards and docs both had a
+  permanently visible red delete, so the foot of each read as a warning; on a doc, which
+  scrolls, it also sat wherever the text happened to end. Both are in an overflow menu now,
+  and any new surface owes the same. The composers match too: `+ New doc` and `+ Add a
+  criterion` are quiet until pressed, because a permanent full-width input is the loudest
+  thing on a screen whose subject is the content above it. Empty states are the exception —
+  with nothing to be quieter than, the next thing to do *is* the page.
+- **A control the user cannot see cannot show its own focus.** Two chips here are a visible
+  thing we draw over a real control that is invisible — the due date's `sr-only` input, the
+  column picker's `opacity-0` select. Both are the right shape (the platform keeps the date
+  picker and the select menu; we keep the look), and both hide a focus ring as effectively as
+  `display: none` would: tabbing to the due date focused a **1×1 element at (455, 190)** and
+  nothing on screen changed. The visible chip wears the focus through `peer-focus-visible`,
+  which is only possible if the real control is the chip's *previous sibling*. The axe gate
+  cannot catch this — the input has a ring, it is simply invisible — so `e2e/board.spec.ts`
+  asserts it.
+- **`appearance-none` is half of owning a `<select>`; the other half is width.** A native
+  select sizes itself to its **widest option**, not its current one, so the column picker was
+  172px wide to show 61px of text with our chevron marooned 87px from the word — because
+  somewhere in the project there was a column called "Another Another Another". The header
+  control's size was set by a column the card was not in. Draw the chip, lay the select over
+  it at `opacity-0`, and let the span do the sizing.
+- **A permanent toolbar must gate its active state on focus.** A bubble menu cannot get this
+  wrong — it only exists over a live selection. A strip outlives the cursor, and
+  `editor.isActive` answers from the last selection whether or not the editor still has
+  focus, so opening a card whose description ended in a task list drew "to-do list" in full
+  accent and told a screen reader `aria-pressed="true"` about a caret that was not there.
+  Focus is **not a transaction**, so subscribing to `focus`/`blur` is required; `useEditor`'s
+  re-render-on-transaction does not cover it.
+- **`aria-modal="true"` is a promise the Tab key has to keep.** The card panel carried
+  `role="dialog" aria-modal="true"` from the day it was built with nothing enforcing it:
+  tabbing from an open card walked the app header, the project menu, the tabs and then the
+  columns *behind the scrim* — twelve stops without landing in the dialog, every one of them
+  announced to assistive tech as inert. Focus starts on the panel (`tabIndex={-1}`, so it is
+  a landing spot and not a tab stop), Tab cycles within it, and closing returns focus to the
+  board rather than the top of the document. Any future dialog owes the same three things.
 - **One cheap call that returns the whole board** as compact markdown, so an agent orients
   in one call rather than five. Token efficiency is the agent's UX.
 - **Frictionlessness is the product.** Target: under 60 seconds from landing on the repo to
@@ -311,6 +386,24 @@ width — a bug that needs a scrolling container will not appear on a board that
 
 ## Gotchas
 
+- **A local write has to mark itself, or the live-update pulse lies.** `useRecentChanges`
+  diffs two reads, which is what makes an agent's write and a browser tab's write look
+  identical — the point of the design. The cost is that every local mutation must call
+  `markLocalChange`, or the "this changed while you were not looking" ring fires on the card
+  you are looking at and just clicked. **This has now shipped twice**: ticking a card, then
+  adding one. Adding is the harder case, because the id is the server's to assign, so it can
+  only be marked *after* the response — a window the 80ms watcher coalesce makes safe in
+  practice. `e2e/board.spec.ts` pins both, each paired with an assertion that a write from
+  outside the tab still pulses, so a fix cannot degrade into a mute button.
+- **`contenteditable` has no implicit ARIA role**, so an `aria-label` on it is naming a
+  generic div — `aria-prohibited-attr`. The doc editor had carried one since it was built and
+  the gate never saw it, because the scan never opened a document; putting the same editor in
+  the card modal walked it straight onto a screen the scan does visit. It needs
+  `role="textbox"` and `aria-multiline="true"` before the label means anything.
+- **`@tiptap/extension-placeholder` renders nothing on its own.** It sets `data-placeholder`
+  and marks the empty node; the CSS is the caller's. That CSS did not exist, so every empty
+  document had been silently blank since the editor was built — the string was in the source
+  and had never been on screen. Noticed only because a card needed a different one.
 - **WAL gives concurrent *readers*, not writers.** `src/db/index.ts` sets
   `busy_timeout`; without it the second writer took `SQLITE_BUSY` instantly and the write
   was simply lost — measured at 19 of 30 landing between the web server and an MCP process,

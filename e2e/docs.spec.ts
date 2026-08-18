@@ -105,7 +105,10 @@ test.describe('docs', () => {
     await page.getByRole('link', { name: 'Docs' }).click()
     await page.getByTestId('doc-row').filter({ hasText: 'Final' }).click()
 
-    // Deleting asks first — it is the only irrecoverable action in the app.
+    // Deleting asks first — it is the only irrecoverable action in the app — and
+    // it lives behind the ⋯, not as a red link under the document, so the foot
+    // of every doc does not read as a warning. Same as the card's.
+    await page.getByRole('button', { name: 'Doc actions' }).click()
     await page.getByRole('button', { name: 'Delete doc' }).click()
     await expect(page.getByRole('button', { name: 'Really delete' })).toBeVisible()
 
@@ -113,6 +116,10 @@ test.describe('docs', () => {
     await page.getByRole('button', { name: 'Cancel' }).click()
     await expect(page.getByLabel('Doc title', { exact: true })).toHaveValue('Final')
 
+    // No second press on the ⋯: backing out of the confirm leaves the menu
+    // open, because the Cancel that dismissed it is inside the menu and the
+    // menu only closes on a press outside itself. Pressing ⋯ again would close
+    // it, which is what the first version of this did.
     await page.getByRole('button', { name: 'Delete doc' }).click()
     await page.getByRole('button', { name: 'Really delete' }).click()
 
@@ -218,6 +225,11 @@ test.describe('docs', () => {
     const list = page.url()
     for (const title of ['Brief', 'Notes', 'Decisions']) {
       await page.goto(list)
+      // The composer is quiet once there are docs to be quieter than — on an
+      // empty list it is already open, because there the next thing to do is
+      // the page. So the first pass through here does not see this button.
+      const composer = page.getByRole('button', { name: 'New doc' })
+      if (await composer.isVisible()) await composer.click()
       await page.getByLabel('New doc title').fill(title)
       await page.getByRole('button', { name: 'Create' }).click()
       await expect(page).toHaveURL(/\/docs\/\w+$/)

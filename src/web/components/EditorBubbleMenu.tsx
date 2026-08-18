@@ -46,30 +46,30 @@ export function EditorBubbleMenu({ editor }: { editor: Editor }) {
           <LinkInput editor={editor} onDone={() => setLinking(false)} />
         ) : (
           <>
-            <Mark editor={editor} name="bold" label="B" title="Bold" className="font-bold" />
-            <Mark editor={editor} name="italic" label="I" title="Italic" className="italic" />
-            <Mark
+            <EditorMark editor={editor} name="bold" label="B" title="Bold" className="font-bold" />
+            <EditorMark editor={editor} name="italic" label="I" title="Italic" className="italic" />
+            <EditorMark
               editor={editor}
               name="strike"
               label="S"
               title="Strikethrough"
               className="line-through"
             />
-            <Mark editor={editor} name="code" label="<>" title="Inline code" className="font-mono" />
-            <Button
+            <EditorMark editor={editor} name="code" label="<>" title="Inline code" className="font-mono" />
+            <EditorButton
               active={editor.isActive('link')}
               title="Link"
               onClick={() => setLinking(true)}
             >
               Link
-            </Button>
+            </EditorButton>
 
             <span className="mx-1 h-4 w-px bg-hover-strong" aria-hidden />
 
             {TURN_INTO.map((id) => {
               const block = BLOCKS.find((b) => b.id === id)!
               return (
-                <Button
+                <EditorButton
                   key={id}
                   active={isBlockActive(editor, id)}
                   title={`Turn into ${block.label.toLowerCase()}`}
@@ -82,7 +82,7 @@ export function EditorBubbleMenu({ editor }: { editor: Editor }) {
                   }}
                 >
                   {TURN_INTO_LABELS[id]}
-                </Button>
+                </EditorButton>
               )
             })}
           </>
@@ -98,22 +98,37 @@ function isBlockActive(editor: Editor, id: string): boolean {
   return editor.isActive(id)
 }
 
-function Mark({
+/**
+ * Exported so the card description's toolbar can use the same buttons. Two
+ * formatting surfaces drawn from two sets of primitives would drift in a week.
+ */
+export function EditorMark({
   editor,
   name,
   label,
   title,
   className,
+  children,
+  showActive = true,
 }: {
   editor: Editor
   name: 'bold' | 'italic' | 'strike' | 'code'
-  label: string
+  /** A letterform that demonstrates the mark. Omit and pass `children` for a glyph. */
+  label?: string
   title: string
   className?: string
+  children?: React.ReactNode
+  /**
+   * Whether the active state means anything right now.
+   *
+   * The bubble only exists over a selection in a focused editor, so it leaves
+   * this alone. A permanent toolbar outlives the cursor — see `EditorToolbar`.
+   */
+  showActive?: boolean
 }) {
   return (
-    <Button
-      active={editor.isActive(name)}
+    <EditorButton
+      active={showActive && editor.isActive(name)}
       title={title}
       onClick={() => {
         const chain = editor.chain().focus()
@@ -124,12 +139,12 @@ function Mark({
       }}
       className={className}
     >
-      {label}
-    </Button>
+      {children ?? label}
+    </EditorButton>
   )
 }
 
-function Button({
+export function EditorButton({
   active,
   title,
   onClick,
